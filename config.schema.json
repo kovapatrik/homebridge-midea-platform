@@ -1,15 +1,24 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "midea-ac",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
+      "user": {
+        "title": "Midea Account Username",
         "type": "string",
-        "required": true,
-        "default": "Example Dynamic Platform"
+        "required": true
+      },
+      "password": {
+        "title": "Midea Account Password",
+        "type": "string",
+        "required": true
+      },
+      "useChinaServer": {
+        "title": "Use China Server",
+        "type": "boolean",
+        "default": false
       }
     }
   }
