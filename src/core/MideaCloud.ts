@@ -173,7 +173,7 @@ export default class Cloud {
     }
   }
 
-  public async getToken(device_id: number, endianess: Endianness) {
+  public async getToken(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
 
     const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
     const response = await this.apiRequest('/v1/iot/secure/getToken',
@@ -183,7 +183,7 @@ export default class Cloud {
     if (response) {
       for (const token of response['tokenlist']) {
         if (token['udpId'] === udpid) {
-          return token['token'], token['key'];
+          return [ Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex') ];
         }
       }
     } else {

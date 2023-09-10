@@ -32,8 +32,8 @@ export type DeviceInfo = {
   model: string;
   sn: string;
   name: string;
-  type: DeviceType;
-  version: ProtocolVersion;
+  type: number;
+  version: number;
 };
 
 export enum FrameType {
@@ -52,7 +52,8 @@ export enum TCPMessageType {
 }
 
 export enum ProtocolVersion {
-  V1 = 1,
+  UNKNOWN = 0,
+  V1,
   V2,
   V3
 }

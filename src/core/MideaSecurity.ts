@@ -1,6 +1,6 @@
-import { BinaryLike, createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
 import { TCPMessageType } from './MideaConstants';
-import { concatUint8Arrays, numberToUint8Array, strxor } from './MideaUtils';
+import { numberToUint8Array, strxor } from './MideaUtils';
 
 export type KeyToken = Buffer | undefined;
 
@@ -53,7 +53,7 @@ export class CloudSecurity {
   }
 
   public static getUDPID(device_id_buf: Uint8Array) {
-    const data = createHash('sha256').update(device_id_buf).digest().subarray(0, 16);
+    const data = createHash('sha256').update(device_id_buf).digest();
     const output = Buffer.alloc(16);
     for (let i = 0; i < 16; i++) {
       output[i] = data[i] ^ data[i+16];
@@ -63,34 +63,41 @@ export class CloudSecurity {
 }
 
 export class LocalSecurity {
-  private static readonly SIGN_KEY = Buffer.from('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S', 'utf-8');
-  public static readonly ENC_KEY = createHash('md5').update(this.SIGN_KEY).digest();
+  // private static readonly SIGN_KEY = Buffer.from('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S', 'utf-8');
+  // public static readonly ENC_KEY = createHash('md5').update(this.SIGN_KEY).digest();
 
-  private readonly iv = new Uint8Array(Array(16).fill(0));
+  private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
+  private readonly salt = Buffer.from('78686469776a6e6368656b6434643531326368646a783564386534633339344432443753', 'hex');
+  private readonly iv = Buffer.alloc(16);
 
   private request_count = 0;
   private response_count = 0;
 
   private tcp_key?: Buffer;
 
-  private aes_cbc_encrpyt(raw: BinaryLike, key: Buffer) {
-    const cipher = createCipheriv('aes-128-cbc', key, this.iv);
-    let encrypted = cipher.update(raw);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-
-    return encrypted;
+  private aes_cbc_encrpyt(raw: Buffer, key: Buffer) {
+    const cipher = createCipheriv('aes-256-cbc', key, this.iv);
+    return Buffer.concat([cipher.update(raw), cipher.final()]);
   }
 
   private aes_cbc_decrypt(raw: Buffer, key: Buffer) {
-    const decipher = createDecipheriv('aes-128-cbc', key, this.iv);
-    let decrypted = decipher.update(raw);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-
-    return decrypted;
+    const decipher = createDecipheriv('aes-256-cbc', key, this.iv);
+    decipher.setAutoPadding(false);
+    return Buffer.concat([decipher.update(raw), decipher.final()]);
   }
 
-  public sign(data: Buffer) {
-    return createHash('md5').update(Buffer.concat([data, LocalSecurity.SIGN_KEY])).digest();
+  public aes_encrypt(data: Buffer) {
+    const cipher = createCipheriv('aes-128-ecb', this.aes_key, null);
+    return Buffer.concat([cipher.update(data), cipher.final()]);
+  }
+
+  public aes_decrypt(data: Buffer) {
+    const decipher = createDecipheriv('aes-128-ecb', this.aes_key, null);
+    return Buffer.concat([decipher.update(data), decipher.final()]);
+  }
+
+  public encode32_data(raw: Buffer) {
+    return createHash('md5').update(Buffer.concat([raw, this.salt])).digest();
   }
 
   public tcp_key_from_resp(response: Buffer, key: Buffer) {
@@ -103,8 +110,7 @@ export class LocalSecurity {
     const payload = response.subarray(0, 32);
     const sign = response.subarray(32, response.length);
     const plain = this.aes_cbc_decrypt(payload, key);
-
-    if (createHash('sha256').update(plain).digest() !== sign) {
+    if (createHash('sha256').update(plain).digest().compare(sign) !== 0) {
       throw Error('Authentication sign does not match, cannot get TCP key.');
     }
 
@@ -116,30 +122,71 @@ export class LocalSecurity {
   }
 
   public encode_8370(data: Buffer, message_type: TCPMessageType) {
-    let data_byte = new Uint8Array(data);
-    let header = new Uint8Array([0x83, 0x70]);
-    let size = data_byte.length;
+    let header = Buffer.from([0x83, 0x70]);
+    let size = data.length;
     let padding = 0;
 
     if (message_type === TCPMessageType.ENCRYPTED_REQUEST || message_type === TCPMessageType.ENCRYPTED_RESPONSE) {
       if ((size + 2) % 16 !== 0) {
         padding = 16 - (size + 2 & 0xf);
         size += padding + 32;
-        data_byte = concatUint8Arrays(data_byte, randomBytes(padding));
+        data = Buffer.concat([data, randomBytes(padding)]);
       }
     }
 
-    header = concatUint8Arrays(header, numberToUint8Array(size, 2, 'big'));
-    header = concatUint8Arrays(header, new Uint8Array([0x20, padding << 4 | message_type]));
-    data_byte = concatUint8Arrays(numberToUint8Array(this.request_count, 2, 'big'), data_byte);
+    header = Buffer.concat([header, numberToUint8Array(size, 2, 'big')]);
+    header = Buffer.concat([header, Buffer.from([0x20, padding << 4 | message_type])]);
+    data = Buffer.concat([numberToUint8Array(this.request_count, 2, 'big'), data]);
     this.request_count += 1;
     if (this.request_count >= 0xFFFF) {
       this.request_count = 0;
     }
     if (message_type === TCPMessageType.ENCRYPTED_REQUEST || message_type === TCPMessageType.ENCRYPTED_RESPONSE) {
-      const sign = createHash('sha256').update(concatUint8Arrays(header, data)).digest();
-      data_byte = Buffer.concat([this.aes_cbc_encrpyt(data_byte, this.tcp_key!), sign]);
+      const sign = createHash('sha256').update(Buffer.concat([header, data])).digest();
+      data = Buffer.concat([this.aes_cbc_encrpyt(data, this.tcp_key!), sign]);
     }
-    return Buffer.concat([header, data_byte]);
+    return Buffer.concat([header, data]);
+  }
+
+  public decode_8370(data: Buffer) {
+    if (data.length < 6) {
+      return [ [], data ];
+    }
+    const header = data.subarray(0, 6);
+    if (header[0] !== 0x83 || header[1] !== 0x70) {
+      throw new Error('Not an 8370 message.');
+    }
+    const size = header.subarray(2, 4).readUInt16BE() + 8;
+    let leftover = Buffer.alloc(0);
+    if (data.length < size) {
+      return [ [], data ];
+    } else if (data.length > size) {
+      leftover = data.subarray(size, data.length);
+      data = data.subarray(0, size);
+    }
+    if (header[4] !== 0x20) {
+      throw new Error('Missing byte 4');
+    }
+    const padding = header[5] >> 4;
+    const message_type_received = header[5] & 0xF;
+    data = data.subarray(6, data.length);
+    if ([TCPMessageType.ENCRYPTED_RESPONSE, TCPMessageType.ENCRYPTED_REQUEST].includes(message_type_received)) {
+      const sign = data.subarray(data.length - 32, data.length);
+      data = data.subarray(0, data.length - 32);
+      data = this.aes_cbc_decrypt(data, this.tcp_key!);
+      if (createHash('sha256').update(Buffer.concat([header, data])).digest() !== sign) {
+        throw new Error('Sign does not match');
+      }
+      if (padding) {
+        data = data.subarray(0, data.length - padding);
+      }
+    }
+    this.response_count = data.subarray(0, 2).readUInt16BE();
+    data = data.subarray(2, data.length);
+    if (leftover.length > 0) {
+      const [ packets, incomplete ] = this.decode_8370(leftover);
+      return [ [ data, ...packets ], incomplete ];
+    }
+    return [ [ data ], leftover ];
   }
 }

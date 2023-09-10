@@ -1,8 +1,7 @@
 import dgram from 'dgram';
 import { Logger } from 'homebridge';
-import { DISCOVERY_MESSAGE, DeviceInfo, DeviceType, ProtocolVersion } from './MideaConstants';
+import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants';
 import { XMLParser } from 'fast-xml-parser';
-import { createDecipheriv } from 'crypto';
 import EventEmitter from 'events';
 import { LocalSecurity } from './MideaSecurity';
 
@@ -12,6 +11,7 @@ export default class Discover extends EventEmitter {
   private socket: dgram.Socket;
 
   private readonly xml_parser: XMLParser;
+  private security: LocalSecurity;
 
   constructor(
     private readonly logger: Logger,
@@ -19,6 +19,7 @@ export default class Discover extends EventEmitter {
 
     super();
 
+    this.security = new LocalSecurity();
     this.xml_parser = new XMLParser();
 
     this.socket = dgram.createSocket('udp4');
@@ -93,13 +94,9 @@ export default class Discover extends EventEmitter {
       const encrypted_data = buffer.subarray(40, -16);
       const device_id = buffer.readUIntLE(20, 6);
 
-
-      const cipher = createDecipheriv('aes-128-ecb', LocalSecurity.ENC_KEY, null);
       let decrypted_buffer: Buffer;
-
       try {
-        decrypted_buffer = cipher.update(encrypted_data);
-        decrypted_buffer = Buffer.concat([decrypted_buffer, cipher.final()]);
+        decrypted_buffer = this.security.aes_decrypt(encrypted_data);
       } catch (err) {
         throw new Error(`Error while decrypting data: ${err}`);
       }
@@ -132,8 +129,8 @@ export default class Discover extends EventEmitter {
         'model': model,
         'sn': sn,
         'name': name,
-        'type': DeviceType[device_type as unknown as keyof typeof DeviceType],
-        'version': ProtocolVersion[version as unknown as keyof typeof ProtocolVersion],
+        'type': device_type,
+        'version': version,
       };
     }
   }

@@ -3,11 +3,11 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import Cloud from './core/MideaCloud';
 import Discover from './core/MideaDiscover';
-import { DeviceInfo, Endianness } from './core/MideaConstants';
+import { DeviceInfo, DeviceType, Endianness } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import MideaDevice from './core/MideaDevice';
-import { LocalSecurity } from './core/MideaSecurity';
-import { formatWithOptions } from 'util';
+import DeviceFactory from './devices/DeviceFactory';
+import MideaACDevice from './devices/ac/MideaACDevice';
 
 export class MideaPlatform implements DynamicPlatformPlugin {
 
@@ -62,27 +62,26 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
       const accessory = new this.api.platformAccessory(device_info.name, uuid);
 
-      const device = new MideaDevice(this.log, device_info, undefined, undefined);
+      const device = new MideaACDevice(this.log, device_info, undefined, undefined);
 
       let connected = false;
       let i = 0;
       while (i <= 1 && !connected) {
         const endianess: Endianness = i === 0 ? 'little' : 'big';
+        let token: Buffer | undefined, key: Buffer | undefined = undefined;
         try {
-          const [ token, key ] = await this.cloud.getToken(device_info.id, endianess);
-          device.token = token;
-          device.key = key;
-
-          await device.connect();
-          connected = true;
+          [ token, key ] = await this.cloud.getToken(device_info.id, endianess);
         } catch (e) {
-          this.log.debug(`Connecting with ${endianess}-endian token and key is not successful: ${e}`);
-          i++;
+          this.log.debug(`Getting token and key with ${endianess}-endian is not successful: ${e}`);
         }
+        device.token = token;
+        device.key = key;
+        connected = await device.connect();
+        i++;
       }
 
       if (connected) {
-        this.log.debug(`Connected to device ${device_info.ip}:${device_info.port}`);
+        this.log.info(`Connected to device ${device_info.ip}:${device_info.port}`);
         accessory.context.device = device;
         // create the accessory handler for the newly create accessory
         // this is imported from `platformAccessory.ts`
