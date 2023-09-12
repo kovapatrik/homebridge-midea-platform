@@ -3,11 +3,14 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import Cloud from './core/MideaCloud';
 import Discover from './core/MideaDiscover';
-import { DeviceInfo, DeviceType, Endianness } from './core/MideaConstants';
+import { DeviceInfo, Endianness } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
-import MideaDevice from './core/MideaDevice';
 import DeviceFactory from './devices/DeviceFactory';
-import MideaACDevice from './devices/ac/MideaACDevice';
+
+type ConfigDevice = {
+  ip: string;
+  name?: string;
+};
 
 export class MideaPlatform implements DynamicPlatformPlugin {
 
@@ -29,6 +32,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.cloud = new Cloud(this.config['user'], this.config['password'], this.config['useChinaServer'], log);
     this.discover = new Discover(log);
     this.discover.on('device', (device_info: DeviceInfo) => {
+      const configDev = this.config['devices'].find((dev: ConfigDevice) => dev.ip === device_info.ip);
+      if (configDev) {
+        device_info.name = configDev.name || device_info.name;
+      }
       this.addDevice(device_info);
     });
 
@@ -42,7 +49,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       this.cloud.login()
         .then(() => {
           this.log.info('Logged in to Midea Cloud.');
-          this.discover.startDiscover();
+          // this.discover.startDiscover();
+          if (this.config['devices']) {
+            this.config['devices'].forEach((device: ConfigDevice) => {
+              this.discover.discoverDeviceByIP(device.ip);
+            });
+          }
         })
         .catch((error) => {
           this.log.error(`Error logging in to Midea Cloud: ${error}`);
@@ -56,41 +68,44 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      AccessoryFactory.createAccessory(this, existingAccessory, existingAccessory.context.type);
+      AccessoryFactory.createAccessory(this, existingAccessory, existingAccessory.context.device.type);
     } else {
       this.log.info('Adding new accessory:', device_info.name);
 
       const accessory = new this.api.platformAccessory(device_info.name, uuid);
 
-      const device = new MideaACDevice(this.log, device_info, undefined, undefined);
-
-      let connected = false;
-      let i = 0;
-      while (i <= 1 && !connected) {
-        const endianess: Endianness = i === 0 ? 'little' : 'big';
-        let token: Buffer | undefined, key: Buffer | undefined = undefined;
-        try {
-          [ token, key ] = await this.cloud.getToken(device_info.id, endianess);
-        } catch (e) {
-          this.log.debug(`Getting token and key with ${endianess}-endian is not successful: ${e}`);
+      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined);
+      if (device) {
+        let connected = false;
+        let i = 0;
+        while (i <= 1 && !connected) {
+          const endianess: Endianness = i === 0 ? 'little' : 'big';
+          let token: Buffer | undefined, key: Buffer | undefined = undefined;
+          try {
+            [ token, key ] = await this.cloud.getToken(device_info.id, endianess);
+          } catch (e) {
+            this.log.debug(`Getting token and key with ${endianess}-endian is not successful: ${e}`);
+          }
+          device.token = token;
+          device.key = key;
+          connected = await device.connect();
+          i++;
         }
-        device.token = token;
-        device.key = key;
-        connected = await device.connect();
-        i++;
-      }
 
-      if (connected) {
-        this.log.info(`Connected to device ${device_info.ip}:${device_info.port}`);
-        accessory.context.device = device;
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
-        AccessoryFactory.createAccessory(this, accessory, device_info.type);
+        if (connected) {
+          this.log.info(`Connected to device ${device_info.ip}:${device_info.port}`);
+          accessory.context.device = device;
+          // create the accessory handler for the newly create accessory
+          // this is imported from `platformAccessory.ts`
+          AccessoryFactory.createAccessory(this, accessory, device_info.type);
 
-        // link the accessory to your platform
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          // link the accessory to your platform
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        } else {
+          this.log.error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
+        }
       } else {
-        this.log.error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
+        this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
       }
     }
   }

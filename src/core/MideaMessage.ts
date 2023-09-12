@@ -1,4 +1,4 @@
-import { DeviceType, ProtocolVersion } from './MideaConstants';
+import { DeviceType } from './MideaConstants';
 
 export enum MessageType {
   UNKNOWN = 0x00,
@@ -18,7 +18,7 @@ abstract class MessageBase {
   protected abstract device_type: DeviceType;
   protected abstract message_type: MessageType;
   protected abstract body_type: number;
-  protected abstract protocol_version: ProtocolVersion;
+  protected abstract device_protocol_version: number;
 
   protected abstract body: Buffer;
 
@@ -36,7 +36,7 @@ export abstract class MessageRequest extends MessageBase {
   device_type: DeviceType;
   message_type: MessageType;
   body_type: number;
-  protocol_version: ProtocolVersion;
+  device_protocol_version: number;
 
   protected abstract _body: Buffer;
 
@@ -44,13 +44,13 @@ export abstract class MessageRequest extends MessageBase {
     device_type: DeviceType,
     message_type: MessageType,
     body_type: number,
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
     super();
     this.device_type = device_type;
     this.message_type = message_type;
     this.body_type = body_type;
-    this.protocol_version = protocol_version;
+    this.device_protocol_version = device_protocol_version;
   }
 
   get body() {
@@ -77,7 +77,7 @@ export abstract class MessageRequest extends MessageBase {
       // frame protocol version
       0x00,
       // device protocol version
-      this.protocol_version,
+      this.device_protocol_version,
       // frame type
       this.message_type,
     ]);
@@ -98,7 +98,7 @@ export class MessageQuerySubtype extends MessageRequest {
       device_type,
       MessageType.QUERY_SUBTYPE,
       0x00,
-      ProtocolVersion.UNKNOWN,
+      0,
     );
   }
 }
@@ -111,7 +111,7 @@ export class MessageQuestCustom extends MessageRequest {
       device_type,
       message_type,
       0x00,
-      ProtocolVersion.UNKNOWN,
+      0,
     );
     this.cmd_body = cmd_body;
   }
@@ -192,7 +192,7 @@ export class MessageResponse extends MessageBase {
   protected device_type: DeviceType;
   protected message_type: MessageType;
   protected body_type: number;
-  public protocol_version: ProtocolVersion;
+  public device_protocol_version: number;
 
   protected _body: MessageBody;
 
@@ -204,12 +204,11 @@ export class MessageResponse extends MessageBase {
       throw new Error('Invalid message length');
     }
     this.header = message.subarray(0, this.HEADER_LENGTH);
-    this.device_type = this.header[8];
-    this.message_type = this.header[this.HEADER_LENGTH - 1];
+    this.device_protocol_version = this.header[8];
+    this.message_type = this.header[this.header.length - 1];
     this.device_type = this.header[2];
-    this.protocol_version = this.header[8];
 
-    this._body = new MessageBody(message.subarray(this.HEADER_LENGTH, message.length - 1));
+    this._body = new MessageBody(message.subarray(this.HEADER_LENGTH, -1));
     this.body_type = this._body.body_type;
   }
 
@@ -219,6 +218,10 @@ export class MessageResponse extends MessageBase {
 
   set_body(body: MessageBody) {
     this._body = body;
+  }
+
+  get_body_type() {
+    return this._body.constructor.name;
   }
 
   get_body_attribute(name: string) {
@@ -233,7 +236,7 @@ export class MessageSubtypeResponse extends MessageResponse {
   constructor(message: Buffer | null | undefined) {
     super(message);
     if (this.message_type === MessageType.QUERY_SUBTYPE) {
-      const body = message!.subarray(this.HEADER_LENGTH, message!.length - 1);
+      const body = message!.subarray(this.HEADER_LENGTH, -1);
       this.sub_type = (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0);
     } else {
       throw new Error('Invalid message type');

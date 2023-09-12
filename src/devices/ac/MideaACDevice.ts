@@ -100,11 +100,17 @@ export default class MideaACDevice extends MideaDevice {
       SCREEN_DISPLAY: false,
       SCREEN_DISPLAY_NEW: false,
       FULL_DUST: false,
+      INDOOR_TEMPERATURE: undefined,
+      OUTDOOR_TEMPERATURE: undefined,
       INDIRECT_WIND: false,
+      INDOOR_HUMIDITY: undefined,
       BREEZELESS: false,
+      TOTAL_ENERGY_CONSUMPTION: undefined,
+      CURRENT_ENERGY_CONSUMPTION: undefined,
       REALTIME_POWER: 0,
       FRESH_AIR_POWER: false,
       FRESH_AIR_FAN_SPEED: 0,
+      FRESH_AIR_MODE: undefined,
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
     };
@@ -113,21 +119,21 @@ export default class MideaACDevice extends MideaDevice {
   build_query() {
     if (this.used_subprotocol) {
       return [
-        new MessageSubProtocolQuery(this.version, 0x10),
-        new MessageSubProtocolQuery(this.version, 0x11),
-        new MessageSubProtocolQuery(this.version, 0x30),
+        new MessageSubProtocolQuery(this.device_protocol_version, 0x10),
+        new MessageSubProtocolQuery(this.device_protocol_version, 0x11),
+        new MessageSubProtocolQuery(this.device_protocol_version, 0x30),
       ];
     }
     return [
-      new MessageQuery(this.version),
-      new MessageNewProtocolQuery(this.version),
-      new MessagePowerQuery(this.version),
+      new MessageQuery(this.device_protocol_version),
+      new MessageNewProtocolQuery(this.device_protocol_version),
+      new MessagePowerQuery(this.device_protocol_version),
     ];
   }
 
   process_message(msg: Buffer) {
     const message = new MessageACResponse(msg, this.power_analysis_method);
-    this.logger.debug(`[${this.id}] Got message: ${message.toString()}`);
+    this.logger.debug(`Got message ${message.get_body_type()}`);
     let has_fresh_air = false;
     const new_status: Partial<DeviceAttributes> = {};
 
@@ -141,10 +147,10 @@ export default class MideaACDevice extends MideaDevice {
       }
     }
 
-
     for (const status of Object.keys(this.attributes)) {
-      if (message.get_body_attribute(status)) {
-        const value = message.get_body_attribute(status);
+      const value = message.get_body_attribute(status.toLowerCase());
+      if (value !== undefined) {
+        this.logger.debug(`Setting local ${status} to ${value}`);
         if (status === 'FRESH_AIR_POWER') {
           has_fresh_air = true;
         }
@@ -185,7 +191,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   make_message_set() {
-    const message = new MessageGeneralSet(this.version);
+    const message = new MessageGeneralSet(this.device_protocol_version);
     message.power = this.attributes.POWER;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.mode = this.attributes.MODE;
@@ -207,7 +213,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   make_subprotocol_message_set() {
-    const message = new MessageSubProtocolSet(this.version);
+    const message = new MessageSubProtocolSet(this.device_protocol_version);
     message.power = this.attributes.POWER;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.aux_heating = this.attributes.AUX_HEATING;
@@ -229,49 +235,50 @@ export default class MideaACDevice extends MideaDevice {
 
   async set_attribute(attributes: Partial<DeviceAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
-
       let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | undefined = undefined;
 
       // not sensor data
       if (!['INDOOR_TEMPERATURE', 'OUTDOOR_TEMPERATURE', 'INDOOR_HUMIDITY', 'FULL_DUST',
         'TOTAL_ENERGY_CONSUMPTION', 'CURRENT_ENERGY_CONSUMPTION', 'REALTIME_POWER'].includes(k)) {
 
+        this.attributes[k] = v;
+
         if (k === 'PROMPT_TONE') {
           this.attributes.PROMPT_TONE = v as boolean;
         } else if (k === 'SCREEN_DISPAY') {
           if (this.attributes.SCREEN_DISPLAY_NEW) {
-            message = new MessageNewProtocolSet(this.version);
+            message = new MessageNewProtocolSet(this.device_protocol_version);
             message.screen_display = v as boolean;
             message.prompt_tone = this.attributes.PROMPT_TONE;
           } else {
-            message = new MessageSwitchDisplay(this.version);
+            message = new MessageSwitchDisplay(this.device_protocol_version);
           }
         } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
-          message = new MessageNewProtocolSet(this.version);
+          message = new MessageNewProtocolSet(this.device_protocol_version);
           message[k.toLowerCase()] = v as boolean;
           message.prompt_tone = this.attributes.PROMPT_TONE;
         } else if (k === 'FRESH_AIR_POWER') {
           if (this.fresh_air_version) {
-            message = new MessageNewProtocolSet(this.version);
+            message = new MessageNewProtocolSet(this.device_protocol_version);
             message[this.fresh_air_version] = [v as boolean, this.attributes.FRESH_AIR_FAN_SPEED];
           }
         } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version) {
           if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
             const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find(key => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
             const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-            message = new MessageNewProtocolSet(this.version);
+            message = new MessageNewProtocolSet(this.device_protocol_version);
             message[this.fresh_air_version] = fresh_air;
           } else if (!v) {
-            message = new MessageNewProtocolSet(this.version);
+            message = new MessageNewProtocolSet(this.device_protocol_version);
             message[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
           }
         } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version) {
-          message = new MessageNewProtocolSet(this.version);
+          message = new MessageNewProtocolSet(this.device_protocol_version);
           const value = v as number;
           const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
           message[this.fresh_air_version] = fresh_air;
         } else {
-          message = this.make_message_unique_set() ;
+          message = this.make_message_unique_set();
           if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
             if (message instanceof MessageGeneralSet || message instanceof MessageSubProtocolSet) {
               message.sleep_mode = false;
@@ -296,24 +303,30 @@ export default class MideaACDevice extends MideaDevice {
     }
   }
 
-  set_target_temperature(target_temperature: number, mode: number) {
+  async set_target_temperature(target_temperature: number, mode: number) {
     const message = this.make_message_unique_set();
     message.target_temperature = target_temperature;
+    this.attributes.TARGET_TEMPERATURE = target_temperature;
     if (mode) {
       message.mode = mode;
       message.power = true;
+
+      this.attributes.MODE = mode;
+      this.attributes.POWER = true;
     }
-    this.build_send(message);
+    await this.build_send(message);
   }
 
-  set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
+  async set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
     const message = this.make_message_set();
     message.swing_horizontal = swing_horizontal;
     message.swing_vertical = swing_vertical;
-    this.build_send(message);
+    this.attributes.SWING_HORIZONTAL = swing_horizontal;
+    this.attributes.SWING_VERTICAL = swing_vertical;
+    await this.build_send(message);
   }
 
   protected set_subtype(): void {
-    throw new Error('Method not implemented.');
+    this.logger.debug('No subtype for AC device');
   }
 }

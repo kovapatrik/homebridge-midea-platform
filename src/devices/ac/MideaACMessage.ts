@@ -1,4 +1,4 @@
-import { DeviceType, ProtocolVersion } from '../../core/MideaConstants';
+import { DeviceType } from '../../core/MideaConstants';
 import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
 
@@ -20,11 +20,11 @@ abstract class MessageACBase extends MessageRequest {
   private message_id: number;
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
     message_type: MessageType,
     body_type: number,
   ) {
-    super(DeviceType.AIR_CONDITIONER, message_type, body_type, protocol_version);
+    super(DeviceType.AIR_CONDITIONER, message_type, body_type, device_protocol_version);
     MessageACBase.message_serial += 1;
     if (MessageACBase.message_serial >= 254) {
       MessageACBase.message_serial = 1;
@@ -42,9 +42,9 @@ abstract class MessageACBase extends MessageRequest {
 export class MessageQuery extends MessageACBase {
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.QUERY, 0x41);
+    super(device_protocol_version, MessageType.QUERY, 0x41);
   }
 
   get _body() {
@@ -61,9 +61,9 @@ export class MessageQuery extends MessageACBase {
 export class MessagePowerQuery extends MessageACBase {
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.QUERY, 0x41);
+    super(device_protocol_version, MessageType.QUERY, 0x41);
   }
 
   get _body() {
@@ -81,9 +81,9 @@ export class MessagePowerQuery extends MessageACBase {
 
 export class MessageSwitchDisplay extends MessageACBase {
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.QUERY, 0x41);
+    super(device_protocol_version, MessageType.QUERY, 0x41);
   }
 
   get _body() {
@@ -99,9 +99,9 @@ export class MessageSwitchDisplay extends MessageACBase {
 
 export class MessageNewProtocolQuery extends MessageACBase {
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.QUERY, 0xB1);
+    super(device_protocol_version, MessageType.QUERY, 0xB1);
   }
 
   get _body() {
@@ -126,11 +126,11 @@ export abstract class MessageSubProtocol extends MessageACBase {
   protected abstract subprotocol_body?: Buffer;
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
     message_type: MessageType,
     private readonly subprotocol_query_type: number,
   ) {
-    super(protocol_version, message_type, 0xAA);
+    super(device_protocol_version, message_type, 0xAA);
   }
 
   get body() {
@@ -155,10 +155,10 @@ export abstract class MessageSubProtocol extends MessageACBase {
 export class MessageSubProtocolQuery extends MessageSubProtocol {
   protected subprotocol_body?: Buffer | undefined;
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
     subprotocol_query_type: number,
   ) {
-    super(protocol_version, MessageType.QUERY, subprotocol_query_type);
+    super(device_protocol_version, MessageType.QUERY, subprotocol_query_type);
   }
 }
 
@@ -178,9 +178,9 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
   public prompt_tone: boolean;
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.SET, 0x20);
+    super(device_protocol_version, MessageType.SET, 0x20);
     this.power = false;
     this.mode = 0;
     this.target_temperature = 20.0;
@@ -246,9 +246,9 @@ export class MessageGeneralSet extends MessageACBase {
   public comfort_mode: boolean;
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.SET, 0x40);
+    super(device_protocol_version, MessageType.SET, 0x40);
     this.power = false;
     this.prompt_tone = true;
     this.mode = 0;
@@ -329,9 +329,9 @@ export class MessageNewProtocolSet extends MessageACBase {
   public fresh_air_2?: Buffer;
 
   constructor(
-    protocol_version: ProtocolVersion,
+    device_protocol_version: number,
   ) {
-    super(protocol_version, MessageType.SET, 0xB0);
+    super(device_protocol_version, MessageType.SET, 0xB0);
   }
 
   get _body() {
@@ -546,7 +546,7 @@ class XC0MessageBody extends MessageBody {
 
     this.power = (body[1] & 0x1) > 0;
     this.mode = (body[2] & 0xe0) >> 5;
-    this.target_temperature = (body[2] & 0x0F) + 16.0 + ((body[0x02] & 0x10) > 0 ? 0.5 : 0.0);
+    this.target_temperature = (body[2] & 0x0F) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
     this.fan_speed = body[3] & 0x7F;
     this.swing_vertical = (body[7] & 0x0C) > 0;
     this.swing_horizontal = (body[7] & 0x03) > 0;
@@ -704,22 +704,21 @@ export class MessageACResponse extends MessageResponse {
   ) {
     super(message);
 
-    const body = this.message.subarray(this.message.length, this.message.length);
     if (this.message_type === MessageType.NOTIFY2 && this.body_type === 0xA0) {
-      this.set_body(new XA0MessageBody(body));
+      this.set_body(new XA0MessageBody(this.body));
     } else if (this.message_type === MessageType.NOTIFY1 && this.body_type === 0xA1) {
-      this.set_body(new XA1MessageBody(body));
+      this.set_body(new XA1MessageBody(this.body));
     } else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
                [0xB0, 0xB1, 0xB5].includes(this.body_type)) {
-      this.set_body(new XBXMessageBody(body, this.body_type));
+      this.set_body(new XBXMessageBody(this.body, this.body_type));
     } else if ([MessageType.QUERY, MessageType.SET].includes(this.message_type) && this.body_type === 0xC0) {
-      this.set_body(new XC0MessageBody(body));
+      this.set_body(new XC0MessageBody(this.body));
     } else if (this.message_type === MessageType.QUERY && this.body_type === 0xC1) {
-      this.set_body(new XC1MessageBody(body, power_analysis_method));
+      this.set_body(new XC1MessageBody(this.body, power_analysis_method));
     } else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
-               this.body_type === 0xBB && body.length >= 21) {
+               this.body_type === 0xBB && this.body.length >= 21) {
       this.used_subprotocol = true;
-      this.set_body(new XBBMessageBody(body));
+      this.set_body(new XBBMessageBody(this.body));
     }
   }
 }

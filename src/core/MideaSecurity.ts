@@ -77,6 +77,7 @@ export class LocalSecurity {
 
   private aes_cbc_encrpyt(raw: Buffer, key: Buffer) {
     const cipher = createCipheriv('aes-256-cbc', key, this.iv);
+    cipher.setAutoPadding(false);
     return Buffer.concat([cipher.update(raw), cipher.final()]);
   }
 
@@ -174,7 +175,7 @@ export class LocalSecurity {
       const sign = data.subarray(data.length - 32, data.length);
       data = data.subarray(0, data.length - 32);
       data = this.aes_cbc_decrypt(data, this.tcp_key!);
-      if (createHash('sha256').update(Buffer.concat([header, data])).digest() !== sign) {
+      if (createHash('sha256').update(Buffer.concat([header, data])).digest().compare(sign) !== 0) {
         throw new Error('Sign does not match');
       }
       if (padding) {

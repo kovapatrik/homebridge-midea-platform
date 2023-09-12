@@ -12,6 +12,7 @@ export default class Discover extends EventEmitter {
 
   private readonly xml_parser: XMLParser;
   private security: LocalSecurity;
+  private ips: string[] = [];
 
   constructor(
     private readonly logger: Logger,
@@ -33,6 +34,7 @@ export default class Discover extends EventEmitter {
     });
 
     this.socket.on('message', async (msg, rinfo) => {
+      this.ips.push(rinfo.address);
 
       const device_version = this.getDeviceVersion(msg);
       const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
@@ -40,7 +42,24 @@ export default class Discover extends EventEmitter {
 
       this.emit('device', device_info);
     });
+  }
 
+  public discoverDeviceByIP(ip: string, retries = 3) {
+    let tries = 0;
+    const interval = setInterval(() => {
+      if (this.ips.includes(ip) || tries++ > retries) {
+        clearInterval(interval);
+        return;
+      }
+      this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
+      for (const port of [6445, 20086]) {
+        this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, ip, (err) => {
+          if (err) {
+            this.logger.error(`Error while sending message to ${ip}: ${err}`);
+          }
+        });
+      }
+    }, 3000);
   }
 
   public startDiscover() {

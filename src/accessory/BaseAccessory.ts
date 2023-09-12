@@ -13,5 +13,13 @@ export default class BaseAccessory {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
       .setCharacteristic(this.platform.Characteristic.Model, this.accessory.context.device.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.sn);
+
+    setInterval(() => {
+      this.accessory.context.device.send_heartbeat();
+    }, 10000);
+
+    // setInterval(() => {
+    //   this.accessory.context.device.refresh_status();
+    // }, 30000);
   }
 }

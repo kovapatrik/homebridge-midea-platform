@@ -19,6 +19,24 @@
         "title": "Use China Server",
         "type": "boolean",
         "default": false
+      },
+      "devices": {
+        "title": "Devices",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "title": "Device IP Address",
+              "type": "string",
+              "required": true
+            },
+            "name": {
+              "title": "Device Name",
+              "type": "string"
+            }
+          }
+        }
       }
     }
   }

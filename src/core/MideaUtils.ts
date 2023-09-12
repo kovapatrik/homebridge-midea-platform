@@ -107,21 +107,25 @@ export class PromiseSocket {
         reject(err);
         removeListeners();
       };
-
-      this.innerSok.write(data, encoding, (err) => {
-        if (err) {
-          reject(err);
-          removeListeners();
-          return;
-        }
-        resolve();
-        removeListeners();
-      });
-      this.innerSok.on('error', errorHandler);
-
       const removeListeners = () => {
         this.innerSok.removeListener('error', errorHandler);
       };
+      this.innerSok.on('error', errorHandler);
+      try {
+        this.innerSok.write(data, encoding, (err) => {
+          if (err) {
+            reject(err);
+            removeListeners();
+            return;
+          }
+          this.logger.debug('write successful');
+          resolve();
+          removeListeners();
+        });
+      } catch (err) {
+        reject(err);
+        removeListeners();
+      }
     });
   }
 

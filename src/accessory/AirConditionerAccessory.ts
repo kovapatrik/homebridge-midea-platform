@@ -1,8 +1,19 @@
-import { PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory } from 'homebridge';
 import { MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 
+enum SwingMode {
+  NONE,
+  HORIZONTAL,
+  VERTICAL,
+  BOTH,
+}
+
 export default class AirConditionerAccessory extends BaseAccessory {
+
+  private swingSupported: SwingMode;
+  private minTemperature: number;
+  private maxTemperature: number;
 
   constructor(
     platform: MideaPlatform,
@@ -13,6 +24,10 @@ export default class AirConditionerAccessory extends BaseAccessory {
     this.service = this.accessory.getService(this.platform.Service.HeaterCooler) ||
                    this.accessory.addService(this.platform.Service.HeaterCooler);
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name);
+
+    this.swingSupported = SwingMode.VERTICAL;
+    this.minTemperature = 16;
+    this.maxTemperature = 30;
 
     this.service.getCharacteristic(this.platform.Characteristic.Active)
       .onGet(this.getActive.bind(this))
@@ -27,6 +42,34 @@ export default class AirConditionerAccessory extends BaseAccessory {
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .onGet(this.getCurrentTemperature.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
+      .onGet(this.getTargetTemperature.bind(this))
+      .onSet(this.setTargetTemperature.bind(this))
+      .setProps({
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
+        minStep: 1,
+      });
+
+    this.service.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
+      .onGet(this.getTargetTemperature.bind(this))
+      .onSet(this.setTargetTemperature.bind(this))
+      .setProps({
+        minValue: this.minTemperature,
+        maxValue: this.maxTemperature,
+        minStep: 1,
+      });
+
+    if (this.swingSupported !== SwingMode.NONE as SwingMode) {
+      this.service.getCharacteristic(this.platform.Characteristic.SwingMode)
+        .onGet(this.getSwingMode.bind(this))
+        .onSet(this.setSwingMode.bind(this));
+    }
+
+    this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
+      .onGet(this.getRotationSpeed.bind(this))
+      .onSet(this.setRotationSpeed.bind(this));
   }
 
   async getActive(): Promise<CharacteristicValue> {
@@ -87,5 +130,40 @@ export default class AirConditionerAccessory extends BaseAccessory {
 
   getCurrentTemperature(): CharacteristicValue {
     return this.accessory.context.device.attributes['INDOOR_TEMPERATURE'];
+  }
+
+  getTargetTemperature(): CharacteristicValue {
+    return this.accessory.context.device.attributes['TARGET_TEMPERATURE'];
+  }
+
+  async setTargetTemperature(value: CharacteristicValue) {
+    await this.accessory.context.device.set_target_temperature(value);
+  }
+
+  getSwingMode(): CharacteristicValue {
+    return this.accessory.context.device.attributes['SWING_HORIZONTAL'] || this.accessory.context.device.attributes['SWING_VERTICAL'] ?
+      this.platform.Characteristic.SwingMode.SWING_ENABLED : this.platform.Characteristic.SwingMode.SWING_DISABLED;
+  }
+
+  async setSwingMode(value: CharacteristicValue) {
+    switch (value) {
+      case this.platform.Characteristic.SwingMode.SWING_ENABLED:
+        await this.accessory.context.device.set_swing(
+          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.swingSupported),
+          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.swingSupported));
+        break;
+      case this.platform.Characteristic.SwingMode.SWING_DISABLED:
+        await this.accessory.context.device.set_swing(false, false);
+        break;
+    }
+  }
+
+  getRotationSpeed(): CharacteristicValue {
+    return 50;
+  }
+
+  async setRotationSpeed(value: CharacteristicValue) {
+    this.platform.log.debug('RotationSpeed ->', value);
+    // await this.accessory.context.device.set_fan_speed(value);
   }
 }
