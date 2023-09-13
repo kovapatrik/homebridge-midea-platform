@@ -1,4 +1,4 @@
-1# Still in development! Needs testing!
+# Still in development! Needs testing!
 If anyone wants to contribute, you are welcome to do so! Because the plugin is almost identical with [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan), you can create any device within this plugin.  
 Also, my TCP socket knowledge (especially in Node.js) is kinda bad, so if you have any more idea how to reconnect in case of connection is lost, or when there is any error in the TCP connection, I will thank you!
 # About the plugin
