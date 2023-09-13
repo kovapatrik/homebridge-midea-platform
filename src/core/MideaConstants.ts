@@ -25,6 +25,12 @@ export enum DeviceType {
   AIR_CONDITIONER = 0xAC
 }
 
+export enum ParseMessageResult {
+  SUCCESS = 0,
+  PADDING = 1,
+  ERROR = 99
+}
+
 export type DeviceInfo = {
   ip: string;
   port: number;

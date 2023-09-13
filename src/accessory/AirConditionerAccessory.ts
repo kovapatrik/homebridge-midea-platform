@@ -1,4 +1,4 @@
-import { CharacteristicValue, PlatformAccessory } from 'homebridge';
+import { CharacteristicValue, PlatformAccessory, Service } from 'homebridge';
 import { MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 
@@ -15,6 +15,8 @@ export default class AirConditionerAccessory extends BaseAccessory {
   private minTemperature: number;
   private maxTemperature: number;
 
+  private outDoorTemperatureService: Service;
+
   constructor(
     platform: MideaPlatform,
     accessory: PlatformAccessory,
@@ -24,6 +26,11 @@ export default class AirConditionerAccessory extends BaseAccessory {
     this.service = this.accessory.getService(this.platform.Service.HeaterCooler) ||
                    this.accessory.addService(this.platform.Service.HeaterCooler);
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name);
+
+    this.outDoorTemperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor) ||
+                                     this.accessory.addService(this.platform.Service.TemperatureSensor);
+
+    this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.accessory.context.device.name} Outdoor`);
 
     this.swingSupported = SwingMode.VERTICAL;
     this.minTemperature = 16;
@@ -69,7 +76,15 @@ export default class AirConditionerAccessory extends BaseAccessory {
 
     this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
-      .onSet(this.setRotationSpeed.bind(this));
+      .onSet(this.setRotationSpeed.bind(this))
+      .setProps({
+        minValue: 0,
+        maxValue: 102,
+        minStep: 1,
+      });
+
+    this.outDoorTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+      .onGet(this.getOutdoorTemperature.bind(this));
   }
 
   async getActive(): Promise<CharacteristicValue> {
@@ -159,11 +174,18 @@ export default class AirConditionerAccessory extends BaseAccessory {
   }
 
   getRotationSpeed(): CharacteristicValue {
-    return 50;
+    return this.accessory.context.device.attributes['FAN_SPEED'];
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
-    this.platform.log.debug('RotationSpeed ->', value);
-    // await this.accessory.context.device.set_fan_speed(value);
+    value = value as number;
+    if (value === 101) {
+      value = 102;
+    }
+    await this.accessory.context.device.set_attribute({ FAN_SPEED: value });
+  }
+
+  getOutdoorTemperature(): CharacteristicValue {
+    return this.accessory.context.device.attributes['OUTDOOR_TEMPERATURE'];
   }
 }

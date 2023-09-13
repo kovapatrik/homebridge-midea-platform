@@ -118,7 +118,6 @@ export class PromiseSocket {
             removeListeners();
             return;
           }
-          this.logger.debug('write successful');
           resolve();
           removeListeners();
         });

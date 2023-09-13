@@ -133,9 +133,8 @@ export default class MideaACDevice extends MideaDevice {
 
   process_message(msg: Buffer) {
     const message = new MessageACResponse(msg, this.power_analysis_method);
-    this.logger.debug(`Got message ${message.get_body_type()}`);
+    // this.logger.debug(`Got message ${message.get_body_type()}`);
     let has_fresh_air = false;
-    const new_status: Partial<DeviceAttributes> = {};
 
     if (message.used_subprotocol) {
       this.used_subprotocol = true;
@@ -150,12 +149,11 @@ export default class MideaACDevice extends MideaDevice {
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
-        this.logger.debug(`Setting local ${status} to ${value}`);
+        // this.logger.debug(`Setting local ${status} to ${value}`);
         if (status === 'FRESH_AIR_POWER') {
           has_fresh_air = true;
         }
         this.attributes[status] = value;
-        new_status[status] = value;
       }
     }
 
@@ -171,23 +169,19 @@ export default class MideaACDevice extends MideaDevice {
       } else {
         this.attributes.FRESH_AIR_MODE = 'Off';
       }
-      new_status['FRESH_AIR_MODE'] = this.attributes.FRESH_AIR_MODE;
     }
 
-    if (!this.attributes.POWER || (Object.keys(new_status).includes('SWING_VERTICAL') && this.attributes.SWING_VERTICAL)) {
+    if (!this.attributes.POWER || this.attributes.SWING_VERTICAL) {
       this.attributes.INDIRECT_WIND = false;
-      new_status['INDIRECT_WIND'] = false;
     }
     if (!this.attributes.POWER) {
       this.attributes.SCREEN_DISPLAY = false;
-      new_status['SCREEN_DISPLAY'] = false;
     }
     if (this.attributes.FRESH_AIR_1) {
       this.fresh_air_version = 1;
     } else if (this.attributes.FRESH_AIR_2) {
       this.fresh_air_version = 2;
     }
-    return new_status;
   }
 
   make_message_set() {

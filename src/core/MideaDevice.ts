@@ -1,17 +1,10 @@
 import { Logger } from 'homebridge';
 import { KeyToken, LocalSecurity } from './MideaSecurity';
-import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion } from './MideaConstants';
+import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants';
 import { Socket } from 'net';
 import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
-
-enum ParseMessageResult {
-  SUCCESS = 0,
-  PADDING = 1,
-  ERROR = 99
-}
-
 
 export type DeviceAttributesBase = {
   [key: string]: string | number | boolean | undefined;
@@ -50,13 +43,13 @@ export default abstract class MideaDevice {
   private buffer: Buffer;
 
   protected socket: Socket;
-  protected promiseSocket: PromiseSocket;
+  public promiseSocket: PromiseSocket;
 
   public abstract attributes: DeviceAttributesBase;
 
 
   protected abstract build_query(): MessageRequest[];
-  protected abstract process_message(message: Buffer): DeviceAttributesBase;
+  protected abstract process_message(message: Buffer): void;
   protected abstract set_subtype(): void;
   public abstract set_attribute(status: DeviceAttributesBase): Promise<void>;
 
@@ -84,14 +77,8 @@ export default abstract class MideaDevice {
     this.buffer = Buffer.alloc(0);
 
     this.socket = new Socket();
-    this.socket.setTimeout(this.SOCKET_TIMEOUT);
-    this.socket.on('close', async () => {
-      await this.createSocket();
-    });
-    this.socket.on('error', (err) => {
-      this.logger.debug(`[${this.id}] Socket error: ${err}`);
-    });
     this.promiseSocket = new PromiseSocket(this.socket, this.logger);
+    this.createSocket();
   }
 
   get sub_type(): number {
@@ -123,14 +110,20 @@ export default abstract class MideaDevice {
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
       }
+      let retries = 0;
       if (refresh_status) {
-        await this.refresh_status(true);
+        let success = await this.refresh_status(true);
+        while (!success && retries++ < 3) {
+          success = await this.refresh_status(true, true);
+        }
       }
-      // this.enable_device(true);
+      if (retries > 3) {
+        this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): Refresh status failed.`);
+        return false;
+      }
       return true;
     } catch (err) {
-      this.logger.debug(`[${this.id}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): ${err}`);
-      // this.enable_device(false);
+      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): ${err}`);
       return false;
     }
   }
@@ -150,6 +143,7 @@ export default abstract class MideaDevice {
       }
       const resp = response.subarray(8, 72);
       this.security.tcp_key_from_resp(resp, this.key);
+      this.logger.debug(`[${this.name}] Authentication success.`);
     } else {
       throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
     }
@@ -163,25 +157,32 @@ export default abstract class MideaDevice {
     }
   }
 
-  private async createSocket() {
+  private createSocket() {
     this.socket = new Socket();
     this.socket.setTimeout(this.SOCKET_TIMEOUT);
     this.socket.on('error', (err) => {
-      this.logger.debug(`[${this.id}] Socket error: ${err}`);
+      this.logger.debug(`[${this.name}] Socket error: ${err}`);
     });
     this.socket.on('close', async () => {
-      await this.createSocket();
+      this.createSocket();
+      let connected = await this.connect(false);
+      while (! connected) {
+        connected = await this.connect(false);
+      }
     });
     this.promiseSocket = new PromiseSocket(this.socket, this.logger);
-    await this.promiseSocket.connect(this.port, this.ip);
   }
 
   private async send_message_v2(data: Buffer, retries = 3, force_reinit = false) {
     if (retries === 0) {
-      throw new Error(`[${this.id} | send_message] Error when sending data to device.`);
+      throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
     }
     if (force_reinit || !this.socket || !this.socket.writable || this.socket.destroyed) {
-      await this.createSocket();
+      this.createSocket();
+      let connected = await this.connect(false);
+      while (! connected) {
+        connected = await this.connect(false);
+      }
     }
     try {
       await this.promiseSocket.write(data);
@@ -201,14 +202,15 @@ export default abstract class MideaDevice {
     await this.send_message(message);
   }
 
-  public async refresh_status(wait_response = false) {
+  public async refresh_status(wait_response = false, ignore_unsupported = false) {
+    this.logger.debug(`[${this.name}] Refreshing status...`);
     const commands = this.build_query();
     if (this._sub_type === undefined) {
       commands.unshift(new MessageQuerySubtype(this.type));
     }
     let error_cnt = 0;
     for (const cmd of commands) {
-      if (!this.unsupported_protocol.includes(cmd.constructor.name)) {
+      if (ignore_unsupported || !this.unsupported_protocol.includes(cmd.constructor.name)) {
         await this.build_send(cmd);
         if (wait_response) {
           try {
@@ -216,7 +218,7 @@ export default abstract class MideaDevice {
             while (true) {
               const message = await this.promiseSocket.read(512);
               if (message.length === 0) {
-                throw new Error(`[${this.id} | refresh_status] Error when receiving data from device.`);
+                throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
               }
               const result = this.parse_message(message);
               if (result === ParseMessageResult.SUCCESS) {
@@ -224,13 +226,13 @@ export default abstract class MideaDevice {
               } else if (result === ParseMessageResult.PADDING) {
                 continue;
               } else {
-                throw new Error(`[${this.id} | refresh_status] Error when parsing message.`);
+                throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
               }
             }
           } catch (err) {
             error_cnt++;
             this.unsupported_protocol.push(cmd.constructor.name);
-            this.logger.error(`[${this.id}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+            this.logger.error(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
           }
         }
       } else {
@@ -238,8 +240,10 @@ export default abstract class MideaDevice {
       }
     }
     if (error_cnt === commands.length) {
-      this.logger.error(`[${this.id}] Refresh failed.`);
+      this.logger.error(`[${this.name}] Refresh failed.`);
+      return false;
     }
+    return true;
   }
 
   public preprocess_message(message: Buffer): boolean {
@@ -248,13 +252,13 @@ export default abstract class MideaDevice {
       this._sub_type = msg.sub_type;
       this.set_subtype();
       this.device_protocol_version = msg.device_protocol_version;
-      this.logger.debug(`[${this.id}] Subtype: ${this._sub_type}, device protocol version: ${this.device_protocol_version}`);
+      this.logger.debug(`[${this.name}] Subtype: ${this._sub_type}, device protocol version: ${this.device_protocol_version}`);
       return false;
     }
     return true;
   }
 
-  public parse_message(message: Buffer, send_commands = false) {
+  public parse_message(message: Buffer) {
     let messages: Buffer[];
     if (this.version === ProtocolVersion.V3) {
       [ messages, this.buffer ] = this.security.decode_8370(Buffer.concat([ this.buffer, message ]));
@@ -278,23 +282,13 @@ export default abstract class MideaDevice {
         if (payload_length % 16 === 0) {
           const decrypted = this.security.aes_decrypt(cryptographic);
           if (this.preprocess_message(decrypted)) {
-            // try {
-            //   const status = this.process_message(decrypted);
-            //   if (send_commands && status && Object.keys(status).length > 0) {
-            //     this.set_attribute(status);
-            //   } else {
-            //     this.logger.debug(`[${this.id}] Unidentified protocol.`);
-            //   }
-            // } catch (e) {
-            //   this.logger.error(`[${this.id}] Error when parsing message: ${decrypted.toString('hex')}`);
-            // }
             this.process_message(decrypted);
           }
         } else {
-          this.logger.warn(`[${this.id}] Invalid payload length: ${payload_length}`);
+          this.logger.warn(`[${this.name}] Invalid payload length: ${payload_length}`);
         }
       } else {
-        this.logger.warn(`[${this.id}] Illegal message.`);
+        this.logger.warn(`[${this.name}] Illegal message.`);
       }
     }
     return ParseMessageResult.SUCCESS;
@@ -305,7 +299,7 @@ export default abstract class MideaDevice {
     try {
       await this.build_send(cmd);
     } catch (e) {
-      this.logger.debug(`[${this.id}]  Interface send_command failure: ${e}, 
+      this.logger.debug(`[${this.name}]  Interface send_command failure: ${e}, 
                         cmd_type: ${command_type}, 
                         cmd_body: ${command_body.toString('hex')}`);
     }
