@@ -1,11 +1,11 @@
 import { Logger } from 'homebridge';
 import { DeviceInfo } from '../../core/MideaConstants';
-import MideaDevice, { DeviceAttributesBase } from '../../core/MideaDevice';
+import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
 import { KeyToken } from '../../core/MideaSecurity';
 import { MessageACResponse, MessageGeneralSet, MessageNewProtocolQuery, MessageNewProtocolSet, MessagePowerQuery,
   MessageQuery, MessageSubProtocolQuery, MessageSubProtocolSet, MessageSwitchDisplay } from './MideaACMessage';
 
-interface DeviceAttributes extends DeviceAttributesBase {
+export interface ACAttributes extends DeviceAttributeBase {
   PROMPT_TONE: boolean;
   POWER: boolean;
   // OFF, AUTO, COOL, DRY, HEAT, FAN_ONLY
@@ -62,7 +62,7 @@ export default class MideaACDevice extends MideaDevice {
     0: 'Off',
   };
 
-  public attributes: DeviceAttributes;
+  public attributes: ACAttributes;
 
   private fresh_air_version?: number;
   private readonly DEFAULT_TEMPERATURE_STEP = 0.5;
@@ -228,7 +228,7 @@ export default class MideaACDevice extends MideaDevice {
     return this.used_subprotocol ? this.make_subprotocol_message_set() : this.make_message_set();
   }
 
-  async set_attribute(attributes: Partial<DeviceAttributes>) {
+  async set_attribute(attributes: Partial<ACAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | undefined = undefined;
 
@@ -299,7 +299,7 @@ export default class MideaACDevice extends MideaDevice {
     }
   }
 
-  async set_target_temperature(target_temperature: number, mode: number) {
+  async set_target_temperature(target_temperature: number, mode?: number) {
     const message = this.make_message_unique_set();
     message.target_temperature = target_temperature;
     this.attributes.TARGET_TEMPERATURE = target_temperature;

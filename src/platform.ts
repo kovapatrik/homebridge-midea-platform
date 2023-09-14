@@ -6,18 +6,21 @@ import Discover from './core/MideaDiscover';
 import { DeviceInfo, Endianness } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
+import { DeviceConfig } from './platformUtils';
 
-type ConfigDevice = {
-  ip: string;
-  name?: string;
-};
+export interface MideaAccessory extends PlatformAccessory {
+  context: {
+    token?: string;
+    key?: string;
+  };
+}
 
 export class MideaPlatform implements DynamicPlatformPlugin {
 
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
-  public readonly accessories: PlatformAccessory[] = [];
+  public readonly accessories: MideaAccessory[] = [];
 
   private readonly cloud: Cloud;
   private readonly discover: Discover;
@@ -38,11 +41,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
 
     this.discover.on('device', (device_info: DeviceInfo) => {
-      const configDev = this.config['devices'].find((dev: ConfigDevice) => dev.ip === device_info.ip);
-      if (configDev) {
-        device_info.name = configDev.name || device_info.name;
-      }
-      this.addDevice(device_info);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const configDev : DeviceConfig = this.config['devices'].find((dev: DeviceConfig) => dev.ip === device_info.ip);
+      device_info.name = configDev.name || device_info.name;
+      this.addDevice(device_info, configDev);
     });
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -57,7 +59,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           this.log.info('Logged in to Midea Cloud.');
           // this.discover.startDiscover();
           if (this.config['devices']) {
-            this.config['devices'].forEach((device: ConfigDevice) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.config['devices'].forEach((device: any) => {
               this.discover.discoverDeviceByIP(device.ip);
             });
           }
@@ -68,13 +71,31 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     });
   }
 
-  async addDevice(device_info: DeviceInfo) {
+  async addDevice(device_info: DeviceInfo, configDev: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
     if (existingAccessory) {
       // the accessory already exists
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      AccessoryFactory.createAccessory(this, existingAccessory, existingAccessory.context.device.type);
+
+      const device = DeviceFactory.createDevice(
+        this.log,
+        device_info,
+        existingAccessory.context.token ? Buffer.from(existingAccessory.context.token, 'hex') : undefined,
+        existingAccessory.context.key ? Buffer.from(existingAccessory.context.key, 'hex') : undefined,
+      );
+
+      if (device) {
+        try {
+          await device.connect();
+          AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
+        } catch {
+          this.log.error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
+        }
+      } else {
+        this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
+      }
+
     } else {
       this.log.info('Adding new accessory:', device_info.name);
 
@@ -94,16 +115,19 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           }
           device.token = token;
           device.key = key;
+
+          accessory.context.token = token ? token.toString('hex') : undefined;
+          accessory.context.key = key ? key.toString('hex') : undefined;
+
           connected = await device.connect();
           i++;
         }
 
         if (connected) {
           this.log.info(`Connected to device ${device_info.ip}:${device_info.port}`);
-          accessory.context.device = device;
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
-          AccessoryFactory.createAccessory(this, accessory, device_info.type);
+          AccessoryFactory.createAccessory(this, accessory, device, configDev);
 
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
@@ -120,7 +144,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * This function is invoked when homebridge restores cached accessories from disk at startup.
    * It should be used to setup event handlers for characteristics and update respective values.
    */
-  configureAccessory(accessory: PlatformAccessory) {
+  configureAccessory(accessory: MideaAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered

@@ -6,15 +6,15 @@ import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtype
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
 
-export type DeviceAttributesBase = {
-  [key: string]: string | number | boolean | undefined;
+export type DeviceAttributeBase = {
+  [key: string]: number | string | boolean | undefined;
 };
 
 export default abstract class MideaDevice {
 
   private readonly SOCKET_TIMEOUT = 3000;
 
-  protected readonly ip: string;
+  public readonly ip: string;
   protected readonly port: number;
 
   public readonly id: number;
@@ -45,13 +45,13 @@ export default abstract class MideaDevice {
   protected socket: Socket;
   public promiseSocket: PromiseSocket;
 
-  public abstract attributes: DeviceAttributesBase;
+  public abstract attributes: DeviceAttributeBase;
 
 
   protected abstract build_query(): MessageRequest[];
   protected abstract process_message(message: Buffer): void;
   protected abstract set_subtype(): void;
-  public abstract set_attribute(status: DeviceAttributesBase): Promise<void>;
+  public abstract set_attribute(status: DeviceAttributeBase): Promise<void>;
 
   constructor(
     protected readonly logger: Logger,

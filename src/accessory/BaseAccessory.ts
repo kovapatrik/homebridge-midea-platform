@@ -1,26 +1,29 @@
-import { PlatformAccessory, Service } from 'homebridge';
-import { MideaPlatform } from '../platform';
-import { ParseMessageResult } from '../core/MideaConstants';
+import { Service } from 'homebridge';
+import { MideaAccessory, MideaPlatform } from '../platform';
+import MideaDevice from '../core/MideaDevice';
+import { DeviceConfig } from '../platformUtils';
 
-export default class BaseAccessory {
+export default class BaseAccessory<T extends MideaDevice> {
   protected service!: Service;
 
   constructor(
     protected readonly platform: MideaPlatform,
-    protected readonly accessory: PlatformAccessory,
+    protected readonly accessory: MideaAccessory,
+    protected readonly device: T,
+    protected readonly configDev: DeviceConfig,
   ) {
 
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
-      .setCharacteristic(this.platform.Characteristic.Model, this.accessory.context.device.model)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.device.sn);
+      .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
 
     setInterval(async () => {
-      this.accessory.context.device.send_heartbeat();
+      this.device.send_heartbeat();
       try {
-        const msg = await this.accessory.context.device.promiseSocket.read(512);
+        const msg = await this.device.promiseSocket.read(512);
         if (msg && msg.length > 0) {
-          this.accessory.context.device.parse_message(msg);
+          this.device.parse_message(msg);
         }
       } catch (err) {
         this.platform.log.error(err as string);
@@ -28,7 +31,7 @@ export default class BaseAccessory {
     }, 10000);
 
     setInterval(() => {
-      this.accessory.context.device.refresh_status();
+      this.device.refresh_status();
     }, 30000);
   }
 }
