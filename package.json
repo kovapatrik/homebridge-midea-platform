@@ -2,7 +2,7 @@
   "displayName": "Homebridge Midea",
   "name": "homebridge-midea",
   "version": "0.1.0",
-  "description": "A short description about what your plugin does.",
+  "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
