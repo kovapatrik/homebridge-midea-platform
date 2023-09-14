@@ -3,19 +3,32 @@ import { MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 
 enum SwingMode {
-  NONE,
-  HORIZONTAL,
-  VERTICAL,
-  BOTH,
+  NONE = 'None',
+  VERTICAL = 'Vertical',
+  HORIZONTAL = 'Horizontal',
+  BOTH = 'Both',
 }
 
 export default class AirConditionerAccessory extends BaseAccessory {
 
-  private swingSupported: SwingMode;
-  private minTemperature: number;
-  private maxTemperature: number;
+  private config: {
+    ip: string;
+    name: string;
+    deviceType: string;
+    ACoptions: {
+      swingMode: SwingMode;
+      minTemp: number;
+      maxTemp: number;
+      tempStep: number;
+      fahrenHeit: boolean;
+      fanOnlyMode: boolean;
+      outDoorTemp: boolean;
+      audioFeedback: boolean;
+    };
+  };
 
-  private outDoorTemperatureService: Service;
+  private outDoorTemperatureService?: Service;
+  private displayService?: Service;
 
   constructor(
     platform: MideaPlatform,
@@ -27,14 +40,18 @@ export default class AirConditionerAccessory extends BaseAccessory {
                    this.accessory.addService(this.platform.Service.HeaterCooler);
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.accessory.context.device.name);
 
-    this.outDoorTemperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor) ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.config = this.platform.config.devices.find((dev: any) => dev.ip === this.accessory.context.device.ip);
+
+    if (this.config.ACoptions.outDoorTemp) {
+      this.outDoorTemperatureService = this.accessory.getService(this.platform.Service.TemperatureSensor) ||
                                      this.accessory.addService(this.platform.Service.TemperatureSensor);
 
-    this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.accessory.context.device.name} Outdoor`);
+      this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.accessory.context.device.name} Outdoor`);
 
-    this.swingSupported = SwingMode.VERTICAL;
-    this.minTemperature = 16;
-    this.maxTemperature = 30;
+      this.outDoorTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+        .onGet(this.getOutdoorTemperature.bind(this));
+    }
 
     this.service.getCharacteristic(this.platform.Characteristic.Active)
       .onGet(this.getActive.bind(this))
@@ -54,25 +71,19 @@ export default class AirConditionerAccessory extends BaseAccessory {
       .onGet(this.getTargetTemperature.bind(this))
       .onSet(this.setTargetTemperature.bind(this))
       .setProps({
-        minValue: this.minTemperature,
-        maxValue: this.maxTemperature,
-        minStep: 1,
+        minValue: this.config.ACoptions.minTemp,
+        maxValue: this.config.ACoptions.maxTemp,
+        minStep: this.config.ACoptions.tempStep,
       });
 
     this.service.getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
       .onGet(this.getTargetTemperature.bind(this))
       .onSet(this.setTargetTemperature.bind(this))
       .setProps({
-        minValue: this.minTemperature,
-        maxValue: this.maxTemperature,
-        minStep: 1,
+        minValue: this.config.ACoptions.minTemp,
+        maxValue: this.config.ACoptions.maxTemp,
+        minStep: this.config.ACoptions.tempStep,
       });
-
-    if (this.swingSupported !== SwingMode.NONE as SwingMode) {
-      this.service.getCharacteristic(this.platform.Characteristic.SwingMode)
-        .onGet(this.getSwingMode.bind(this))
-        .onSet(this.setSwingMode.bind(this));
-    }
 
     this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
@@ -83,8 +94,25 @@ export default class AirConditionerAccessory extends BaseAccessory {
         minStep: 1,
       });
 
-    this.outDoorTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
-      .onGet(this.getOutdoorTemperature.bind(this));
+    if (this.config.ACoptions.swingMode !== SwingMode.NONE) {
+      this.service.getCharacteristic(this.platform.Characteristic.SwingMode)
+        .onGet(this.getSwingMode.bind(this))
+        .onSet(this.setSwingMode.bind(this));
+    }
+
+    // this.displayService = this.accessory.getService(this.platform.Service.Switch) ||
+    //                       this.accessory.addService(this.platform.Service.Switch);
+    // this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.accessory.context.device.name} Display`);
+    // this.displayService.getCharacteristic(this.platform.Characteristic.On)
+    //   .onGet(this.getDisplayActive.bind(this))
+    //   .onSet(this.setDisplayActive.bind(this));
+
+    this.accessory.context.device.attributes['PROMPT_TONE'] = this.config.ACoptions.audioFeedback;
+    this.accessory.context.device.attributes['TEMP_FAHRENHEIT'] = this.config.ACoptions.fahrenHeit;
+
+    // if (this.config.ACoptions.fanOnlyMode) {
+
+    // }
   }
 
   async getActive(): Promise<CharacteristicValue> {
@@ -148,10 +176,13 @@ export default class AirConditionerAccessory extends BaseAccessory {
   }
 
   getTargetTemperature(): CharacteristicValue {
-    return this.accessory.context.device.attributes['TARGET_TEMPERATURE'];
+    return Math.max(this.config.ACoptions.minTemp,
+      Math.min(this.config.ACoptions.maxTemp, this.accessory.context.device.attributes['TARGET_TEMPERATURE']));
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
+    value = Math.max(this.config.ACoptions.minTemp,
+      Math.min(this.config.ACoptions.maxTemp, value as number));
     await this.accessory.context.device.set_target_temperature(value);
   }
 
@@ -164,8 +195,8 @@ export default class AirConditionerAccessory extends BaseAccessory {
     switch (value) {
       case this.platform.Characteristic.SwingMode.SWING_ENABLED:
         await this.accessory.context.device.set_swing(
-          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.swingSupported),
-          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.swingSupported));
+          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.config.ACoptions.swingMode),
+          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.config.ACoptions.swingMode));
         break;
       case this.platform.Characteristic.SwingMode.SWING_DISABLED:
         await this.accessory.context.device.set_swing(false, false);
@@ -187,5 +218,13 @@ export default class AirConditionerAccessory extends BaseAccessory {
 
   getOutdoorTemperature(): CharacteristicValue {
     return this.accessory.context.device.attributes['OUTDOOR_TEMPERATURE'];
+  }
+
+  getDisplayActive(): CharacteristicValue {
+    return this.accessory.context.device.attributes['SCREEN_DISPLAY'];
+  }
+
+  async setDisplayActive(value: CharacteristicValue) {
+    await this.accessory.context.device.set_attribute({ SCREEN_DISPLAY: value });
   }
 }

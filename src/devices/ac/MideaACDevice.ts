@@ -239,14 +239,15 @@ export default class MideaACDevice extends MideaDevice {
 
         if (k === 'PROMPT_TONE') {
           this.attributes.PROMPT_TONE = v as boolean;
-        } else if (k === 'SCREEN_DISPAY') {
-          if (this.attributes.SCREEN_DISPLAY_NEW) {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
-            message.screen_display = v as boolean;
-            message.prompt_tone = this.attributes.PROMPT_TONE;
-          } else {
-            message = new MessageSwitchDisplay(this.device_protocol_version);
-          }
+        } else if (k === 'SCREEN_DISPLAY') {
+          this.attributes.SCREEN_DISPLAY_NEW = v as boolean;
+          // if (this.attributes.SCREEN_DISPLAY_NEW) {
+          // message = new MessageNewProtocolSet(this.device_protocol_version);
+          // message.screen_display = v as boolean;
+          // message.prompt_tone = this.attributes.PROMPT_TONE;
+          // } else {
+          message = new MessageSwitchDisplay(this.device_protocol_version);
+          // }
         } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
           message = new MessageNewProtocolSet(this.device_protocol_version);
           message[k.toLowerCase()] = v as boolean;

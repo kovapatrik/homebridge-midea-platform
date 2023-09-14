@@ -1,12 +1,12 @@
 {
-  "pluginAlias": "midea-ac",
+  "pluginAlias": "midea",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
       "user": {
-        "title": "Midea Account Username",
+        "title": "Midea Account Email",
         "type": "string",
         "required": true
       },
@@ -34,10 +34,104 @@
             "name": {
               "title": "Device Name",
               "type": "string"
+            },
+            "deviceType": {
+              "title": "Device Type",
+              "type": "string",
+              "enum": [
+                "AC"
+              ],
+              "required": true
+            },
+            "ACoptions": {
+              "title": "Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices[arrayIndices].deviceType === 'AC';"
+              },
+              "properties": {
+                "swingMode": {
+                  "title": "Swing Mode",
+                  "type": "string",
+                  "enum": [
+                    "Vertical",
+                    "Horizontal",
+                    "Both"
+                  ]
+                },
+                "outDoorTemp": {
+                  "title": "Outdoor Temperature",
+                  "type": "boolean",
+                  "default": false
+                },
+                "audioFeedback": {
+                  "title": "Audio Feedback",
+                  "type": "boolean",
+                  "default": false
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature",
+                  "type": "integer",
+                  "default": 16
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature",
+                  "type": "integer",
+                  "default": 30
+                },
+                "tempStep": {
+                  "title": "Temperature Step",
+                  "type": "integer",
+                  "default": 1,
+                  "enum": [
+                    0.5,
+                    1
+                  ]
+                },
+                "fahrenHeit": {
+                  "title": "Fahrenheit",
+                  "type": "boolean",
+                  "default": false
+                },
+                "fanOnlyMode": {
+                  "title": "Fan Only Mode",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
             }
           }
         }
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "key": "devices",
+      "type": "array",
+      "orderable": true,
+      "buttonText": "Add Device",
+      "items": [
+        "devices[].ip",
+        "devices[].name",
+        "devices[].deviceType",
+        {
+          "key": "devices[].ACoptions",
+          "expandable": true,
+          "expanded": false,
+          "title": "AC Options",
+          "items": [
+            "devices[].ACoptions.swingMode",
+            "devices[].ACoptions.outDoorTemp",
+            "devices[].ACoptions.audioFeedback",
+            "devices[].ACoptions.minTemp",
+            "devices[].ACoptions.maxTemp",
+            "devices[].ACoptions.tempStep",
+            "devices[].ACoptions.fahrenHeit",
+            "devices[].ACoptions.fanOnlyMode"
+          ]
+        }
+      ]
+    }
+  ]
 }

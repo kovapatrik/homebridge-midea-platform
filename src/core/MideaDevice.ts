@@ -164,11 +164,7 @@ export default abstract class MideaDevice {
       this.logger.debug(`[${this.name}] Socket error: ${err}`);
     });
     this.socket.on('close', async () => {
-      this.createSocket();
-      let connected = await this.connect(false);
-      while (! connected) {
-        connected = await this.connect(false);
-      }
+      this.socket.destroy();
     });
     this.promiseSocket = new PromiseSocket(this.socket, this.logger);
   }
