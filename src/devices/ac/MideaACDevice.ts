@@ -2,7 +2,8 @@ import { Logger } from 'homebridge';
 import { DeviceInfo } from '../../core/MideaConstants';
 import MideaDevice, { DeviceAttributesBase } from '../../core/MideaDevice';
 import { KeyToken } from '../../core/MideaSecurity';
-import { MessageACResponse, MessageGeneralSet, MessageNewProtocolQuery, MessageNewProtocolSet, MessagePowerQuery, MessageQuery, MessageSubProtocol, MessageSubProtocolQuery, MessageSubProtocolSet, MessageSwitchDisplay } from './MideaACMessage';
+import { MessageACResponse, MessageGeneralSet, MessageNewProtocolQuery, MessageNewProtocolSet, MessagePowerQuery,
+  MessageQuery, MessageSubProtocolQuery, MessageSubProtocolSet, MessageSwitchDisplay } from './MideaACMessage';
 
 interface DeviceAttributes extends DeviceAttributesBase {
   PROMPT_TONE: boolean;

@@ -107,6 +107,18 @@
   },
   "layout": [
     {
+      "key": "user",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "type": "string"
+    },
+    {
+      "key": "useChinaServer",
+      "type": "boolean"
+    },
+    {
       "key": "devices",
       "type": "array",
       "orderable": true,

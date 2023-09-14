@@ -65,7 +65,7 @@ export default class Cloud {
       return response.data;
     }
 
-    throw new Error(`Error response from Midea cloud: ${response.msg}`);
+    throw new Error(`Error response from Midea Cloud: ${response.msg}`);
   }
 
   private async request(url: string, headers: object, data: object, retries: number = this.RETRIES) {

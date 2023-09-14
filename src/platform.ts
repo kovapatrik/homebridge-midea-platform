@@ -31,6 +31,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     this.cloud = new Cloud(this.config['user'], this.config['password'], this.config['useChinaServer'], log);
     this.discover = new Discover(log);
+
+    if (this.config['user'] === undefined || this.config['password'] === undefined) {
+      this.log.error('The platform configuration is incomplete.');
+      return;
+    }
+
     this.discover.on('device', (device_info: DeviceInfo) => {
       const configDev = this.config['devices'].find((dev: ConfigDevice) => dev.ip === device_info.ip);
       if (configDev) {
