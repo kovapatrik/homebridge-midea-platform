@@ -1,6 +1,6 @@
 {
   "displayName": "Homebridge Midea",
-  "name": "homebridge-midea",
+  "name": "homebridge-midea-platform",
   "version": "0.1.0",
   "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
