@@ -1,4 +1,6 @@
 # Still in development! Needs testing!
+The plugin only supports Midea SmartHome (formerly Midea MSmartHome) accounts and applications. You must have the devices assigned to the account which you will use in the plugin.
+
 If anyone wants to contribute, you are welcome to do so! Because the plugin is almost identical with [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan), you can create any device within this plugin.  
 Also, my TCP socket knowledge (especially in Node.js) is kinda bad, so if you have any more idea how to reconnect in case of connection is lost, or when there is any error in the TCP connection, I will thank you!
 # Usage
