@@ -93,13 +93,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
 
     // Display
-    const displayAccessory = this.getOrCreateSubAccessory('Display');
-    this.displayService = displayAccessory.getService(this.platform.Service.Switch) ||
-                          displayAccessory.addService(this.platform.Service.Switch);
-    this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Display`);
-    this.displayService.getCharacteristic(this.platform.Characteristic.On)
-      .onGet(this.getDisplayActive.bind(this))
-      .onSet(this.setDisplayActive.bind(this));
+    if (this.configDev.AC_options!.switchDisplay.flag) {
+      this.device.set_alternate_switch_display(this.configDev.AC_options!.switchDisplay.command);
+      const displayAccessory = this.getOrCreateSubAccessory('Display');
+      this.displayService = displayAccessory.getService(this.platform.Service.Switch) ||
+                            displayAccessory.addService(this.platform.Service.Switch);
+      this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Display`);
+      this.displayService.getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getDisplayActive.bind(this))
+        .onSet(this.setDisplayActive.bind(this));
+    }
 
     // Misc
     this.device.attributes.PROMPT_TONE = this.configDev.AC_options!.audioFeedback;

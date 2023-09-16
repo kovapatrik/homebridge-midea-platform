@@ -18,6 +18,7 @@
       "registeredApp": {
         "title": "Registered App",
         "type": "string",
+        "description": "Select the app where your devices are registered in.",
         "enum": [
           "Midea SmartHome (MSmartHome)",
           "NetHome Plus",
@@ -34,15 +35,18 @@
           "properties": {
             "ip": {
               "title": "Device IP Address",
+              "description": "The IP address of the device you want to add.",
               "type": "string",
               "required": true
             },
             "name": {
               "title": "Device Name",
+              "description": "This is the name that will be used in HomeKit.",
               "type": "string"
             },
             "deviceType": {
               "title": "Device Type",
+              "description": "Select the type of device you are adding.",
               "type": "string",
               "enum": [
                 "Air Conditioner"
@@ -51,6 +55,7 @@
             },
             "singleAccessory": {
               "title": "Single Accessory",
+              "description": "Toggles if the AC and the optional sub accessories (e.g.: outdoor temperature sensor, display switch) are combined into one accessory or not.",
               "type": "boolean",
               "default": true
             },
@@ -63,6 +68,7 @@
               "properties": {
                 "swingMode": {
                   "title": "Swing Mode",
+                  "description": "Set swing mode of the unit. If you AC does not support this feature then leave it on None.",
                   "type": "string",
                   "enum": [
                     "Vertical",
@@ -72,13 +78,32 @@
                 },
                 "outDoorTemp": {
                   "title": "Outdoor Temperature",
+                  "description": "Toggles if the outdoor temperature is created with the accessory.",
                   "type": "boolean",
                   "default": false
                 },
                 "audioFeedback": {
                   "title": "Audio Feedback",
+                  "description": "Toggles if the unit beeps when a command is sent.",
                   "type": "boolean",
                   "default": false
+                },
+                "switchDisplay": {
+                  "type": "object",
+                  "properties": {
+                    "flag": {
+                      "title": "Switch Display",
+                      "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
+                      "type": "boolean",
+                      "default": true
+                    },
+                    "command": {
+                      "title": "Switch Display Alternate Command",
+                      "description": "Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature.",
+                      "type": "boolean",
+                      "default": false
+                    }
+                  }
                 },
                 "minTemp": {
                   "title": "Minimum Temperature",
@@ -101,11 +126,13 @@
                 },
                 "fahrenHeit": {
                   "title": "Fahrenheit",
+                  "description": "Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.",
                   "type": "boolean",
                   "default": false
                 },
                 "fanOnlyMode": {
                   "title": "Fan Only Mode",
+                  "description": "Toggles if the fan only mode is created with the accessory.",
                   "type": "boolean",
                   "default": false
                 }
@@ -148,6 +175,13 @@
             "devices[].AC_options.swingMode",
             "devices[].AC_options.outDoorTemp",
             "devices[].AC_options.audioFeedback",
+            {
+              "key": "devices[].AC_options.switchDisplay",
+              "items": [
+                "devices[].AC_options.switchDisplay.flag",
+                "devices[].AC_options.switchDisplay.command"
+              ]
+            },
             "devices[].AC_options.minTemp",
             "devices[].AC_options.maxTemp",
             "devices[].AC_options.tempStep",

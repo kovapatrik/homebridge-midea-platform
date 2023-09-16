@@ -22,6 +22,10 @@ export enum SwingMode {
 
 type ACOptions = {
   swingMode: SwingMode;
+  switchDisplay: {
+    flag: boolean;
+    command: boolean;
+  };
   minTemp: number;
   maxTemp: number;
   tempStep: number;

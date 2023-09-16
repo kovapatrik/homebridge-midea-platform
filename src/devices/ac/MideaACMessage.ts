@@ -100,6 +100,7 @@ export class MessageSwitchDisplay extends MessageACBase {
 export class MessageNewProtocolQuery extends MessageACBase {
   constructor(
     device_protocol_version: number,
+    private readonly alternate_display = false,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0xB1);
   }
@@ -109,13 +110,15 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      NewProtocolTags.SCREEN_DISPLAY,
+      this.alternate_display ? NewProtocolTags.SCREEN_DISPLAY : undefined,
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
-      body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
+      if (param) {
+        body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
+      }
     }
     return body;
   }

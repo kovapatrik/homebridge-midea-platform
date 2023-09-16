@@ -73,6 +73,8 @@ export default class MideaACDevice extends MideaDevice {
   private readonly DEFAULT_POWER_ANALYSIS_METHOD = 2;
   private power_analysis_method?: number;
 
+  private alternate_switch_display = false;
+
   constructor(
     logger: Logger,
     device_info: DeviceInfo,
@@ -127,7 +129,7 @@ export default class MideaACDevice extends MideaDevice {
     }
     return [
       new MessageQuery(this.device_protocol_version),
-      new MessageNewProtocolQuery(this.device_protocol_version),
+      new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display),
       new MessagePowerQuery(this.device_protocol_version),
     ];
   }
@@ -241,7 +243,8 @@ export default class MideaACDevice extends MideaDevice {
         if (k === 'PROMPT_TONE') {
           this.attributes.PROMPT_TONE = v as boolean;
         } else if (k === 'SCREEN_DISPLAY') {
-          if (this.attributes.SCREEN_DISPLAY_NEW) {
+          // if (this.attributes.SCREEN_DISPLAY_NEW)
+          if (this.alternate_switch_display) {
             message = new MessageNewProtocolSet(this.device_protocol_version);
             if (message instanceof MessageNewProtocolSet) {
               message.screen_display = v as boolean;
@@ -300,6 +303,10 @@ export default class MideaACDevice extends MideaDevice {
         await this.build_send(message);
       }
     }
+  }
+
+  set_alternate_switch_display(value: boolean) {
+    this.alternate_switch_display = value;
   }
 
   async set_target_temperature(target_temperature: number, mode?: number) {

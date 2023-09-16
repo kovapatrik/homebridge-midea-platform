@@ -183,6 +183,7 @@ export default abstract class MideaDevice {
     try {
       await this.promiseSocket.write(data);
     } catch {
+      this.logger.debug(`[${this.name}] Error when sending data to device, retrying...`);
       await this.send_message_v2(data, retries - 1, true);
     }
   }
