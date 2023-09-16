@@ -15,10 +15,16 @@
         "type": "string",
         "required": true
       },
-      "useChinaServer": {
-        "title": "Use China Server",
-        "type": "boolean",
-        "default": false
+      "registeredApp": {
+        "title": "Registered App",
+        "type": "string",
+        "enum": [
+          "Midea SmartHome (MSmartHome)",
+          "NetHome Plus",
+          "Meiju"
+        ],
+        "default": "Midea SmartHome (MSmartHome)",
+        "required": true
       },
       "devices": {
         "title": "Devices",
@@ -39,15 +45,20 @@
               "title": "Device Type",
               "type": "string",
               "enum": [
-                "AC"
+                "Air Conditioner"
               ],
               "required": true
             },
-            "ACoptions": {
+            "singleAccessory": {
+              "title": "Single Accessory",
+              "type": "boolean",
+              "default": true
+            },
+            "AC_options": {
               "title": "Options",
               "type": "object",
               "condition": {
-                "functionBody": "return model.devices[arrayIndices].deviceType === 'AC';"
+                "functionBody": "return model.devices[arrayIndices].deviceType === 'Air Conditioner';"
               },
               "properties": {
                 "swingMode": {
@@ -127,20 +138,21 @@
         "devices[].ip",
         "devices[].name",
         "devices[].deviceType",
+        "devices[].singleAccessory",
         {
-          "key": "devices[].ACoptions",
+          "key": "devices[].AC_options",
           "expandable": true,
           "expanded": false,
-          "title": "AC Options",
+          "title": "Air Conditioner Options",
           "items": [
-            "devices[].ACoptions.swingMode",
-            "devices[].ACoptions.outDoorTemp",
-            "devices[].ACoptions.audioFeedback",
-            "devices[].ACoptions.minTemp",
-            "devices[].ACoptions.maxTemp",
-            "devices[].ACoptions.tempStep",
-            "devices[].ACoptions.fahrenHeit",
-            "devices[].ACoptions.fanOnlyMode"
+            "devices[].AC_options.swingMode",
+            "devices[].AC_options.outDoorTemp",
+            "devices[].AC_options.audioFeedback",
+            "devices[].AC_options.minTemp",
+            "devices[].AC_options.maxTemp",
+            "devices[].AC_options.tempStep",
+            "devices[].AC_options.fahrenHeit",
+            "devices[].AC_options.fanOnlyMode"
           ]
         }
       ]

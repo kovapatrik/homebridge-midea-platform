@@ -5,19 +5,11 @@ import { numberToUint8Array, strxor } from './MideaUtils';
 export type KeyToken = Buffer | undefined;
 
 export class CloudSecurity {
-  private readonly HMAC_KEY = 'PROD_VnoClJI9aikS8dyy';
-
-  private readonly IOT_KEY = 'meicloud';
-  private readonly LOGIN_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
-
-  private readonly IOT_KEY_CHINA = 'prod_secret123@muc';
-  private readonly LOGIN_KEY_CHINA = 'ad0ee21d48a64bf49f4fb583ab76e799';
-
-  private iot_key = this.use_china_server ? this.IOT_KEY_CHINA : this.IOT_KEY;
-  private login_key = this.use_china_server ? this.LOGIN_KEY_CHINA : this.LOGIN_KEY;
+  protected readonly HMAC_KEY = 'PROD_VnoClJI9aikS8dyy';
 
   constructor(
-    private readonly use_china_server: boolean = false,
+    protected readonly login_key: string,
+    protected readonly iot_key?: string,
   ) { }
 
   // Generate a HMAC signature for the provided data and random data.
@@ -42,10 +34,6 @@ export class CloudSecurity {
 
     const m2 = createHash('md5').update(m1.digest('hex'));
 
-    if (this.use_china_server) {
-      return m2.digest('hex');
-    }
-
     const login_hash = `${loginId}${m2.digest('hex')}${this.login_key}`;
     const sha = createHash('sha256').update(login_hash);
 
@@ -59,6 +47,36 @@ export class CloudSecurity {
       output[i] = data[i] ^ data[i+16];
     }
     return output.toString('hex');
+  }
+}
+
+export class MeijuCloudSecurity extends CloudSecurity {
+  constructor(
+    login_key: string,
+    iot_key: string,
+  ) {
+    super(login_key, iot_key);
+  }
+
+  public encrpytIAMPassword(loginId: string, password: string) {
+    const m1 = createHash('md5').update(password);
+    const m2 = createHash('md5').update(m1.digest('hex'));
+    return m2.digest('hex');
+  }
+}
+
+export class NetHomeSecurity extends CloudSecurity {
+  constructor(
+    login_key: string,
+    iot_key?: string,
+  ) {
+    super(login_key, iot_key);
+  }
+
+  public sign(url: string, query: string): string {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+    return createHmac('sha256', this.HMAC_KEY).update(`${path}${query}${this.login_key}`).digest('hex');
   }
 }
 
