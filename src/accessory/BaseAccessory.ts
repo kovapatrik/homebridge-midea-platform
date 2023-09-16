@@ -4,7 +4,6 @@ import MideaDevice from '../core/MideaDevice';
 import { DeviceConfig } from '../platformUtils';
 
 export default class BaseAccessory<T extends MideaDevice> {
-  protected service!: Service;
 
   constructor(
     protected readonly platform: MideaPlatform,

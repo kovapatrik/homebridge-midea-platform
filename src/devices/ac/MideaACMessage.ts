@@ -322,7 +322,7 @@ export class MessageGeneralSet extends MessageACBase {
 export class MessageNewProtocolSet extends MessageACBase {
 
   public indirect_wind?: boolean;
-  public prompt_tone?: boolean;
+  public prompt_tone = false;
   public breezeless?: boolean;
   public screen_display?: boolean;
   public fresh_air_1?: Buffer;
@@ -348,12 +348,6 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       payload = Buffer.concat([payload,
         NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01]))]);
-    }
-
-    if (this.prompt_tone !== undefined) {
-      pack_count += 1;
-      payload = Buffer.concat([payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
     }
 
     if (this.screen_display !== undefined) {
@@ -386,6 +380,10 @@ export class MessageNewProtocolSet extends MessageACBase {
           0xFF,
         ]))]);
     }
+
+    pack_count += 1;
+    payload = Buffer.concat([payload,
+      NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
 
     payload[0] = pack_count;
     return payload;
