@@ -9,11 +9,23 @@ export type DeviceConfig = {
   ip: string;
   name?: string;
   deviceType: string;
-  ACoptions?: ACOptions;
+  singleAccessory: boolean;
+  AC_options?: ACOptions;
 };
 
-export type ACOptions = {
+export enum SwingMode {
+  NONE = 'None',
+  VERTICAL = 'Vertical',
+  HORIZONTAL = 'Horizontal',
+  BOTH = 'Both',
+}
+
+type ACOptions = {
   swingMode: SwingMode;
+  switchDisplay: {
+    flag: boolean;
+    command: boolean;
+  };
   minTemp: number;
   maxTemp: number;
   tempStep: number;
@@ -22,11 +34,3 @@ export type ACOptions = {
   outDoorTemp: boolean;
   audioFeedback: boolean;
 };
-
-
-export enum SwingMode {
-  NONE = 'None',
-  VERTICAL = 'Vertical',
-  HORIZONTAL = 'Horizontal',
-  BOTH = 'Both',
-}

@@ -1,17 +1,20 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import Cloud from './core/MideaCloud';
+import CloudFactory, { CloudBase } from './core/MideaCloud';
 import Discover from './core/MideaDiscover';
 import { DeviceInfo, Endianness } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { DeviceConfig } from './platformUtils';
+import { CloudSecurity } from './core/MideaSecurity';
 
 export interface MideaAccessory extends PlatformAccessory {
   context: {
     token?: string;
     key?: string;
+    id: string;
+    type: string;
   };
 }
 
@@ -22,7 +25,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
   public readonly accessories: MideaAccessory[] = [];
 
-  private readonly cloud: Cloud;
+  private readonly cloud: CloudBase<CloudSecurity>;
   private readonly discover: Discover;
 
   constructor(
@@ -32,7 +35,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
 
-    this.cloud = new Cloud(this.config['user'], this.config['password'], this.config['useChinaServer'], log);
+    this.cloud = CloudFactory.createCloud(this.config['user'], this.config['password'], log, this.config['registeredApp']);
     this.discover = new Discover(log);
 
     if (this.config['user'] === undefined || this.config['password'] === undefined) {
@@ -89,8 +92,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         try {
           await device.connect();
           AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
-        } catch {
-          this.log.error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
+        } catch (err) {
+          this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`);
         }
       } else {
         this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
@@ -99,7 +102,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     } else {
       this.log.info('Adding new accessory:', device_info.name);
 
-      const accessory = new this.api.platformAccessory(device_info.name, uuid);
+      const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
 
       const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined);
       if (device) {
@@ -118,6 +121,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
           accessory.context.token = token ? token.toString('hex') : undefined;
           accessory.context.key = key ? key.toString('hex') : undefined;
+          accessory.context.id = accessory.UUID;
+          accessory.context.type = 'main';
 
           connected = await device.connect();
           i++;

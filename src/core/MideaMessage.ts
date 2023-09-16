@@ -155,9 +155,9 @@ export class NewProtocolMessageBody extends MessageBody {
   static packet(param: number, value: Buffer, packet_length = 4) {
     const length = value.length;
     if (packet_length === 4) {
-      return Buffer.from([param && 0xFF, param >> 8, length, ...value]);
+      return Buffer.concat([Buffer.from([param & 0xFF, param >> 8, length]), value]);
     } else {
-      return Buffer.from([param && 0xFF, param >> 8, 0x00, length, ...value]);
+      return Buffer.concat([Buffer.from([param & 0xFF, param >> 8, 0x00, length]), value]);
     }
   }
 

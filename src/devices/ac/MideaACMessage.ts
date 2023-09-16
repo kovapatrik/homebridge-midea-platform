@@ -100,6 +100,7 @@ export class MessageSwitchDisplay extends MessageACBase {
 export class MessageNewProtocolQuery extends MessageACBase {
   constructor(
     device_protocol_version: number,
+    private readonly alternate_display = false,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0xB1);
   }
@@ -109,13 +110,15 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      NewProtocolTags.SCREEN_DISPLAY,
+      this.alternate_display ? NewProtocolTags.SCREEN_DISPLAY : undefined,
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
-      body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
+      if (param) {
+        body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
+      }
     }
     return body;
   }
@@ -322,7 +325,7 @@ export class MessageGeneralSet extends MessageACBase {
 export class MessageNewProtocolSet extends MessageACBase {
 
   public indirect_wind?: boolean;
-  public prompt_tone?: boolean;
+  public prompt_tone = false;
   public breezeless?: boolean;
   public screen_display?: boolean;
   public fresh_air_1?: Buffer;
@@ -348,12 +351,6 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       payload = Buffer.concat([payload,
         NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01]))]);
-    }
-
-    if (this.prompt_tone !== undefined) {
-      pack_count += 1;
-      payload = Buffer.concat([payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
     }
 
     if (this.screen_display !== undefined) {
@@ -386,6 +383,10 @@ export class MessageNewProtocolSet extends MessageACBase {
           0xFF,
         ]))]);
     }
+
+    pack_count += 1;
+    payload = Buffer.concat([payload,
+      NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
 
     payload[0] = pack_count;
     return payload;

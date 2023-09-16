@@ -183,6 +183,7 @@ export default abstract class MideaDevice {
     try {
       await this.promiseSocket.write(data);
     } catch {
+      this.logger.debug(`[${this.name}] Error when sending data to device, retrying...`);
       await this.send_message_v2(data, retries - 1, true);
     }
   }
@@ -218,6 +219,10 @@ export default abstract class MideaDevice {
               }
               const result = this.parse_message(message);
               if (result === ParseMessageResult.SUCCESS) {
+                const cmd_idx = this.unsupported_protocol.indexOf(cmd.constructor.name);
+                if (cmd_idx !== -1) {
+                  this.unsupported_protocol.splice(cmd_idx, 1);
+                }
                 break;
               } else if (result === ParseMessageResult.PADDING) {
                 continue;
@@ -227,7 +232,7 @@ export default abstract class MideaDevice {
             }
           } catch (err) {
             error_cnt++;
-            this.unsupported_protocol.push(cmd.constructor.name);
+            // this.unsupported_protocol.push(cmd.constructor.name);
             this.logger.error(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
           }
         }
