@@ -67,8 +67,10 @@ export abstract class CloudBase<T extends CloudSecurity> {
     for (let i = 0; i < 3; i++) {
       try {
         const response = await axios.post(url, data, { headers: headers });
-        if (response.data['code'] === '0') {
+        if (Number.parseInt(response.data['code']) === 0) {
           return response.data['data'];
+        } else {
+          this.logger.error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
         }
       } catch (error) {
         this.logger.error(`Error while sending request to ${url}: ${error}`);
