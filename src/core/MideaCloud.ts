@@ -3,7 +3,7 @@ import { Logger } from 'homebridge';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
-import { CloudSecurity, MeijuCloudSecurity, NetHomeSecurity } from './MideaSecurity';
+import { CloudSecurity, MeijuCloudSecurity, MideaAirSecurity } from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
 
@@ -166,7 +166,21 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
   }
 }
 
-class NetHomeCloud extends CloudBase<NetHomeSecurity> {
+class NetHomePlusCloud extends CloudBase<CloudSecurity> {
+  protected API_URL = 'https://mapp.appsmb.com';
+  protected APP_ID = '1017';
+  protected SRC = '1017';
+
+  constructor(
+    account: string,
+    password: string,
+    logger: Logger,
+  ) {
+    super(account, password, logger, new CloudSecurity('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'));
+  }
+}
+
+class MideaAirCloud extends CloudBase<MideaAirSecurity> {
   protected API_URL = 'https://mapp.appsmb.com';
   protected APP_ID = '1117';
   protected SRC = '17';
@@ -178,7 +192,7 @@ class NetHomeCloud extends CloudBase<NetHomeSecurity> {
     password: string,
     logger: Logger,
   ) {
-    super(account, password, logger, new NetHomeSecurity('ff0cf6f5f0c3471de36341cab3f7a9af', undefined));
+    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af', undefined));
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,7 +258,9 @@ export default class CloudFactory {
       case 'Meiju':
         return new MeijuCloud(account, password, logger);
       case 'NetHome Plus':
-        return new NetHomeCloud(account, password, logger);
+        return new NetHomePlusCloud(account, password, logger);
+      case 'Midea Air':
+        return new MideaAirCloud(account, password, logger);
       default:
         throw new Error(`Cloud ${cloud} is not supported.`);
     }

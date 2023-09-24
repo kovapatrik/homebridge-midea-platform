@@ -65,7 +65,7 @@ export class MeijuCloudSecurity extends CloudSecurity {
   }
 }
 
-export class NetHomeSecurity extends CloudSecurity {
+export class MideaAirSecurity extends CloudSecurity {
   constructor(
     login_key: string,
     iot_key?: string,

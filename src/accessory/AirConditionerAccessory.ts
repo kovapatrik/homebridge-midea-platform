@@ -11,6 +11,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private outDoorTemperatureService?: Service;
   private displayService?: Service;
   private fanService?: Service;
+  private ecoModeService?: Service;
   private accessories: MideaAccessory[];
 
   constructor(
@@ -23,6 +24,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service = this.accessory.getService(this.platform.Service.HeaterCooler) ||
                    this.accessory.addService(this.platform.Service.HeaterCooler);
+
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
 
     this.accessories = this.platform.accessories.filter(acc => acc.context.id === this.accessory.UUID && acc !== this.accessory);
@@ -77,10 +79,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Outdoor temperature sensor
     if (this.configDev.AC_options!.outDoorTemp) {
-      const outDoorTemperatureAccessory = this.getOrCreateSubAccessory('Outdoor');
-      this.outDoorTemperatureService = outDoorTemperatureAccessory.getService(this.platform.Service.TemperatureSensor) ||
-                                       outDoorTemperatureAccessory.addService(this.platform.Service.TemperatureSensor);
-
+      this.outDoorTemperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Outdoor');
+      if (!this.outDoorTemperatureService) {
+        this.outDoorTemperatureService = this.accessory.addService(this.platform.Service.TemperatureSensor,
+          `${this.device.name} Outdoor`, 'Outdoor');
+      }
       this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Outdoor`);
 
       this.outDoorTemperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
@@ -90,24 +93,40 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onGet(() => this.device.attributes.OUTDOOR_TEMPERATURE === undefined ?
           this.platform.Characteristic.StatusFault.GENERAL_FAULT :
           this.platform.Characteristic.StatusFault.NO_FAULT);
+
+      this.service.addLinkedService(this.outDoorTemperatureService);
     }
 
-    // Display
-    if (this.configDev.AC_options!.switchDisplay.flag) {
-      this.device.set_alternate_switch_display(this.configDev.AC_options!.switchDisplay.command);
-      const displayAccessory = this.getOrCreateSubAccessory('Display');
-      this.displayService = displayAccessory.getService(this.platform.Service.Switch) ||
-                            displayAccessory.addService(this.platform.Service.Switch);
-      this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Display`);
-      this.displayService.getCharacteristic(this.platform.Characteristic.On)
-        .onGet(this.getDisplayActive.bind(this))
-        .onSet(this.setDisplayActive.bind(this));
+    // Switches
+    if (this.configDev.AC_options?.ecoSwitch || this.configDev.AC_options?.switchDisplay.flag) {
+      const switchAccessory = this.getOrCreateSubAccessory('Switch');
+
+      // Display
+      if (this.configDev.AC_options.switchDisplay.flag) {
+        this.device.set_alternate_switch_display(this.configDev.AC_options.switchDisplay.command);
+        this.displayService = switchAccessory.getServiceById(this.platform.Service.Switch, 'Display');
+        if (!this.displayService) {
+          this.displayService = switchAccessory.addService(this.platform.Service.Switch, `${this.device.name} Display`, 'Display');
+        }
+        this.displayService.getCharacteristic(this.platform.Characteristic.On)
+          .onGet(this.getDisplayActive.bind(this))
+          .onSet(this.setDisplayActive.bind(this));
+      }
+
+      if (this.configDev.AC_options.ecoSwitch) {
+        this.ecoModeService = switchAccessory.getServiceById(this.platform.Service.Switch, 'EcoMode');
+        if (!this.ecoModeService) {
+          this.ecoModeService = switchAccessory.addService(this.platform.Service.Switch, `${this.device.name} Eco`, 'EcoMode');
+        }
+        this.ecoModeService.getCharacteristic(this.platform.Characteristic.On)
+          .onGet(this.getEcoMode.bind(this))
+          .onSet(this.setEcoMode.bind(this));
+      }
     }
 
     // Misc
     this.device.attributes.PROMPT_TONE = this.configDev.AC_options!.audioFeedback;
     this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options!.fahrenHeit;
-
 
     // Remove unused accessories
     this.platform.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, this.accessories);
@@ -227,6 +246,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.device.attributes.POWER) {
       await this.device.set_attribute({ SCREEN_DISPLAY: value as boolean });
     }
+  }
+
+  getEcoMode(): CharacteristicValue {
+    return this.device.attributes.ECO_MODE;
+  }
+
+  async setEcoMode(value: CharacteristicValue) {
+    await this.device.set_attribute({ ECO_MODE: value as boolean });
   }
 
   getOrCreateSubAccessory(type: string): MideaAccessory {
