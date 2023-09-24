@@ -1,4 +1,3 @@
-import { Service } from 'homebridge';
 import { MideaAccessory, MideaPlatform } from '../platform';
 import MideaDevice from '../core/MideaDevice';
 import { DeviceConfig } from '../platformUtils';
