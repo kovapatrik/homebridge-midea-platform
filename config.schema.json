@@ -88,6 +88,12 @@
                   "type": "boolean",
                   "default": false
                 },
+                "ecoSwitch": {
+                  "title": "Eco Mode Switch",
+                  "description": "Toggles if the ECO mode switch is created with the accessory.",
+                  "type": "boolean",
+                  "default": true
+                },
                 "switchDisplay": {
                   "type": "object",
                   "properties": {
@@ -175,6 +181,7 @@
             "devices[].AC_options.swingMode",
             "devices[].AC_options.outDoorTemp",
             "devices[].AC_options.audioFeedback",
+            "devices[].AC_options.ecoSwitch",
             {
               "key": "devices[].AC_options.switchDisplay",
               "items": [
