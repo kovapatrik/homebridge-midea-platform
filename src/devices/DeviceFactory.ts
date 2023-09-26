@@ -1,6 +1,7 @@
 import { Logger } from 'homebridge';
 import { DeviceInfo, DeviceType } from '../core/MideaConstants';
 import MideaACDevice from './ac/MideaACDevice';
+import MideaA1Device from './a1/MideaA1Device';
 import { KeyToken } from '../core/MideaSecurity';
 
 export default class DeviceFactory {
@@ -8,6 +9,8 @@ export default class DeviceFactory {
     switch (device_info.type) {
       case DeviceType.AIR_CONDITIONER:
         return new MideaACDevice(logger, device_info, token, key);
+        case DeviceType.DEHUMIDIFIER:
+        return new MideaA1Device(logger, device_info, token, key);
     }
   }
 }
