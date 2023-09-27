@@ -16,10 +16,9 @@ export interface A1Attributes extends DeviceAttributeBase {
   TANK: number;
   WATER_LEVEL_SET: number;
   TANK_FULL: boolean | undefined;
-  CURRENT_HUMIDITY: number | undefined;
+  CURRENT_HUMIDITY: number;
   CURRENT_TEMPERATURE: number | undefined;
 
-  TANK_LEVEL: number;
   DEFROSTING: boolean;
   FILTER_INDICATOR: boolean;
   PUMP: boolean;
@@ -28,6 +27,9 @@ export interface A1Attributes extends DeviceAttributeBase {
 };
 
 export default class MideaA1Device extends MideaDevice {
+
+  readonly MIN_HUMIDITY = 35;
+  readonly MAX_HUMIDITY = 85;
 
   readonly MODES = {
     0: "Off",
@@ -77,10 +79,9 @@ export default class MideaA1Device extends MideaDevice {
       TANK: 0,
       WATER_LEVEL_SET: 50,
       TANK_FULL: undefined,
-      CURRENT_HUMIDITY: undefined,
+      CURRENT_HUMIDITY: 0,
       CURRENT_TEMPERATURE: undefined,
 
-      TANK_LEVEL: 0,
       DEFROSTING: false,
       FILTER_INDICATOR: false,
       PUMP: false,
@@ -106,6 +107,7 @@ export default class MideaA1Device extends MideaDevice {
         this.attributes[status] = value;
       };
     };
+    this.attributes.TANK_FULL = (this.attributes.TANK >= this.attributes.WATER_LEVEL_SET);
   };
 
   make_message_set() {
@@ -127,7 +129,7 @@ export default class MideaA1Device extends MideaDevice {
       let message: MessageSet | undefined = undefined;
 
       // not sensor data
-      if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 
+      if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING',
         'FILTER_INDICATOR', 'PUMP'].includes(k)) {
 
         this.attributes[k] = v;

@@ -218,8 +218,6 @@ class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 
 export class MessageA1Response extends MessageResponse {
 
-  public used_subprotocol?: boolean;
-
   constructor(
     private readonly message: Buffer,
   ) {

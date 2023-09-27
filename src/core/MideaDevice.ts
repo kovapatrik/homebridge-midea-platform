@@ -150,6 +150,7 @@ export default abstract class MideaDevice {
   }
 
   public async send_message(data: Buffer) {
+    this.logger.debug(`[${this.name}] Send message:\n${JSON.stringify(data)}`);
     if (this.version === ProtocolVersion.V3) {
       await this.send_message_v3(data);
     } else {
