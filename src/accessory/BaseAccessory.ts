@@ -15,7 +15,7 @@ export default class BaseAccessory<T extends MideaDevice> {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
       .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
-
+/*
     setInterval(async () => {
       this.device.send_heartbeat();
       try {
@@ -27,9 +27,9 @@ export default class BaseAccessory<T extends MideaDevice> {
         this.platform.log.error(err as string);
       }
     }, 10000);
-
+*/
     setInterval(() => {
-      this.device.refresh_status();
-    }, 30000);
+      this.device.refresh_status(true);
+    }, 10000);
   }
 }

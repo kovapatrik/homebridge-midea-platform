@@ -54,7 +54,7 @@ export default class Discover extends EventEmitter {
   public discoverDeviceByIP(ip: string, retries = 3) {
     let tries = 0;
     const interval = setInterval(() => {
-      if (this.ips.includes(ip) || tries++ >= retries) {
+      if (this.ips.includes(ip) || tries++ > retries) {
         clearInterval(interval);
         return;
       }
@@ -103,7 +103,7 @@ export default class Discover extends EventEmitter {
     const broadcastAddrs = this.ifBroadcastAddrs();
 
     const interval = setInterval(() => {
-      if (tries++ >= retries) {
+      if (tries++ > retries) {
         clearInterval(interval);
         return;
       }
@@ -168,7 +168,7 @@ export default class Discover extends EventEmitter {
         throw new Error(`Error while decrypting data: ${err}`);
       }
 
-      this.logger.debug(`Decrypted data: ${decrypted_buffer.toString('hex')}`);
+      this.logger.debug(`Discover decrypted data:\n${decrypted_buffer.toString('hex')}`);
 
       // eslint-disable-next-line max-len
       const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;

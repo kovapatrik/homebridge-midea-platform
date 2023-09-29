@@ -98,8 +98,7 @@ export default class MideaA1Device extends MideaDevice {
 
   process_message(msg: Buffer) {
     const message = new MessageA1Response(msg);
-    this.logger.debug(`Got message:\n${JSON.stringify(message)}`);
-
+    this.logger.debug(`Body:\n${JSON.stringify(message.body)}`);
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {

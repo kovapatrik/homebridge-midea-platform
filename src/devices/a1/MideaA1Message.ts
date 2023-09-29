@@ -223,8 +223,8 @@ export class MessageA1Response extends MessageResponse {
   ) {
     super(message);
 
-    if (this.message_type in [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY1]) {
-      if (this.body_type in [0xB0, 0xB1, 0xB5]) {
+    if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type)) {
+      if ([0xB0, 0xB1, 0xB5].includes(this.body_type)) {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));
       } else {
         this.set_body(new A1GeneralMessageBody(this.body));
