@@ -102,7 +102,7 @@ export default class MideaA1Device extends MideaDevice {
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
-        this.logger.debug(`[${this.name}] Setting local ${status} to ${value}`);
+        // this.logger.debug(`[${this.name}] Setting local ${status} to ${value}`);
         this.attributes[status] = value;
       };
     };
@@ -126,7 +126,7 @@ export default class MideaA1Device extends MideaDevice {
   async set_attribute(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       let message: MessageSet | undefined = undefined;
-
+      this.logger.debug(`Set attribute ${k} to value ${v}`);
       // not sensor data
       if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING',
         'FILTER_INDICATOR', 'PUMP'].includes(k)) {
@@ -140,6 +140,7 @@ export default class MideaA1Device extends MideaDevice {
           // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
         }
       }
+      this.logger.debug(`Set message:\n${JSON.stringify(message)}`);
       if (message) {
         await this.build_send(message);
       }

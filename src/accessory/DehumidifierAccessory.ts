@@ -91,7 +91,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   private async setActive(value: CharacteristicValue) {
     this.platform.log.debug(`Triggered SET Active to: ${value}`);
-    await this.device.set_attribute({ POWER: value as boolean });
+    await this.device.set_attribute({ POWER: !!value });
   }
 
   // Handle requests to get the current value of the "HumidifierDehumidifierState" characteristic
@@ -211,6 +211,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   // Handle requests to set the "swingMode" characteristic
   async setSwingMode(value: CharacteristicValue) {
     this.platform.log.debug(`Triggered SET SwingMode to: ${value}`);
-    await this.device.set_attribute({ SWING: value as boolean });
+    await this.device.set_attribute({ SWING: !!value });
   };
 };

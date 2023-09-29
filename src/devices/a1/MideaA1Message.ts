@@ -88,7 +88,7 @@ export class MessageSet extends MessageA1Base {
   constructor(
     device_protocol_version: number,
   ) {
-    super(device_protocol_version, MessageType.SET, 0x40);
+    super(device_protocol_version, MessageType.SET, 0x48);
     this.power = false;
     this.prompt_tone = true;
     this.mode = 1;
