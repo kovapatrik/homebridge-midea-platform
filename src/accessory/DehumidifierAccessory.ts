@@ -84,9 +84,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Callback function called by MideaDevice whenever there is a change to
   // any attribute value.
-  private async updateCharacteristics(attributes: A1Attributes) {
+  private async updateCharacteristics(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
-      this.platform.log.debug(`Set attribute ${k} to value ${v}`);
+      this.platform.log.debug(`Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
         case 'power':
@@ -113,11 +113,17 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         case 'current_temperature':
           // Not currently supported
           break;
-        case 'tank':
+        case 'tank_level':
           this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
           break;
         case 'tank_full':
-          // Not currently supported
+          // No HomeKit characteristic
+          break;
+        case 'water_level_set':
+          // No HomeKit characteristic
+          break;
+        case 'child_lock':
+          this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, v ? this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_ENABLED : this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED);
           break;
         default:
           this.platform.log.warn(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
@@ -246,8 +252,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the current value of the "WaterLevel" characteristic
   private async getWaterLevel(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET WaterLevel, value: ${this.device.attributes.TANK}`);
-    return this.device.attributes.TANK;
+    this.platform.log.debug(`Triggered GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
+    return this.device.attributes.TANK_LEVEL;
   }
 
   // Handle requests to get the current value of the "swingMode" characteristic

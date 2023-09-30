@@ -169,8 +169,13 @@ class A1GeneralMessageBody extends MessageBody {
   public fan_speed: number;
   public target_humidity: number;
   public child_lock: boolean;
+  public filter_indicator: boolean;
   public anion: boolean;
-  public tank: number;
+  public sleep_mode: boolean;
+  public pump_switch_flag: boolean;
+  public pump: boolean;
+  public defrosting: boolean;
+  public tank_level: number;
   public water_level_set: number;
   public current_humidity: number;
   public current_temperature: number;
@@ -182,16 +187,23 @@ class A1GeneralMessageBody extends MessageBody {
     super(body);
 
     this.power = (body[1] & 0x01) > 0;
-    this.mode = (body[2] & 0x0F) >> 5;
+    this.mode = (body[2] & 0x0F);
     this.fan_speed = body[3] & 0x7f;
-    this.target_humidity = (body[7] < 35) ? 35 : body[7];
+    // Target humidity between 35% and 85%
+    this.target_humidity = (body[7] < 35) ? 35 : (body[7] > 85) ? 85 : body[7];
     this.child_lock = (body[8] & 0x80) > 0;
+    this.filter_indicator = (body[9] & 0x80) > 0;
     this.anion = (body[9] & 0x40) > 0;
-    this.tank = body[10] & 0x7F;
+    this.sleep_mode = (body[9] & 0x20) > 0;
+    this.pump_switch_flag = (body[9] & 0x10) > 0;
+    this.pump = (body[9] & 0x08) > 0;
+    this.defrosting =  (body[10] & 0x80) > 0;
+    this.tank_level = body[10] & 0x7F;
     this.water_level_set = body[15];
     this.current_humidity = body[16];
     this.current_temperature = (body[17] - 50) / 2;
-    this.swing = (body[19] & 0x20) > 0;
+    // vertical swing or horizontal swing
+    this.swing = (body[19] & 0x20) > 0 || (body[19] & 0x10) > 0
     if (this.fan_speed < 5) {
       this.fan_speed = 1;
     }
@@ -221,7 +233,6 @@ export class MessageA1Response extends MessageResponse {
     private readonly message: Buffer,
   ) {
     super(message);
-
     if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type)) {
       if ([0xB0, 0xB1, 0xB5].includes(this.body_type)) {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));

@@ -60,7 +60,7 @@ export default abstract class MideaDevice {
     device_info: DeviceInfo,
     token: KeyToken,
     key: KeyToken,
-    config: Config | undefined = undefined
+    config: Partial<Config> | undefined = undefined
   ) {
 
     this.ip = device_info.ip;

@@ -1,8 +1,8 @@
 export type Config = {
-  user?: string;
-  password?: string;
-  useChinaServer?: boolean;
-  devices?: DeviceConfig[];
+  user: string;
+  password: string;
+  useChinaServer: boolean;
+  devices: DeviceConfig[];
   [key: string]: any;
 };
 

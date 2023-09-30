@@ -8,18 +8,17 @@ import { Config } from '../../platformUtils';
 export interface A1Attributes extends DeviceAttributeBase {
   POWER: boolean | undefined;
   PROMPT_TONE: boolean;
-  CHILD_LOCK: boolean;
+  CHILD_LOCK: boolean | undefined;
   MODE: number;
   FAN_SPEED: number;
   SWING: boolean;
   TARGET_HUMIDITY: number;
   ANION: boolean;
-  TANK: number;
+  TANK_LEVEL: number;
   WATER_LEVEL_SET: number;
   TANK_FULL: boolean | undefined;
   CURRENT_HUMIDITY: number;
-  CURRENT_TEMPERATURE: number | undefined;
-
+  CURRENT_TEMPERATURE: number;
   DEFROSTING: boolean;
   FILTER_INDICATOR: boolean;
   PUMP: boolean;
@@ -66,24 +65,24 @@ export default class MideaA1Device extends MideaDevice {
     device_info: DeviceInfo,
     token: KeyToken,
     key: KeyToken,
-    config: Config
+    config: Partial<Config>
   ) {
     super(logger, device_info, token, key, config);
+    // Initializing invalid values will force update on first refresh_status()
     this.attributes = {
-      POWER: undefined,
+      POWER: undefined,       // invalid
       PROMPT_TONE: false,
-      CHILD_LOCK: false,
-      MODE: 0,
-      FAN_SPEED: 60,
+      CHILD_LOCK: undefined,  // invalid
+      MODE: 99,               // invalid
+      FAN_SPEED: 999,         // invalid
       SWING: false,
-      TARGET_HUMIDITY: 35,
+      TARGET_HUMIDITY: 999,   // invalid
       ANION: false,
-      TANK: 0,
-      WATER_LEVEL_SET: 50,
-      TANK_FULL: undefined,
-      CURRENT_HUMIDITY: 0,
-      CURRENT_TEMPERATURE: undefined,
-
+      TANK_LEVEL: 999,        // invalid
+      WATER_LEVEL_SET: 999,   // invalid
+      TANK_FULL: undefined,   // invalid
+      CURRENT_HUMIDITY: 999,  // invalid
+      CURRENT_TEMPERATURE: 999, // invalid
       DEFROSTING: false,
       FILTER_INDICATOR: false,
       PUMP: false,
@@ -112,7 +111,7 @@ export default class MideaA1Device extends MideaDevice {
         this.attributes[status] = value;
       }
     }
-    const value = (this.attributes.TANK >= this.attributes.WATER_LEVEL_SET);
+    const value = (this.attributes.TANK_LEVEL >= this.attributes.WATER_LEVEL_SET);
     if (this.attributes.TANK_FULL !== value) {
       this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`);
       changed.TANK_FULL = value;
@@ -125,10 +124,10 @@ export default class MideaA1Device extends MideaDevice {
 
   make_message_set() {
     const message = new MessageSet(this.device_protocol_version);
-    message.power = !!this.attributes.POWER;
+    message.power = !!this.attributes.POWER;  // force to boolean
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.mode = this.attributes.MODE;
-    message.child_lock = this.attributes.CHILD_LOCK;
+    message.child_lock = !!this.attributes.CHILD_LOCK;  // force to boolean
     message.fan_speed = this.attributes.FAN_SPEED;
     message.target_humidity = this.attributes.TARGET_HUMIDITY;
     message.swing = this.attributes.SWING;
