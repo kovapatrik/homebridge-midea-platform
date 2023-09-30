@@ -1,11 +1,10 @@
-import { throws } from 'assert';
 import { DeviceType } from '../../core/MideaConstants';
 import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
   LIGHT = 0x05B
-};
+}
 
 abstract class MessageA1Base extends MessageRequest {
 
@@ -21,16 +20,16 @@ abstract class MessageA1Base extends MessageRequest {
     MessageA1Base.message_serial += 1;
     if (MessageA1Base.message_serial >= 100) {
       MessageA1Base.message_serial = 1;
-    };
+    }
     this.message_id = MessageA1Base.message_serial;
-  };
+  }
 
   get body() {
     let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
-  };
-};
+  }
+}
 
 export class MessageQuery extends MessageA1Base {
 
@@ -38,7 +37,7 @@ export class MessageQuery extends MessageA1Base {
     device_protocol_version: number,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0x41);
-  };
+  }
 
   get _body() {
     return Buffer.from([
@@ -48,8 +47,8 @@ export class MessageQuery extends MessageA1Base {
       0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00
     ]);
-  };
-};
+  }
+}
 
 export class MessageNewProtocolQuery extends MessageA1Base {
   constructor(
@@ -57,7 +56,7 @@ export class MessageNewProtocolQuery extends MessageA1Base {
     private readonly alternate_display = false,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0xB1);
-  };
+  }
 
   get _body() {
     const query_params = [
@@ -67,11 +66,11 @@ export class MessageNewProtocolQuery extends MessageA1Base {
     for (const param of query_params) {
       if (param) {
         body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
-      };
-    };
+      }
+    }
     return body;
-  };
-};
+  }
+}
 
 export class MessageSet extends MessageA1Base {
 
@@ -98,7 +97,7 @@ export class MessageSet extends MessageA1Base {
     this.swing = false;
     this.anion = false;
     this.water_level_set = 50;
-  };
+  }
 
   get _body() {
     // byte1, power, prompt_tone
@@ -133,8 +132,8 @@ export class MessageSet extends MessageA1Base {
       0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00
     ]);
-  };
-};
+  }
+}
 
 export class MessageNewProtocolSet extends MessageA1Base {
 
@@ -144,7 +143,7 @@ export class MessageNewProtocolSet extends MessageA1Base {
     device_protocol_version: number,
   ) {
     super(device_protocol_version, MessageType.SET, 0xB0);
-  };
+  }
 
   get _body() {
     let pack_count = 0;
@@ -156,12 +155,12 @@ export class MessageNewProtocolSet extends MessageA1Base {
         // original python code at https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
         // used "NewProtocolTags.INDIRECT_WIND" but that is/was not defined so assumed to be a bug and should be LIGHT
         NewProtocolMessageBody.packet(NewProtocolTags.LIGHT, Buffer.from([this.light ? 0x01 : 0x00]))]);
-    };
+    }
 
     payload[0] = pack_count;
     return payload;
-  };
-};
+  }
+}
 
 class A1GeneralMessageBody extends MessageBody {
 
@@ -195,9 +194,9 @@ class A1GeneralMessageBody extends MessageBody {
     this.swing = (body[19] & 0x20) > 0;
     if (this.fan_speed < 5) {
       this.fan_speed = 1;
-    };
-  };
-};
+    }
+  }
+}
 
 class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 
@@ -212,9 +211,9 @@ class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 
     if (NewProtocolTags.LIGHT in params) {
       this.light = (params[NewProtocolTags.LIGHT][0] > 0);
-    };
-  };
-};
+    }
+  }
+}
 
 export class MessageA1Response extends MessageResponse {
 
@@ -228,9 +227,9 @@ export class MessageA1Response extends MessageResponse {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));
       } else {
         this.set_body(new A1GeneralMessageBody(this.body));
-      };
+      }
     } else if (this.message_type == MessageType.NOTIFY2 && this.body_type == 0xA0) {
       this.set_body(new A1GeneralMessageBody(this.body));
-    };
-  };
-};
+    }
+  }
+}

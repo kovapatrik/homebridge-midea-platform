@@ -90,11 +90,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         device_info,
         existingAccessory.context.token ? Buffer.from(existingAccessory.context.token, 'hex') : undefined,
         existingAccessory.context.key ? Buffer.from(existingAccessory.context.key, 'hex') : undefined,
+        this.config,
       );
 
       if (device) {
         try {
-          await device.connect();
+          await device.connect(false);
           AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
         } catch (err) {
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`);
@@ -108,7 +109,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
       const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
 
-      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined);
+      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined, this.config);
       if (device) {
         let connected = false;
         let i = 0;
@@ -128,7 +129,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           accessory.context.id = accessory.UUID;
           accessory.context.type = 'main';
 
-          connected = await device.connect();
+          connected = await device.connect(false);
           i++;
         }
 

@@ -16,6 +16,5 @@ export default class BaseAccessory<T extends MideaDevice> {
       .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
 
-    this.device.open();
   }
 }

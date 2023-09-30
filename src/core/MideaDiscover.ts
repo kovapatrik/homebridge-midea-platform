@@ -44,7 +44,7 @@ export default class Discover extends EventEmitter {
 
         const device_version = this.getDeviceVersion(msg);
         const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
-        this.logger.debug(`Discovered device at ${rinfo.address} (${JSON.stringify(device_info)}).`);
+        this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
         this.emit('device', device_info);
       }
@@ -167,8 +167,6 @@ export default class Discover extends EventEmitter {
       } catch (err) {
         throw new Error(`Error while decrypting data: ${err}`);
       }
-
-      this.logger.debug(`Discover decrypted data:\n${decrypted_buffer.toString('hex')}`);
 
       // eslint-disable-next-line max-len
       const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;

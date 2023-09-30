@@ -1,7 +1,5 @@
-import { Logger } from 'homebridge';
 import { Endianness } from './MideaConstants';
 import { Socket } from 'net';
-import { throws } from 'assert';
 
 export function numberToUint8Array(num: number, byte_length: number, endianness: Endianness) {
   const arr = new Uint8Array(byte_length);
@@ -118,8 +116,8 @@ export class PromiseSocket {
   }
 
   public destroy() {
-    this.innerSok.destroy();
     this.destroyed = true;
+    this.innerSok.destroy();
   }
 
   async write(data: string | Buffer, encoding?: BufferEncoding) {

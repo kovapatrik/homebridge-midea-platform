@@ -1,8 +1,9 @@
 export type Config = {
-  user: string;
-  password: string;
-  useChinaServer: boolean;
-  devices: DeviceConfig[];
+  user?: string;
+  password?: string;
+  useChinaServer?: boolean;
+  devices?: DeviceConfig[];
+  [key: string]: any;
 };
 
 export type DeviceConfig = {
@@ -18,7 +19,7 @@ export enum SwingMode {
   VERTICAL = 'Vertical',
   HORIZONTAL = 'Horizontal',
   BOTH = 'Both',
-}
+};
 
 type ACOptions = {
   swingMode: SwingMode;

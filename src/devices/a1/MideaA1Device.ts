@@ -3,9 +3,10 @@ import { DeviceInfo } from '../../core/MideaConstants';
 import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
 import { KeyToken } from '../../core/MideaSecurity';
 import { MessageQuery, MessageA1Response, MessageSet } from './MideaA1Message';
+import { Config } from '../../platformUtils';
 
 export interface A1Attributes extends DeviceAttributeBase {
-  POWER: boolean;
+  POWER: boolean | undefined;
   PROMPT_TONE: boolean;
   CHILD_LOCK: boolean;
   MODE: number;
@@ -24,7 +25,7 @@ export interface A1Attributes extends DeviceAttributeBase {
   PUMP: boolean;
   PUMP_SWITCH_FLAG: boolean;
   SLEEP_MODE: boolean;
-};
+}
 
 export default class MideaA1Device extends MideaDevice {
 
@@ -65,10 +66,11 @@ export default class MideaA1Device extends MideaDevice {
     device_info: DeviceInfo,
     token: KeyToken,
     key: KeyToken,
+    config: Config
   ) {
-    super(logger, device_info, token, key);
+    super(logger, device_info, token, key, config);
     this.attributes = {
-      POWER: false,
+      POWER: undefined,
       PROMPT_TONE: false,
       CHILD_LOCK: false,
       MODE: 0,
@@ -88,30 +90,42 @@ export default class MideaA1Device extends MideaDevice {
       PUMP_SWITCH_FLAG: false,
       SLEEP_MODE: false
     };
-  };
+  }
 
   build_query() {
     return [
       new MessageQuery(this.device_protocol_version)
     ];
-  };
+  }
 
   process_message(msg: Buffer) {
     const message = new MessageA1Response(msg);
-    this.logger.debug(`Body:\n${JSON.stringify(message.body)}`);
+    if (this.verbose) this.logger.debug(`Body:\n${JSON.stringify(message.body)}`);
+    let changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
-        // this.logger.debug(`[${this.name}] Setting local ${status} to ${value}`);
+        if (this.attributes[status] !== value) {
+          this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
+          changed[status] = value;
+        }
         this.attributes[status] = value;
-      };
-    };
-    this.attributes.TANK_FULL = (this.attributes.TANK >= this.attributes.WATER_LEVEL_SET);
-  };
+      }
+    }
+    const value = (this.attributes.TANK >= this.attributes.WATER_LEVEL_SET);
+    if (this.attributes.TANK_FULL !== value) {
+      this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`);
+      changed.TANK_FULL = value;
+    }
+    this.attributes.TANK_FULL = value;
+    if (Object.keys(changed).length > 0) {
+      this.update(changed);
+    }
+  }
 
   make_message_set() {
     const message = new MessageSet(this.device_protocol_version);
-    message.power = this.attributes.POWER;
+    message.power = !!this.attributes.POWER;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.mode = this.attributes.MODE;
     message.child_lock = this.attributes.CHILD_LOCK;
@@ -121,7 +135,7 @@ export default class MideaA1Device extends MideaDevice {
     message.anion = this.attributes.ANION;
     message.water_level_set = this.attributes.WATER_LEVEL_SET;
     return message;
-  };
+  }
 
   async set_attribute(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {

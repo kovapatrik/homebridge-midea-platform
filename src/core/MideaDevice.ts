@@ -4,8 +4,7 @@ import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageRe
 import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
-import { setFlagsFromString } from 'v8';
-import { runInThisContext } from 'vm';
+import { Config } from '../platformUtils';
 
 export type DeviceAttributeBase = {
   [key: string]: number | string | boolean | undefined;
@@ -34,16 +33,19 @@ export default abstract class MideaDevice {
   protected refresh_interval = 30 * 1000;
   protected heartbeat_interval = 10 * 1000;
   protected default_refresh_interval = 30 * 1000;
+  protected verbose = undefined;
 
   private _sub_type?: number;
 
   public token: KeyToken;
   public key: KeyToken;
 
+  private update_fns: { (values: DeviceAttributeBase): void; }[] = [];
+
   protected readonly security: LocalSecurity;
   private buffer: Buffer;
 
-  protected promiseSocket: PromiseSocket;
+  private promiseSocket: PromiseSocket;
 
   public abstract attributes: DeviceAttributeBase;
 
@@ -58,6 +60,7 @@ export default abstract class MideaDevice {
     device_info: DeviceInfo,
     token: KeyToken,
     key: KeyToken,
+    config: Config | undefined = undefined
   ) {
 
     this.ip = device_info.ip;
@@ -72,6 +75,8 @@ export default abstract class MideaDevice {
 
     this.token = token;
     this.key = key;
+
+    this.verbose = config?.verbose;
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);
@@ -120,6 +125,8 @@ export default abstract class MideaDevice {
         this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): Refresh status failed.`);
         return false;
       }
+      // Start listening for network traffic
+      this.open();
       return true;
     } catch (err) {
       this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): ${err}`);
@@ -149,7 +156,7 @@ export default abstract class MideaDevice {
   }
 
   public async send_message(data: Buffer) {
-    this.logger.debug(`[${this.name}] Send message:\n${data.toString('hex')}`);
+    if (this.verbose) this.logger.debug(`[${this.name}] Send message:\n${data.toString('hex')}`);
     if (this.version === ProtocolVersion.V3) {
       await this.send_message_v3(data);
     } else {
@@ -249,7 +256,7 @@ export default abstract class MideaDevice {
 
   public parse_message(message: Buffer) {
     let messages: Buffer[];
-    this.logger.debug(`Raw data to parse:\n${message.toString('hex')}`);
+    if (this.verbose) this.logger.debug(`Raw data to parse:\n${message.toString('hex')}`);
     if (this.version === ProtocolVersion.V3) {
       [messages, this.buffer] = this.security.decode_8370(Buffer.concat([this.buffer, message]));
     } else {
@@ -267,13 +274,13 @@ export default abstract class MideaDevice {
       const payload_type = msg[2] + (msg[3] << 8);
       if ([0x1001, 0x0001].includes(payload_type)) {
         // Heartbeat
-        this.logger.debug(`Heartbeat:\n${msg.toString('hex')}`);
+        if (this.verbose) this.logger.debug(`Heartbeat:\n${msg.toString('hex')}`);
       } else if (msg.length > 56) {
         const cryptographic = msg.subarray(40, -16);
         if (payload_length % 16 === 0) {
           const decrypted = this.security.aes_decrypt(cryptographic);
           if (this.preprocess_message(decrypted)) {
-            this.logger.debug(`Decrypted data to parse:\n${decrypted.toString('hex')}`);
+            if (this.verbose) this.logger.debug(`Decrypted data to parse:\n${decrypted.toString('hex')}`);
             this.process_message(decrypted);
           }
         } else {
@@ -289,7 +296,7 @@ export default abstract class MideaDevice {
   public async send_command(command_type: MessageType, command_body: Buffer) {
     const cmd = new MessageQuestCustom(this.type, command_type, command_body);
     try {
-      this.logger.debug(`Send command: ${command_body.toString('hex')}`);
+      if (this.verbose) this.logger.debug(`Send command: ${command_body.toString('hex')}`);
       await this.build_send(cmd);
     } catch (e) {
       this.logger.debug(`[${this.name}]  Interface send_command failure: ${e}, 
@@ -301,6 +308,18 @@ export default abstract class MideaDevice {
   public async send_heartbeat() {
     const message = new PacketBuilder(this.id, Buffer.alloc(0)).finalize(0);
     await this.send_message(message);
+  }
+
+  // Register callback function to be called on any status change
+  public register_update(update) {
+    this.update_fns.push(update);
+  }
+
+  protected async update(values: DeviceAttributeBase) {
+    this.logger.info(`[${this.name}] Status change: ${JSON.stringify(values)}`);
+    for (const fn of this.update_fns) {
+      fn(values);
+    }
   }
 
   public open() {
