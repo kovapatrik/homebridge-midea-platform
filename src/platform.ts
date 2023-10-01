@@ -33,6 +33,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    Error.stackTraceLimit = 100;
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
 
     this.cloud = CloudFactory.createCloud(this.config['user'], this.config['password'], log, this.config['registeredApp']);
@@ -45,8 +46,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     this.discover.on('device', (device_info: DeviceInfo) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const configDev : DeviceConfig = this.config['devices'].find((dev: DeviceConfig) => dev.ip === device_info.ip);
-      device_info.name = configDev.name || device_info.name;
+      const configDev: DeviceConfig = this.config['devices'].find((dev: DeviceConfig) => dev.ip === device_info.ip);
+      device_info.name = configDev?.name || device_info.name;
       this.addDevice(device_info, configDev);
     });
 
@@ -60,16 +61,19 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       this.cloud.login()
         .then(() => {
           this.log.info('Logged in to Midea Cloud.');
-          // this.discover.startDiscover();
+          this.discover.startDiscover();
           if (this.config['devices']) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             this.config['devices'].forEach((device: any) => {
-              this.discover.discoverDeviceByIP(device.ip);
+              if (device.ip) {
+                this.discover.discoverDeviceByIP(device.ip);
+              }
             });
           }
         })
         .catch((error) => {
-          this.log.error(`Error logging in to Midea Cloud: ${error}`);
+          const msg = (error instanceof Error) ? error.stack : error;
+          this.log.error(`Error logging in to Midea Cloud: ${msg}`);
         });
     });
   }
@@ -86,11 +90,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         device_info,
         existingAccessory.context.token ? Buffer.from(existingAccessory.context.token, 'hex') : undefined,
         existingAccessory.context.key ? Buffer.from(existingAccessory.context.key, 'hex') : undefined,
+        this.config,
       );
 
       if (device) {
         try {
-          await device.connect();
+          await device.connect(false);
           AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
         } catch (err) {
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`);
@@ -104,7 +109,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
       const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
 
-      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined);
+      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined, this.config);
       if (device) {
         let connected = false;
         let i = 0;
@@ -112,7 +117,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           const endianess: Endianness = i === 0 ? 'little' : 'big';
           let token: Buffer | undefined, key: Buffer | undefined = undefined;
           try {
-            [ token, key ] = await this.cloud.getToken(device_info.id, endianess);
+            [token, key] = await this.cloud.getToken(device_info.id, endianess);
           } catch (e) {
             this.log.debug(`Getting token and key with ${endianess}-endian is not successful: ${e}`);
           }
@@ -124,7 +129,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           accessory.context.id = accessory.UUID;
           accessory.context.type = 'main';
 
-          connected = await device.connect();
+          connected = await device.connect(false);
           i++;
         }
 

@@ -1,4 +1,3 @@
-import { Logger } from 'homebridge';
 import { Endianness } from './MideaConstants';
 import { Socket } from 'net';
 
@@ -77,7 +76,19 @@ export function calculate(data: Buffer) {
 
 
 export class PromiseSocket {
-  constructor(private innerSok: Socket, private readonly logger: Logger) {}
+  private innerSok: Socket;
+  public destroyed: boolean;
+
+  constructor() {
+    this.innerSok = new Socket();
+    this.destroyed = false;
+    this.innerSok.on('error', (err) => {
+      throw Error(`Socket error: ${err}`);
+    });
+    this.innerSok.on('close', async () => {
+      this.destroy();
+    });
+  }
 
   public connect(port: number, host: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -100,7 +111,16 @@ export class PromiseSocket {
     });
   }
 
-  async write(data: string|Buffer, encoding?: BufferEncoding) {
+  public setTimeout(t: number) {
+    this.innerSok.setTimeout(t);
+  }
+
+  public destroy() {
+    this.destroyed = true;
+    this.innerSok.destroy();
+  }
+
+  async write(data: string | Buffer, encoding?: BufferEncoding) {
     return new Promise<void>((resolve, reject) => {
 
       const errorHandler = (err: Error) => {

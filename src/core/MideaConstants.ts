@@ -22,7 +22,8 @@ export const DEVICE_INFO_MESSAGE = new Int8Array([
 ]);
 
 export enum DeviceType {
-  AIR_CONDITIONER = 0xAC
+  AIR_CONDITIONER = 0xAC,
+  DEHUMIDIFIER = 0xA1
 }
 
 export enum ParseMessageResult {

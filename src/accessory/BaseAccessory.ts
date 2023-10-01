@@ -16,20 +16,5 @@ export default class BaseAccessory<T extends MideaDevice> {
       .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
 
-    setInterval(async () => {
-      this.device.send_heartbeat();
-      try {
-        const msg = await this.device.promiseSocket.read(512);
-        if (msg && msg.length > 0) {
-          this.device.parse_message(msg);
-        }
-      } catch (err) {
-        this.platform.log.error(err as string);
-      }
-    }, 10000);
-
-    setInterval(() => {
-      this.device.refresh_status();
-    }, 30000);
   }
 }
