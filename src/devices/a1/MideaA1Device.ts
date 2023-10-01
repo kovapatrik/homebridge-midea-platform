@@ -3,7 +3,6 @@
  *
  * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
  *
- * Based on https://github.com/homebridge/homebridge-plugin-template
  * With thanks to https://github.com/kovapatrik/homebridge-midea-platform
  * And https://github.com/georgezhao2010/midea_ac_lan
  *
@@ -25,7 +24,7 @@ export interface A1Attributes extends DeviceAttributeBase {
   CHILD_LOCK: boolean | undefined;
   MODE: number;
   FAN_SPEED: number;
-  SWING: boolean;
+  SWING: boolean | undefined;
   TARGET_HUMIDITY: number;
   ANION: boolean;
   TANK_LEVEL: number;
@@ -91,7 +90,7 @@ export default class MideaA1Device extends MideaDevice {
       CHILD_LOCK: undefined,  // invalid
       MODE: 99,               // invalid
       FAN_SPEED: 999,         // invalid
-      SWING: false,
+      SWING: undefined,       // invalid
       TARGET_HUMIDITY: 999,   // invalid
       ANION: false,
       TANK_LEVEL: 999,        // invalid
@@ -115,12 +114,15 @@ export default class MideaA1Device extends MideaDevice {
 
   process_message(msg: Buffer) {
     const message = new MessageA1Response(msg);
-    if (this.verbose) this.logger.debug(`Body:\n${JSON.stringify(message.body)}`);
+    if (this.verbose) this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     let changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
         if (this.attributes[status] !== value) {
+          // Track only those attributes that change value.  So when we send to the Homebridge /
+          // HomeKit accessory we only update values that change.  First time through this
+          // should be most/all attributes having initialized them to invalid values.
           this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
           changed[status] = value;
         }
@@ -133,6 +135,8 @@ export default class MideaA1Device extends MideaDevice {
       changed.TANK_FULL = value;
     }
     this.attributes.TANK_FULL = value;
+
+    // Now we update Homebridge / Homekit accessory
     if (Object.keys(changed).length > 0) {
       this.update(changed);
     }
@@ -146,7 +150,7 @@ export default class MideaA1Device extends MideaDevice {
     message.child_lock = !!this.attributes.CHILD_LOCK;  // force to boolean
     message.fan_speed = this.attributes.FAN_SPEED;
     message.target_humidity = this.attributes.TARGET_HUMIDITY;
-    message.swing = this.attributes.SWING;
+    message.swing = !!this.attributes.SWING;
     message.anion = this.attributes.ANION;
     message.water_level_set = this.attributes.WATER_LEVEL_SET;
     return message;
@@ -163,14 +167,14 @@ export default class MideaA1Device extends MideaDevice {
         this.attributes[k] = v;
 
         if (k === 'PROMPT_TONE') {
-          this.attributes.PROMPT_TONE = v as boolean;
+          this.attributes.PROMPT_TONE = !!v;
         } else {
           message = this.make_message_set();
           // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
         }
       }
-      this.logger.debug(`Set message:\n${JSON.stringify(message)}`);
       if (message) {
+        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
         await this.build_send(message);
       }
     }

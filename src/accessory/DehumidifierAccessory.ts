@@ -5,7 +5,6 @@
  *
  * Based on https://github.com/homebridge/homebridge-plugin-template
  * With thanks to https://github.com/kovapatrik/homebridge-midea-platform
- * And https://github.com/georgezhao2010/midea_ac_lan
  *
  * An instance of this class is created for each accessory the platform registers.
  *
@@ -24,7 +23,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
-   * a callback function with the MideaDevice class, and resuests device status.
+   * a callback function with the MideaDevice class, and requests device status.
    */
   constructor(
     platform: MideaPlatform,
@@ -87,6 +86,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel)
       .onGet(this.getWaterLevel.bind(this));
 
+    // Register a callback function with MideaDevice and then refresh device status.  The callback
+    // is called whenever there is a change in any attribute value from the device.
     this.device.register_update(this.updateCharacteristics.bind(this));
     this.device.refresh_status();
 
@@ -100,7 +101,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
    */
   private async updateCharacteristics(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
-      this.platform.log.debug(`Set attribute ${k} to: ${v}`);
+      this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
         case 'power':

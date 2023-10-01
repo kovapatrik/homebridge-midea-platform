@@ -3,7 +3,6 @@
  *
  * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
  *
- * Based on https://github.com/homebridge/homebridge-plugin-template
  * With thanks to https://github.com/kovapatrik/homebridge-midea-platform
  * And https://github.com/georgezhao2010/midea_ac_lan
  *
@@ -28,6 +27,7 @@ abstract class MessageA1Base extends MessageRequest {
   ) {
     super(DeviceType.DEHUMIDIFIER, message_type, body_type, device_protocol_version);
     MessageA1Base.message_serial += 1;
+    // I don't know why dehumidifier wraps at 100, air conditioner wraps at 254
     if (MessageA1Base.message_serial >= 100) {
       MessageA1Base.message_serial = 1;
     }
@@ -214,6 +214,8 @@ class A1GeneralMessageBody extends MessageBody {
     this.current_temperature = (body[17] - 50) / 2;
     // vertical swing or horizontal swing
     this.swing = (body[19] & 0x20) > 0 || (body[19] & 0x10) > 0
+    // Not sure the purpose of thisfan speed check, but it is part of the original python code at
+    // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
     if (this.fan_speed < 5) {
       this.fan_speed = 1;
     }
