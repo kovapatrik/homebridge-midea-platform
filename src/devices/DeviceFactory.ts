@@ -9,7 +9,7 @@ export default class DeviceFactory {
   public static createDevice(logger: Logger, device_info: DeviceInfo, token: KeyToken, key: KeyToken, config: Partial<Config>) {
     switch (device_info.type) {
       case DeviceType.AIR_CONDITIONER:
-        return new MideaACDevice(logger, device_info, token, key);
+        return new MideaACDevice(logger, device_info, token, key, config);
       case DeviceType.DEHUMIDIFIER:
         return new MideaA1Device(logger, device_info, token, key, config);
     }

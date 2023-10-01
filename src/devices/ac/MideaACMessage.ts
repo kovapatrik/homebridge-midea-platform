@@ -1,3 +1,11 @@
+/***********************************************************************
+ * Midea Air Conditioner Device message handler class
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import { DeviceType } from '../../core/MideaConstants';
 import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
