@@ -7,7 +7,6 @@ import { LocalSecurity } from './MideaSecurity';
 
 // To access network interface detail...
 import os from 'os';
-const Netmask = require('netmask').Netmask;
 
 export default class Discover extends EventEmitter {
 
@@ -85,8 +84,13 @@ export default class Discover extends EventEmitter {
         for (let i in ifaces[iface]) {
           const f = ifaces[iface][i];
           if (!f.internal && f.family === 'IPv4') {
-            // only IPv4 addresses excluding any loopback interface
-            list.push(new Netmask(f.cidr).broadcast);
+            // With thanks to https://github.com/aal89/broadcast-address/blob/master/broadcast-address.js
+            const addr_splitted = f.address.split('.');
+            const netmask_splitted = f.netmask.split('.');
+            // Bitwise OR over the splitted NAND netmask, then glue them back together with a dot character to form an ip
+            // we have to do a NAND operation because of the 2-complements; getting rid of all the 'prepended' 1's with & 0xFF
+            const broadcast = addr_splitted.map((e, i) => (~netmask_splitted[i] & 0xFF) | e).join('.');
+            list.push(broadcast);
           }
         }
       }
