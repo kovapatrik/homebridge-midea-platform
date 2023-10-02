@@ -159,7 +159,7 @@ export default class MideaA1Device extends MideaDevice {
   async set_attribute(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       let message: MessageSet | undefined = undefined;
-      this.logger.debug(`Set attribute ${k} to value ${v}`);
+      this.logger.debug(`[${this.name}] Set device attribute ${k} to: ${v}`);
       // not sensor data
       if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING',
         'FILTER_INDICATOR', 'PUMP'].includes(k)) {

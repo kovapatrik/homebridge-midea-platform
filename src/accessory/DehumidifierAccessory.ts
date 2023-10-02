@@ -83,6 +83,10 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       .onGet(this.getSwingMode.bind(this))
       .onSet(this.setSwingMode.bind(this));
 
+    this.service.getCharacteristic(this.platform.Characteristic.LockPhysicalControls)
+      .onGet(this.getChildLockMode.bind(this))
+      .onSet(this.setChildLockMode.bind(this));
+
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel)
       .onGet(this.getWaterLevel.bind(this));
 
@@ -155,19 +159,19 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
    *
    */
   private async getActive(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET Active, value: ${this.device.attributes.POWER}`);
+    this.platform.log.debug(`[${this.device.name}] GET Active, value: ${this.device.attributes.POWER}`);
     return this.device.attributes.POWER ?
       this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
 
   private async setActive(value: CharacteristicValue) {
-    this.platform.log.debug(`Triggered SET Active to: ${value}`);
+    this.platform.log.debug(`[${this.device.name}] SET Active to: ${value}`);
     await this.device.set_attribute({ POWER: !!value });
   }
 
   // Handle requests to get the current value of the "HumidifierDehumidifierState" characteristic
   private async getCurrentHumidifierDehumidifierState(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET CurrentHumidifierDehumidifierState, value: ${this.device.attributes.POWER},${this.device.attributes.MODE}`);
+    this.platform.log.debug(`[${this.device.name}] GET CurrentHumidifierDehumidifierState, value: ${this.device.attributes.POWER},${this.device.attributes.MODE}`);
     return this.currentHumidifierDehumidifierState();
   }
 
@@ -195,14 +199,14 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the target value of the "HumidifierDehumidifierState" characteristic
   private async getTargetHumidifierDehumidifierState(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET TargetHumidifierDehumidifierState, value: ${this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER}`);
+    this.platform.log.debug(`[${this.device.name}] GET TargetHumidifierDehumidifierState, value: ${this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER}`);
     // Always return that we are a dehumidifier, other states not supported.
     return this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER;
   }
 
   // Handle requests to set the target value of the "HumidifierDehumidifierState" characteristic
   private async setTargetHumidifierDehumidifierState(value: CharacteristicValue): Promise<void> {
-    this.platform.log.debug(`Triggered SET TargetHumidifierDehumidifierState to: ${value}`);
+    this.platform.log.debug(`[${this.device.name}] SET TargetHumidifierDehumidifierState to: ${value}`);
     if (value !== this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER) {
       throw new Error(`Device ${this.device.name} (${this.device.id}) can only be a DeHumidifier, illegal value: ${value}`);
     }
@@ -210,13 +214,13 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the current value of the "RelativeHumidity" characteristic
   private async getCurrentRelativeHumidity(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY}`);
+    this.platform.log.debug(`[${this.device.name}] GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY}`);
     return this.device.attributes.CURRENT_HUMIDITY;
   }
 
   // Handle requests to get the Relative value of the "HumidityDehumidifierThreshold" characteristic
   private async getRelativeHumidityDehumidifierThreshold(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET RelativeHumidityDehumidifierThreshold, value: ${this.device.attributes.TARGET_HUMIDITY}`);
+    this.platform.log.debug(`[${this.device.name}] GET RelativeHumidityDehumidifierThreshold, value: ${this.device.attributes.TARGET_HUMIDITY}`);
     return this.device.attributes.TARGET_HUMIDITY;
   }
 
@@ -230,7 +234,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         ? this.device.MAX_HUMIDITY
         : RequestedHumidity;
 
-    this.platform.log.debug(`Triggered SET RelativeHumidityDehumidifierThreshold to: ${RequestedHumidity} (${value as number})`);
+    this.platform.log.debug(`[${this.device.name}] SET RelativeHumidityDehumidifierThreshold to: ${RequestedHumidity} (${value as number})`);
     await this.device.set_attribute({ TARGET_HUMIDITY: RequestedHumidity });
     // Update HomeKit in case we adjusted the value outside of min and max values
     if (RequestedHumidity !== value as number) {
@@ -245,7 +249,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the current value of the "RotationSpeed" characteristic
   private async getRotationSpeed(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET RotationSpeed, value: ${this.device.attributes.FAN_SPEED}`);
+    this.platform.log.debug(`[${this.device.name}] GET RotationSpeed, value: ${this.device.attributes.FAN_SPEED}`);
     return this.device.attributes.FAN_SPEED;
   }
 
@@ -257,7 +261,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       : (speed > 40 && speed <= 60)
         ? 60
         : 80;
-    this.platform.log.debug(`Triggered SET RotationSpeed to: ${speed} (${value as number})`);
+    this.platform.log.debug(`[${this.device.name}] SET RotationSpeed to: ${speed} (${value as number})`);
     await this.device.set_attribute({ FAN_SPEED: speed });
     if (speed !== value as number) {
       // We had to adjust the requested value to within permitted range...  Update homekit to actual value set.
@@ -271,21 +275,35 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the current value of the "WaterLevel" characteristic
   private async getWaterLevel(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
+    this.platform.log.debug(`[${this.device.name}] GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
     return this.device.attributes.TANK_LEVEL;
   }
 
   // Handle requests to get the current value of the "swingMode" characteristic
   private async getSwingMode(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`Triggered GET SwingMode, value: ${this.device.attributes.SWING}`);
+    this.platform.log.debug(`[${this.device.name}] GET SwingMode, value: ${this.device.attributes.SWING}`);
     return this.device.attributes.SWING ?
       this.platform.Characteristic.SwingMode.SWING_ENABLED :
       this.platform.Characteristic.SwingMode.SWING_DISABLED;
   }
 
   // Handle requests to set the "swingMode" characteristic
-  async setSwingMode(value: CharacteristicValue) {
-    this.platform.log.debug(`Triggered SET SwingMode to: ${value}`);
+  private async setSwingMode(value: CharacteristicValue) {
+    this.platform.log.debug(`[${this.device.name}] SET SwingMode to: ${value}`);
     await this.device.set_attribute({ SWING: !!value });
   }
+
+  // Handle requests to get the current value of the "LockPhysicalControls" characteristic
+  private async getChildLockMode(): Promise<CharacteristicValue> {
+    this.platform.log.debug(`[${this.device.name}] GET LockPhysicalControls, value: ${this.device.attributes.SWING}`);
+    return this.device.attributes.CHILD_LOCK ?
+      this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_ENABLED :
+      this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED;
+  }
+
+  // Handle requests to set the "LockPhysicalControls" characteristic
+  private async setChildLockMode(value: CharacteristicValue) {
+    this.platform.log.debug(`[${this.device.name}] SET LockPhysicalControls to: ${value}`);
+    await this.device.set_attribute({ CHILD_LOCK: !!value });
+  };
 }
