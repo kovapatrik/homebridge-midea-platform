@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Midea Cloud access functions
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import { Logger } from 'homebridge';
 
 import { randomBytes } from 'crypto';
@@ -6,6 +15,7 @@ import axios from 'axios';
 import { CloudSecurity, MeijuCloudSecurity, MideaAirSecurity } from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
+import { Semaphore } from 'semaphore-promise';
 
 export abstract class CloudBase<T extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
@@ -21,21 +31,25 @@ export abstract class CloudBase<T extends CloudSecurity> {
   protected access_token?: string;
   protected key?: string;
 
-  public loggedIn = false;
+  private semaphore: Semaphore;
+  private loggedIn = false;
 
   constructor(
     protected readonly account: string,
     protected readonly password: string,
     protected readonly logger: Logger,
     protected readonly security: T,
-  ) { }
+  ) {
+    // Required to serialize access to some cloud functions.
+    this.semaphore = new Semaphore();
+  }
 
   protected timestamp() {
     return DateTime.utc().toFormat('yyyyMMddHHmmss');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async apiRequest(endpoint: string, args?: {[key: string]: any}, data?: {[key: string]: any}) {
+  async apiRequest(endpoint: string, args?: { [key: string]: any }, data?: { [key: string]: any }) {
     if (data === undefined) {
       data = {
         'appId': this.APP_ID,
@@ -95,34 +109,46 @@ export abstract class CloudBase<T extends CloudSecurity> {
   }
 
   async login() {
-    const login_id = await this.getLoginId();
-    const response = await this.apiRequest('/mj/user/login', {
-      'data': {
-        'appKey': this.APP_KEY,
-        'platform': this.FORMAT,
-        'deviceId': this.DEVICE_ID,
-      },
-      'iotData': {
-        'appId': this.APP_ID,
-        'clientType': this.CLIENT_TYPE,
-        'iampwd': this.security.encrpytIAMPassword(login_id, this.password),
-        'loginAccount': this.account,
-        'password': this.security.encrpytPassword(login_id, this.password),
-        'pushToken': randomBytes(20).toString('base64url'),
-        'reqId': randomBytes(16).toString('hex'),
-        'src': this.SRC,
-        'stamp': this.timestamp(),
-      },
-    });
-    if (response) {
-      this.access_token = response['mdata']['accessToken'];
-      if (response['key'] !== undefined) {
-        this.key = response['key'];
+    // We need to protect against multiple attempts to login, so we only login if not already
+    // logged in.  Protect this block with a semaphone.
+    const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
+    try {
+      if (this.loggedIn) return;
+      // Not logged in so proceed...
+      const login_id = await this.getLoginId();
+      const response = await this.apiRequest('/mj/user/login', {
+        'data': {
+          'appKey': this.APP_KEY,
+          'platform': this.FORMAT,
+          'deviceId': this.DEVICE_ID,
+        },
+        'iotData': {
+          'appId': this.APP_ID,
+          'clientType': this.CLIENT_TYPE,
+          'iampwd': this.security.encrpytIAMPassword(login_id, this.password),
+          'loginAccount': this.account,
+          'password': this.security.encrpytPassword(login_id, this.password),
+          'pushToken': randomBytes(20).toString('base64url'),
+          'reqId': randomBytes(16).toString('hex'),
+          'src': this.SRC,
+          'stamp': this.timestamp(),
+        },
+      });
+      if (response) {
+        this.access_token = response['mdata']['accessToken'];
+        if (response['key'] !== undefined) {
+          this.key = response['key'];
+        }
+        this.loggedIn = true;
+      } else {
+        this.loggedIn = false;
+        throw new Error('Failed to login.');
       }
-      this.loggedIn = true;
-    } else {
-      this.loggedIn = false;
-      throw new Error('Failed to login.');
+    } catch (e) {
+      const msg = (e instanceof Error) ? e.stack : e;
+      throw new Error(`Error in Adding new accessory:\n${msg}`);
+    } finally {
+      releaseSemaphore();
     }
   }
 
@@ -135,7 +161,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     if (response) {
       for (const token of response['tokenlist']) {
         if (token['udpId'] === udpid) {
-          return [ Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex') ];
+          return [Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex')];
         }
       }
     } else {
@@ -200,7 +226,7 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async apiRequest(endpoint: string, args?: {[key: string]: any}, data?: {[key: string]: any}) {
+  async apiRequest(endpoint: string, args?: { [key: string]: any }, data?: { [key: string]: any }) {
     if (data === undefined) {
       data = {
         'appId': this.APP_ID,
@@ -224,7 +250,7 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
       try {
         const response = await axios.post(url, data);
         if (response.data['errorCode'] !== undefined && Number.parseInt(response.data['errorCode']) !== 0 &&
-            response.data['result'] !== undefined) {
+          response.data['result'] !== undefined) {
           return response.data['result'];
         }
       } catch (error) {

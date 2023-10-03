@@ -8,7 +8,6 @@
  *
  */
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import CloudFactory, { CloudBase } from './core/MideaCloud';
 import Discover from './core/MideaDiscover';
@@ -17,7 +16,6 @@ import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { DeviceConfig } from './platformUtils';
 import { CloudSecurity } from './core/MideaSecurity';
-import Semaphore from 'semaphore-promise';
 
 export interface MideaAccessory extends PlatformAccessory {
   context: {
@@ -38,8 +36,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   private readonly cloud: CloudBase<CloudSecurity>;
   private readonly discover: Discover;
 
-  private loginSemaphore: Semaphore;
-
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
@@ -47,8 +43,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   ) {
     Error.stackTraceLimit = 100;
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
-
-    this.loginSemaphore = new Semaphore();
 
     this.cloud = CloudFactory.createCloud(this.config['user'], this.config['password'], log, this.config['registeredApp']);
     this.discover = new Discover(log);
@@ -108,24 +102,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     } else {
       this.log.info('Adding new accessory:', device_info.name);
-
       // We only need to login to Midea cloud if we are setting up a new accessory.  This is to
       // retrieve token/key credentials.  If device was cached then we already have credentials.
-      // Because we add devices asyncronously we need to protect against multiple devices entering
-      // and testing whether logged in or not while waiting for login to complete.  Hence protect
-      // this block with a semaphone.
-      const releaseSemaphore = await this.loginSemaphore.acquire('Obtain loginSemaphore');
-      try {
-        if (!this.cloud.loggedIn) {
-          await this.cloud.login();
-        }
-      } catch (e) {
-        const msg = (e instanceof Error) ? e.stack : e;
-        throw new Error(`Error in Adding new accessory:\n${msg}`);
-      } finally {
-        releaseSemaphore();
-      }
-
+      await this.cloud.login();
       const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
       const device = DeviceFactory.createDevice(this.log, device_info, this.config);
       if (device) {

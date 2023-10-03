@@ -4,8 +4,8 @@
  * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
  * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
  *
- * Based on https://github.com/homebridge/homebridge-plugin-template
- *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ * 
  */
 import { Logger } from 'homebridge';
 import { KeyToken, LocalSecurity } from './MideaSecurity';
