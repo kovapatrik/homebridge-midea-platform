@@ -79,11 +79,9 @@ export default class MideaA1Device extends MideaDevice {
   constructor(
     logger: Logger,
     device_info: DeviceInfo,
-    token: KeyToken,
-    key: KeyToken,
     config: Partial<Config>
   ) {
-    super(logger, device_info, token, key, config);
+    super(logger, device_info, config);
     this.attributes = {
       POWER: undefined,       // invalid
       PROMPT_TONE: false,

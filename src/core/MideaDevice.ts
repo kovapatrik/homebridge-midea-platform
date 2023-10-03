@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Midea Device class from which specfic device support is inherited.
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/homebridge-plugin-template
+ *
+ */
 import { Logger } from 'homebridge';
 import { KeyToken, LocalSecurity } from './MideaSecurity';
 import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants';
@@ -37,8 +46,8 @@ export default abstract class MideaDevice {
 
   private _sub_type?: number;
 
-  public token: KeyToken;
-  public key: KeyToken;
+  private token: KeyToken = undefined;
+  private key: KeyToken = undefined;
 
   private update_fns: { (values: DeviceAttributeBase): void; }[] = [];
 
@@ -58,8 +67,6 @@ export default abstract class MideaDevice {
   constructor(
     protected readonly logger: Logger,
     device_info: DeviceInfo,
-    token: KeyToken,
-    key: KeyToken,
     config: Partial<Config>
   ) {
 
@@ -73,9 +80,6 @@ export default abstract class MideaDevice {
     this.type = device_info.type;
     this.version = device_info.version;
 
-    this.token = token;
-    this.key = key;
-
     this.verbose = config?.verbose;
 
     this.security = new LocalSecurity();
@@ -86,6 +90,11 @@ export default abstract class MideaDevice {
 
   get sub_type(): number {
     return this._sub_type || 0;
+  }
+
+  public setCredentials(token: KeyToken, key: KeyToken) {
+    this.token = token;
+    this.key = key;
   }
 
   public fetch_v2_message(message: Buffer): [Buffer[], Buffer] {
@@ -344,6 +353,11 @@ export default abstract class MideaDevice {
     }
   }
 
+  /*********************************************************************
+   * run
+   * Continuous loop that runs listening for network traffic from the device
+   * and proceses each message as received.
+   */
   private async run() {
     this.logger.info(`Starting network listener for [${this.name}]`);
     while (this.is_running) {
@@ -368,6 +382,9 @@ export default abstract class MideaDevice {
             this.send_heartbeat();
             previous_heartbeat = now;
           }
+          // We wait up to one second for a message, in effect we cause the while loop
+          // we are in to itterate once a second... allowing us to check for heartbeat
+          // and refresh intervals (above).
           this.promiseSocket.setTimeout(1000); // milliseconds
           const msg = await this.promiseSocket.read(512);
           if (msg.length > 0) {
@@ -380,6 +397,16 @@ export default abstract class MideaDevice {
             }
           } else {
             timeout_counter++;
+            if (timeout_counter > 120) {
+              // we've looped 120 times (~two minutes with 1 second timeouts) and not received
+              // a successful response to heartbeat or status refresh.  Therefore something must
+              // be broken
+              this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              this.close_socket();
+              // We break out of inner loop, but within outer loop we will attempt to
+              // reopen the socket and continue.
+              break;
+            }
           }
         }
         catch (e) {

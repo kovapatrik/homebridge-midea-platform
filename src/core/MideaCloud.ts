@@ -21,6 +21,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
   protected access_token?: string;
   protected key?: string;
 
+  public loggedIn = false;
 
   constructor(
     protected readonly account: string,
@@ -86,6 +87,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     });
 
     if (response) {
+      this.logger.info('Logged in to Midea Cloud.');
       return response['loginId'];
     }
 
@@ -117,7 +119,9 @@ export abstract class CloudBase<T extends CloudSecurity> {
       if (response['key'] !== undefined) {
         this.key = response['key'];
       }
+      this.loggedIn = true;
     } else {
+      this.loggedIn = false;
       throw new Error('Failed to login.');
     }
   }

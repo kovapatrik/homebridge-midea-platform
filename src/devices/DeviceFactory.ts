@@ -6,12 +6,12 @@ import { KeyToken } from '../core/MideaSecurity';
 import { Config } from '../platformUtils';
 
 export default class DeviceFactory {
-  public static createDevice(logger: Logger, device_info: DeviceInfo, token: KeyToken, key: KeyToken, config: Partial<Config>) {
+  public static createDevice(logger: Logger, device_info: DeviceInfo, config: Partial<Config>) {
     switch (device_info.type) {
       case DeviceType.AIR_CONDITIONER:
-        return new MideaACDevice(logger, device_info, token, key, config);
+        return new MideaACDevice(logger, device_info, config);
       case DeviceType.DEHUMIDIFIER:
-        return new MideaA1Device(logger, device_info, token, key, config);
+        return new MideaA1Device(logger, device_info, config);
     }
   }
 }

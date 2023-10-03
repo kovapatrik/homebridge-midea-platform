@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Midea Homebridge platform initialization
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/homebridge-plugin-template
+ *
+ */
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
@@ -8,11 +17,12 @@ import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { DeviceConfig } from './platformUtils';
 import { CloudSecurity } from './core/MideaSecurity';
+import Semaphore from 'semaphore-promise';
 
 export interface MideaAccessory extends PlatformAccessory {
   context: {
-    token?: string;
-    key?: string;
+    token: string;
+    key: string;
     id: string;
     type: string;
   };
@@ -28,6 +38,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   private readonly cloud: CloudBase<CloudSecurity>;
   private readonly discover: Discover;
 
+  private loginSemaphore: Semaphore;
+
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
@@ -35,6 +47,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   ) {
     Error.stackTraceLimit = 100;
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
+
+    this.loginSemaphore = new Semaphore();
 
     this.cloud = CloudFactory.createCloud(this.config['user'], this.config['password'], log, this.config['registeredApp']);
     this.discover = new Discover(log);
@@ -44,6 +58,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       return;
     }
 
+    // Register callback with Discover class that is called for each device as
+    // they are discovered on the network.
     this.discover.on('device', (device_info: DeviceInfo) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const configDev: DeviceConfig = this.config['devices'].find((dev: DeviceConfig) => dev.ip === device_info.ip);
@@ -56,25 +72,18 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
-      this.cloud.login()
-        .then(() => {
-          this.log.info('Logged in to Midea Cloud.');
-          this.discover.startDiscover();
-          if (this.config['devices']) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.config['devices'].forEach((device: any) => {
-              if (device.ip) {
-                this.discover.discoverDeviceByIP(device.ip);
-              }
-            });
+      this.log.info('Start device discovery...');
+      // Start with sending broadcasts to network(s)
+      this.discover.startDiscover();
+      // And if individual devices listed in config then probe them directly by IP address
+      if (this.config['devices']) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.config['devices'].forEach((device: any) => {
+          if (device.ip) {
+            this.discover.discoverDeviceByIP(device.ip);
           }
-        })
-        .catch((error) => {
-          const msg = (error instanceof Error) ? error.stack : error;
-          this.log.error(`Error logging in to Midea Cloud: ${msg}`);
         });
+      }
     });
   }
 
@@ -82,19 +91,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
     if (existingAccessory) {
-      // the accessory already exists
+      // the accessory already exists, restore from Homebridge cache
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-      const device = DeviceFactory.createDevice(
-        this.log,
-        device_info,
-        existingAccessory.context.token ? Buffer.from(existingAccessory.context.token, 'hex') : undefined,
-        existingAccessory.context.key ? Buffer.from(existingAccessory.context.key, 'hex') : undefined,
-        this.config,
-      );
-
+      const device = DeviceFactory.createDevice(this.log, device_info, this.config,);
       if (device) {
         try {
+          device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
           await device.connect(false);
           AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
         } catch (err) {
@@ -107,29 +109,49 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     } else {
       this.log.info('Adding new accessory:', device_info.name);
 
-      const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
+      // We only need to login to Midea cloud if we are setting up a new accessory.  This is to
+      // retrieve token/key credentials.  If device was cached then we already have credentials.
+      // Because we add devices asyncronously we need to protect against multiple devices entering
+      // and testing whether logged in or not while waiting for login to complete.  Hence protect
+      // this block with a semaphone.
+      const releaseSemaphore = await this.loginSemaphore.acquire('Obtain loginSemaphore');
+      try {
+        if (!this.cloud.loggedIn) {
+          await this.cloud.login();
+        }
+      } catch (e) {
+        const msg = (e instanceof Error) ? e.stack : e;
+        throw new Error(`Error in Adding new accessory:\n${msg}`);
+      } finally {
+        releaseSemaphore();
+      }
 
-      const device = DeviceFactory.createDevice(this.log, device_info, undefined, undefined, this.config);
+      const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
+      const device = DeviceFactory.createDevice(this.log, device_info, this.config);
       if (device) {
         let connected = false;
         let i = 0;
+        // Need to make two passes to obtain token/key credentials as they may work or not
+        // depending on byte order (little or big-endian).  Exit the loop as soon as one
+        // works or having tried both.
         while (i <= 1 && !connected) {
           const endianess: Endianness = i === 0 ? 'little' : 'big';
           let token: Buffer | undefined, key: Buffer | undefined = undefined;
           try {
             [token, key] = await this.cloud.getToken(device_info.id, endianess);
+            device.setCredentials(token, key);
           } catch (e) {
-            this.log.debug(`Getting token and key with ${endianess}-endian is not successful: ${e}`);
+            const msg = (e instanceof Error) ? e.stack : e;
+            this.log.debug(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
           }
-          device.token = token;
-          device.key = key;
+          if (token && key) {
+            accessory.context.token = token.toString('hex');
+            accessory.context.key = key.toString('hex');
+            accessory.context.id = accessory.UUID;
+            accessory.context.type = 'main';
 
-          accessory.context.token = token ? token.toString('hex') : undefined;
-          accessory.context.key = key ? key.toString('hex') : undefined;
-          accessory.context.id = accessory.UUID;
-          accessory.context.type = 'main';
-
-          connected = await device.connect(false);
+            connected = await device.connect(false);
+          }
           i++;
         }
 
@@ -138,7 +160,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
           AccessoryFactory.createAccessory(this, accessory, device, configDev);
-
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         } else {

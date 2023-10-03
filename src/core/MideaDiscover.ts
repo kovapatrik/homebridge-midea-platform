@@ -36,6 +36,8 @@ export default class Discover extends EventEmitter {
       this.logger.debug(`server error:\n${err.stack}`);
     });
 
+    // Register callback function executed when message received on the socket as 
+    // result of sending broadcast messages out to network / IP address.
     this.socket.on('message', async (msg, rinfo) => {
       if (!this.ips.includes(rinfo.address)) {
         // Only add device if it has not already been added.
@@ -45,11 +47,18 @@ export default class Discover extends EventEmitter {
         const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
         this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
+        // Send signal to Homebridge platform with details on the discovered device
         this.emit('device', device_info);
       }
     });
   }
 
+  /*********************************************************************
+   * discoverDeviceByIP
+   * Sends discover message to a single IP address.  Will resend the message
+   * an additional "retries" times spaced by 3 seconds if the target IP
+   * address has not responded (recorded in the above callback).
+   */
   public discoverDeviceByIP(ip: string, retries = 3) {
     let tries = 0;
     const interval = setInterval(() => {
@@ -102,6 +111,11 @@ export default class Discover extends EventEmitter {
     return (list);
   }
 
+  /*********************************************************************
+   * startDiscover
+   * Sends broadcast to network discover Midea devices. Will continue sending
+   * up to an additional "retries" times each spaced by 3 seconds.
+   */
   public startDiscover(retries = 3) {
     let tries = 0;
     const broadcastAddrs = this.ifBroadcastAddrs();
@@ -109,6 +123,7 @@ export default class Discover extends EventEmitter {
     const interval = setInterval(() => {
       if (tries++ > retries) {
         clearInterval(interval);
+        this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
         return;
       }
       for (const ip of broadcastAddrs) {
