@@ -42,7 +42,7 @@ export default abstract class MideaDevice {
   protected refresh_interval = 30 * 1000;
   protected heartbeat_interval = 10 * 1000;
   protected default_refresh_interval = 30 * 1000;
-  protected verbose = undefined;
+  protected verbose: boolean = true;
 
   private _sub_type?: number;
 
@@ -80,12 +80,21 @@ export default abstract class MideaDevice {
     this.type = device_info.type;
     this.version = device_info.version;
 
-    this.verbose = config?.verbose;
+    this.verbose = this.makeBoolean(config.verbose, true);
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);
 
     this.promiseSocket = new PromiseSocket();
+  }
+
+  /*********************************************************************
+   * makeBoolean
+   * Allow for both 'true' as a boolean and "true" as a string to equal
+   * true.  And provide a default for when it is undefined.
+   */
+  makeBoolean(a, b: boolean): boolean {
+    return (typeof a === 'undefined') ? b : String(a).toLowerCase() === 'true' || a === true;
   }
 
   get sub_type(): number {
