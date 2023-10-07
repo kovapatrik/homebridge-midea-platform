@@ -206,7 +206,7 @@ class NetHomePlusCloud extends CloudBase<CloudSecurity> {
     password: string,
     logger: Logger,
   ) {
-    super(account, password, logger, new CloudSecurity('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'));
+    super(account, password, logger, new CloudSecurity('3742e9e5842d4ad59c2db887e12449f9'));
   }
 }
 
