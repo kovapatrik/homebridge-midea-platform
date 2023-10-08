@@ -16,6 +16,7 @@ import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { DeviceConfig } from './platformUtils';
 import { CloudSecurity } from './core/MideaSecurity';
+import MideaDevice from './core/MideaDevice';
 
 export interface MideaAccessory extends PlatformAccessory {
   context: {
@@ -52,6 +53,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       return;
     }
 
+    this.config.forceLogin ??= this.makeBoolean(this.config.forceLogin, false);
+    this.config.verbose ??= this.makeBoolean(this.config.verbose, true);
+
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
     this.discover.on('device', (device_info: DeviceInfo) => {
@@ -81,6 +85,15 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     });
   }
 
+  /*********************************************************************
+   * makeBoolean
+   * Allow for both 'true' as a boolean and "true" as a string to equal
+   * true.  And provide a default for when it is undefined.
+   */
+  makeBoolean(a, b: boolean): boolean {
+    return (typeof a === 'undefined') ? b : String(a).toLowerCase() === 'true' || a === true;
+  }
+
   async addDevice(device_info: DeviceInfo, configDev: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -90,8 +103,19 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       const device = DeviceFactory.createDevice(this.log, device_info, this.config,);
       if (device) {
         try {
-          device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
-          await device.connect(false);
+          if (this.config.forceLogin) {
+            await this.cloud.login();
+            const connected = await this.getNewCredentials(device);
+            if (connected) {
+              this.log.info(`[${device_info.name}] Cached device with forced login, setting new credentials`);
+              existingAccessory.context.token = device.token?.toString('hex') as string;
+              existingAccessory.context.key = device.key?.toString('hex') as string;
+            }
+          } else {
+            this.log.info(`[${device_info.name}] Cached device, using saved credentials`);
+            device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
+            await device.connect(false);
+          }
           AccessoryFactory.createAccessory(this, existingAccessory, device, configDev);
         } catch (err) {
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`);
@@ -108,33 +132,14 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
       const device = DeviceFactory.createDevice(this.log, device_info, this.config);
       if (device) {
-        let connected = false;
-        let i = 0;
-        // Need to make two passes to obtain token/key credentials as they may work or not
-        // depending on byte order (little or big-endian).  Exit the loop as soon as one
-        // works or having tried both.
-        while (i <= 1 && !connected) {
-          const endianess: Endianness = i === 0 ? 'little' : 'big';
-          let token: Buffer | undefined, key: Buffer | undefined = undefined;
-          try {
-            [token, key] = await this.cloud.getToken(device_info.id, endianess);
-            device.setCredentials(token, key);
-          } catch (e) {
-            const msg = (e instanceof Error) ? e.stack : e;
-            this.log.debug(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
-          }
-          if (token && key) {
-            accessory.context.token = token.toString('hex');
-            accessory.context.key = key.toString('hex');
-            accessory.context.id = accessory.UUID;
-            accessory.context.type = 'main';
-
-            connected = await device.connect(false);
-          }
-          i++;
-        }
-
+        const connected = await this.getNewCredentials(device);
         if (connected) {
+          this.log.info(`[${device_info.name}] New device, setting new credentials`);
+          accessory.context.token = device.token?.toString('hex') as string;
+          accessory.context.key = device.key?.toString('hex') as string;
+          accessory.context.id = device.id.toString();
+          accessory.context.type = 'main';
+
           this.log.info(`Connected to device ${device_info.ip}:${device_info.port}`);
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
@@ -159,5 +164,30 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
+  }
+
+  private async getNewCredentials(device: MideaDevice): Promise<boolean> {
+    let connected = false;
+    let i = 0;
+    let token: Buffer | undefined, key: Buffer | undefined = undefined;
+    // Need to make two passes to obtain token/key credentials as they may work or not
+    // depending on byte order (little or big-endian).  Exit the loop as soon as one
+    // works or having tried both.
+    while (i <= 1 && !connected) {
+      const endianess: Endianness = i === 0 ? 'little' : 'big';
+      try {
+        [token, key] = await this.cloud.getToken(device.id, endianess);
+        device.setCredentials(token, key);
+      } catch (e) {
+        const msg = (e instanceof Error) ? e.stack : e;
+        this.log.debug(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
+      }
+      if (token && key) {
+        connected = await device.connect(false);
+      }
+      i++;
+    }
+    if (!connected) device.setCredentials(undefined, undefined);
+    return connected;
   }
 }
