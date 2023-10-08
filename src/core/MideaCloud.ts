@@ -39,7 +39,6 @@ export abstract class CloudBase<T extends CloudSecurity> {
     protected readonly password: string,
     protected readonly logger: Logger,
     protected readonly security: T,
-    protected readonly proxied = false,
   ) {
     // Required to serialize access to some cloud functions.
     this.semaphore = new Semaphore();
@@ -210,7 +209,7 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
     logger: Logger,
     security: T,
   ) {
-    super(account, password, logger, security, false);
+    super(account, password, logger, security);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
