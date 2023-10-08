@@ -39,10 +39,9 @@ export default abstract class MideaDevice {
   private unsupported_protocol: string[] = [];
   protected device_protocol_version = 0;
 
-  protected refresh_interval = 30 * 1000;
+  protected refresh_interval: number;
   protected heartbeat_interval = 10 * 1000;
-  protected default_refresh_interval = 30 * 1000;
-  protected verbose: boolean = true;
+  protected verbose: boolean;
 
   private _sub_type?: number;
 
@@ -81,6 +80,7 @@ export default abstract class MideaDevice {
     this.version = device_info.version;
 
     this.verbose = config.verbose;
+    this.refresh_interval = config.refreshInterval * 1000; // convert to miliseconds
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);

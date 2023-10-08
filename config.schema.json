@@ -27,6 +27,29 @@
         "default": "Midea SmartHome (MSmartHome)",
         "required": true
       },
+      "refreshInterval": {
+        "title": "Interval, in seconds, to query Midea devices for state",
+        "type": "number",
+        "required": false,
+        "default": 30,
+        "minimum": 0,
+        "maximum": 86400,
+        "description": "The plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried.  You can observe in the log whenever a state changes.  The default is 30 seconds, the maximum is 86,400 (24 hours).  Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically. "
+      },
+      "forceLogin": {
+        "title": "Login to Midea Cloud every restart",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Force the plugin to login and retrieve new device token/key pair every time the plugin starts. By default login and token/key retrieval occurs only if a new Midea device is discovered on the network."
+      },
+      "verbose": {
+        "title": "Enable verbose logging",
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support.  Homebridge must be running with debug enabled for any debug logging to be visible."
+      },
       "devices": {
         "title": "Devices",
         "type": "array",
@@ -161,6 +184,18 @@
     {
       "key": "registeredApp",
       "type": "string"
+    },
+    {
+      "key": "refreshInterval",
+      "type": "number"
+    },
+    {
+      "key": "forceLogin",
+      "type": "boolean"
+    },
+    {
+      "key": "verbose",
+      "type": "boolean"
     },
     {
       "key": "devices",

@@ -53,8 +53,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       return;
     }
 
+    // Make sure that config settings have a default value
     this.config.forceLogin ??= this.makeBoolean(this.config.forceLogin, false);
     this.config.verbose ??= this.makeBoolean(this.config.verbose, true);
+    this.config.refreshInterval ??= 30;
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
@@ -166,6 +168,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+
+  /*********************************************************************
+   * getNewCredentials
+   * Get new token / key pair from Midea Cloud and set the values
+   * into the device object.  Return boolean to signal success or failure.
+   */
   private async getNewCredentials(device: MideaDevice): Promise<boolean> {
     let connected = false;
     let i = 0;
@@ -187,6 +195,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       }
       i++;
     }
+    // If, after trying both byte orders, we still did not connect then reset the
+    // token / key pair to undefined.  Handle the error in the calling function.
     if (!connected) {
       device.setCredentials(undefined, undefined);
     }
