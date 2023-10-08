@@ -1,6 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
 import { TCPMessageType } from './MideaConstants';
 import { numberToUint8Array, strxor } from './MideaUtils';
+import { unescape } from 'querystring';
+
+function unescape_plus(str: string) {
+  return unescape(str.replace(/\+/g, ' '));
+}
 
 export type KeyToken = Buffer | undefined;
 
@@ -65,7 +70,7 @@ export class MeijuCloudSecurity extends CloudSecurity {
   }
 }
 
-export class MideaAirSecurity extends CloudSecurity {
+export class NetHomePlusSecurity extends CloudSecurity {
   constructor(
     login_key: string,
     iot_key?: string,
@@ -76,13 +81,13 @@ export class MideaAirSecurity extends CloudSecurity {
   public sign(url: string, query: string): string {
     const parsedUrl = new URL(url);
     const path = parsedUrl.pathname;
-    return createHmac('sha256', this.HMAC_KEY).update(`${path}${query}${this.login_key}`).digest('hex');
+    return createHash('sha256').update(`${path}${unescape_plus(query)}${this.login_key}`).digest('hex');
   }
 }
 
+export class MideaAirSecurity extends NetHomePlusSecurity {}
+
 export class LocalSecurity {
-  // private static readonly SIGN_KEY = Buffer.from('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S', 'utf-8');
-  // public static readonly ENC_KEY = createHash('md5').update(this.SIGN_KEY).digest();
 
   private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
   private readonly salt = Buffer.from('78686469776a6e6368656b6434643531326368646a783564386534633339344432443753', 'hex');

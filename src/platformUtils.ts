@@ -3,6 +3,7 @@ export type Config = {
   password: string;
   useChinaServer: boolean;
   devices: DeviceConfig[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
@@ -19,7 +20,7 @@ export enum SwingMode {
   VERTICAL = 'Vertical',
   HORIZONTAL = 'Horizontal',
   BOTH = 'Both',
-};
+}
 
 type ACOptions = {
   swingMode: SwingMode;

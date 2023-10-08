@@ -100,7 +100,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists, restore from Homebridge cache
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      const device = DeviceFactory.createDevice(this.log, device_info, this.config,);
+      const device = DeviceFactory.createDevice(this.log, device_info, this.config);
       if (device) {
         try {
           if (this.config.forceLogin) {
@@ -187,7 +187,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       }
       i++;
     }
-    if (!connected) device.setCredentials(undefined, undefined);
+    if (!connected) {
+      device.setCredentials(undefined, undefined);
+    }
     return connected;
   }
 }
