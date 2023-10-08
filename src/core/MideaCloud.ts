@@ -12,7 +12,7 @@ import { Logger } from 'homebridge';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
-import { CloudSecurity, MeijuCloudSecurity, MideaAirSecurity } from './MideaSecurity';
+import { CloudSecurity, MeijuCloudSecurity, NetHomePlusSecurity, MideaAirSecurity } from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
@@ -39,13 +39,14 @@ export abstract class CloudBase<T extends CloudSecurity> {
     protected readonly password: string,
     protected readonly logger: Logger,
     protected readonly security: T,
+    protected readonly proxied = false,
   ) {
     // Required to serialize access to some cloud functions.
     this.semaphore = new Semaphore();
   }
 
   protected timestamp() {
-    return DateTime.utc().toFormat('yyyyMMddHHmmss');
+    return DateTime.now().toFormat('yyyyMMddHHmmss');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,7 +114,9 @@ export abstract class CloudBase<T extends CloudSecurity> {
     // logged in.  Protect this block with a semaphone.
     const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
-      if (this.loggedIn) return;
+      if (this.loggedIn) {
+        return;
+      }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
       const response = await this.apiRequest('/mj/user/login', {
@@ -196,33 +199,18 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
   }
 }
 
-class NetHomePlusCloud extends CloudBase<CloudSecurity> {
+class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
   protected API_URL = 'https://mapp.appsmb.com';
-  protected APP_ID = '1017';
-  protected SRC = '1017';
+
+  protected sessionId?: string;
 
   constructor(
     account: string,
     password: string,
     logger: Logger,
+    security: T,
   ) {
-    super(account, password, logger, new CloudSecurity('3742e9e5842d4ad59c2db887e12449f9'));
-  }
-}
-
-class MideaAirCloud extends CloudBase<MideaAirSecurity> {
-  protected API_URL = 'https://mapp.appsmb.com';
-  protected APP_ID = '1117';
-  protected SRC = '17';
-
-  private sessionId?: string;
-
-  constructor(
-    account: string,
-    password: string,
-    logger: Logger,
-  ) {
-    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af', undefined));
+    super(account, password, logger, security, false);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,12 +232,17 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
 
     const url = `${this.API_URL}${endpoint}`;
     const queryParams = new URLSearchParams(data);
+    queryParams.sort();
     data['sign'] = this.security.sign(url, queryParams.toString());
+
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
 
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data);
-        if (response.data['errorCode'] !== undefined && Number.parseInt(response.data['errorCode']) !== 0 &&
+        const response = await axios.post(url, data, { headers: headers } );
+        if (response.data['errorCode'] !== undefined && Number.parseInt(response.data['errorCode']) === 0 &&
           response.data['result'] !== undefined) {
           return response.data['result'];
         }
@@ -272,6 +265,33 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
     } else {
       throw new Error('Failed to login.');
     }
+  }
+}
+
+class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
+  protected APP_ID = '1017';
+  protected SRC = '1017';
+
+  constructor(
+    account: string,
+    password: string,
+    logger: Logger,
+  ) {
+    super(account, password, logger, new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'));
+  }
+}
+
+class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
+
+  protected APP_ID = '1117';
+  protected SRC = '17';
+
+  constructor(
+    account: string,
+    password: string,
+    logger: Logger,
+  ) {
+    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'));
   }
 }
 
