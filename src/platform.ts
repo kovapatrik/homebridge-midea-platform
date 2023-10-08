@@ -71,7 +71,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       this.log.info('Start device discovery...');
-      this.cloud.login();
       // Start with sending broadcasts to network(s)
       this.discover.startDiscover();
       // And if individual devices listed in config then probe them directly by IP address
