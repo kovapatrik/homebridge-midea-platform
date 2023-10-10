@@ -83,7 +83,8 @@ export class PromiseSocket {
     this.innerSok = new Socket();
     this.destroyed = false;
     this.innerSok.on('error', (err) => {
-      throw Error(`Socket error: ${err}`);
+      this.destroy();
+      // throw Error(`Socket error: ${err}`);
     });
     this.innerSok.on('close', async () => {
       this.destroy();
