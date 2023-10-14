@@ -64,6 +64,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       10,
       Math.min(this.config.heartbeatInterval ?? 10, 120),
     );
+    // make sure devices / devicesById is never undefined.
+    this.config.devices ??= [];
+    this.config.devicesById = {};
 
     // transforms array of devices into object that can be referenced by deviceId...
     if (this.config.devices) {
@@ -106,7 +109,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       // If we have configuration indexed by ID use that, if not use IP address.
       const deviceConfig: DeviceConfig = this.config.devicesById[device_info.id] ?? this.config.devices.find((dev: DeviceConfig) => dev.ip === device_info.ip);
       device_info.name = deviceConfig?.name ?? device_info.name;
-      this.addDevice(device_info, deviceConfig);
+      // deviceConfig could be undefined, at least pass in a name field...
+      this.addDevice(device_info, deviceConfig ?? { name: device_info.name });
     });
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -200,7 +204,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             this,
             existingAccessory,
             device,
-            configDev,
+            deviceConfig,
           );
         } catch (err) {
           this.log.error(
