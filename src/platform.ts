@@ -51,23 +51,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     Error.stackTraceLimit = 100;
-    this.log.debug('Finished initializing platform:', PLATFORM_NAME);
-
-    this.cloud = CloudFactory.createCloud(
-      this.config['user'],
-      this.config['password'],
-      log,
-      this.config['registeredApp'],
-    );
-    this.discover = new Discover(log);
-
-    if (
-      this.config['user'] === undefined ||
-      this.config['password'] === undefined
-    ) {
-      this.log.error('The platform configuration is incomplete.');
-      return;
-    }
 
     // Make sure that config settings have a default value
     this.config.forceLogin ??= this.makeBoolean(this.config.forceLogin, false);
@@ -82,24 +65,48 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       Math.min(this.config.heartbeatInterval ?? 10, 120),
     );
 
+    // transforms array of devices into object that can be referenced by deviceId...
+    if (this.config.devices) {
+      // If we have a deviceId then we copy it into another object and remove it
+      // from the array.  This allows us to index into configuration by deviceId.
+      this.config.devicesById = {};
+      this.config.devices = this.config.devices.filter((elem: any) => {
+        if (elem.deviceId) {
+          elem.config.id = elem.deviceId
+          this.config.devicesById[String(elem.deviceId).toLowerCase()] = elem.config;
+          return false; // deletes this entry from the devices array so we don't have duplicates.
+        }
+        return true;
+      });
+    }
+    this.log.debug(`[${PLATFORM_NAME}] Configuration:\n${JSON.stringify(this.config, null, 2)}`);
+
     this.log.info(`Force login is set to ${this.config.forceLogin}`);
     this.log.info(`Verbose debug logging is set to ${this.config.verbose}`);
+
     this.log.info(
       `Device refresh interval set to ${this.config.refreshInterval} seconds`,
     );
     this.log.info(
       `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
     );
+    this.log.info(`Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`);
+
+    this.cloud = CloudFactory.createCloud(this.config.user, this.config.password, log, this.config.registeredApp);
+    this.discover = new Discover(log);
+
+    if (!(this.config.user && this.config.password)) {
+      this.log.error('The platform configuration is incomplete, missing "user" and "password"');
+      return;
+    }
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
     this.discover.on('device', (device_info: DeviceInfo) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const configDev: DeviceConfig = this.config['devices'].find(
-        (dev: DeviceConfig) => dev.ip === device_info.ip,
-      );
-      device_info.name = configDev?.name || device_info.name;
-      this.addDevice(device_info, configDev);
+      // If we have configuration indexed by ID use that, if not use IP address.
+      const deviceConfig: DeviceConfig = this.config.devicesById[device_info.id] ?? this.config.devices.find((dev: DeviceConfig) => dev.ip === device_info.ip);
+      device_info.name = deviceConfig?.name ?? device_info.name;
+      this.addDevice(device_info, deviceConfig);
     });
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -108,17 +115,26 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       this.log.info('Start device discovery...');
-      // Start with sending broadcasts to network(s)
-      this.discover.startDiscover();
-      // And if individual devices listed in config then probe them directly by IP address
-      if (this.config['devices']) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.config['devices'].forEach((device: any) => {
+      // If individual devices are listed in config then probe them directly by IP address
+      if (this.config.devicesById) {
+        Object.values(this.config.devicesById).forEach((device: any) => {
           if (device.ip) {
+            this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`);
             this.discover.discoverDeviceByIP(device.ip);
           }
         });
       }
+      if (this.config.devices) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.config.devices.forEach((device: any) => {
+          if (device.ip) {
+            this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`);
+            this.discover.discoverDeviceByIP(device.ip);
+          }
+        });
+      }
+      // And then send broadcast to network(s)
+      this.discover.startDiscover();
     });
   }
 
@@ -133,7 +149,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       : String(a).toLowerCase() === 'true' || a === true;
   }
 
-  async addDevice(device_info: DeviceInfo, configDev: DeviceConfig) {
+  /*********************************************************************
+   * addDevice
+   * Called for each device as discovered on the network.  Creates the
+   * Midea device handler and the associated Homebridge accessory.
+   */
+  private async addDevice(device_info: DeviceInfo, deviceConfig: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.find(
       (accessory) => accessory.UUID === uuid,
@@ -220,7 +241,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           );
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
-          AccessoryFactory.createAccessory(this, accessory, device, configDev);
+          AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
             accessory,

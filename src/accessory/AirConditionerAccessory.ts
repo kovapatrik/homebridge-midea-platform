@@ -197,7 +197,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
-    this.device.register_update(this.updateCharacteristics.bind(this));
+    this.device.on('update', this.updateCharacteristics.bind(this));
     this.device.refresh_status();
 
     // Remove unused accessories
