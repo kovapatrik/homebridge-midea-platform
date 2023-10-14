@@ -1,8 +1,14 @@
 export type Config = {
   user: string;
   password: string;
-  useChinaServer: boolean;
+  registeredApp: string;
+  refreshInterval: number;
+  heartbeatInterval: number;
+  forceLogin: boolean;
+  verbose: boolean;
   devices: DeviceConfig[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };
 
 export type DeviceConfig = {

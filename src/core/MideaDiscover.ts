@@ -1,12 +1,28 @@
+/***********************************************************************
+ * Midea device discovery class where we broadcast to network to find
+ * connected devices.
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import dgram from 'dgram';
 import { Logger } from 'homebridge';
-import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants';
+import {
+  DISCOVERY_MESSAGE,
+  DeviceInfo,
+  ProtocolVersion,
+} from './MideaConstants';
 import { XMLParser } from 'fast-xml-parser';
 import EventEmitter from 'events';
 import { LocalSecurity } from './MideaSecurity';
 
-export default class Discover extends EventEmitter {
+// To access network interface detail...
+import os from 'os';
 
+export default class Discover extends EventEmitter {
   private readonly IPV4_BROADCAST = '255.255.255.255';
   private socket: dgram.Socket;
 
@@ -14,10 +30,7 @@ export default class Discover extends EventEmitter {
   private security: LocalSecurity;
   private ips: string[] = [];
 
-  constructor(
-    private readonly logger: Logger,
-  ) {
-
+  constructor(private readonly logger: Logger) {
     super();
 
     this.security = new LocalSecurity();
@@ -33,17 +46,33 @@ export default class Discover extends EventEmitter {
       this.logger.debug(`server error:\n${err.stack}`);
     });
 
+    // Register callback function executed when message received on the socket as
+    // result of sending broadcast messages out to network / IP address.
     this.socket.on('message', async (msg, rinfo) => {
-      this.ips.push(rinfo.address);
+      if (!this.ips.includes(rinfo.address)) {
+        // Only add device if it has not already been added.
+        this.ips.push(rinfo.address);
 
-      const device_version = this.getDeviceVersion(msg);
-      const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
-      this.logger.debug(`Discovered device at ${rinfo.address} (${JSON.stringify(device_info)}).`);
+        const device_version = this.getDeviceVersion(msg);
+        const device_info = await this.getDeviceInfo(
+          rinfo.address,
+          device_version,
+          msg,
+        );
+        this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
-      this.emit('device', device_info);
+        // Send signal to Homebridge platform with details on the discovered device
+        this.emit('device', device_info);
+      }
     });
   }
 
+  /*********************************************************************
+   * discoverDeviceByIP
+   * Sends discover message to a single IP address.  Will resend the message
+   * an additional "retries" times spaced by 3 seconds if the target IP
+   * address has not responded (recorded in the above callback).
+   */
   public discoverDeviceByIP(ip: string, retries = 3) {
     let tries = 0;
     const interval = setInterval(() => {
@@ -62,15 +91,78 @@ export default class Discover extends EventEmitter {
     }, 3000);
   }
 
-  public startDiscover() {
-
-    for (const port of [6445, 20086]) {
-      this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, this.IPV4_BROADCAST, (err) => {
-        if (err) {
-          this.logger.error(`Error while sending message to ${this.IPV4_BROADCAST}:${port}: ${err}`);
+  /*********************************************************************
+   * ifBroadcastAddrs
+   * Broadcasts to 255.255.255.255 only gets sent out on the first network inteface.
+   * This function finds all network interfaces and returns the broadcast address
+   * for each in an array, e.g. ['192.168.1.255', '192.168.100.255'].  If there are
+   * multiple interfaces this will cause broadcast to be sent out on each interface
+   * so all appliances are properly discovered.
+   */
+  private ifBroadcastAddrs(): string[] {
+    const list: string[] = [];
+    try {
+      const ifaces = os.networkInterfaces();
+      for (const iface of Object.values(ifaces)) {
+        if (iface) {
+          for (const f of iface) {
+            if (!f.internal && f.family === 'IPv4') {
+              // With thanks to https://github.com/aal89/broadcast-address/blob/master/broadcast-address.js
+              const addr_splitted = f.address.split('.');
+              const netmask_splitted = f.netmask.split('.');
+              // Bitwise OR over the splitted NAND netmask, then glue them back together with a dot character to form an ip
+              // we have to do a NAND operation because of the 2-complements; getting rid of all the 'prepended' 1's with & 0xFF
+              const broadcast = addr_splitted
+                .map(
+                  (e, i) => (~netmask_splitted[i] & 0xff) | Number.parseInt(e),
+                )
+                .join('.');
+              list.push(broadcast);
+            }
+          }
         }
-      });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.stack : e;
+      this.logger.error(`Fatal error during plugin initialization:\n${msg}`);
     }
+    // this.logger.info(`Broadcast addresses: ${JSON.stringify(list)}`);
+    return list;
+  }
+
+  /*********************************************************************
+   * startDiscover
+   * Sends broadcast to network discover Midea devices. Will continue sending
+   * up to an additional "retries" times each spaced by 3 seconds.
+   */
+  public startDiscover(retries = 3) {
+    let tries = 0;
+    const broadcastAddrs = this.ifBroadcastAddrs();
+
+    const interval = setInterval(() => {
+      if (tries++ > retries) {
+        clearInterval(interval);
+        this.logger.info(
+          `Device discovery complete after ${retries + 1} network broadcasts.`,
+        );
+        return;
+      }
+      for (const ip of broadcastAddrs) {
+        this.logger.debug(
+          `Sending discovery message to ${ip}, try ${tries}...`,
+        );
+        for (const port of [6445, 20086]) {
+          this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, ip, (err) => {
+            if (err) {
+              const msg = err instanceof Error ? err.stack : err;
+              this.logger.error(
+                `Error while sending message to ${ip}:${port}:\n${msg}`,
+              );
+            }
+          });
+        }
+      }
+    }, 3000);
   }
 
   private getDeviceVersion(data: Buffer) {
@@ -90,7 +182,11 @@ export default class Discover extends EventEmitter {
     throw new Error('Unknown device version.');
   }
 
-  private async getDeviceInfo(ip: string, version: ProtocolVersion, data: Buffer) : Promise<DeviceInfo> {
+  private async getDeviceInfo(
+    ip: string,
+    version: ProtocolVersion,
+    data: Buffer,
+  ): Promise<DeviceInfo> {
     if (version === ProtocolVersion.V1) {
       // const root = this.xml_parser.parse(data.toString());
       // const device = root["body"]["device"]
@@ -102,7 +198,6 @@ export default class Discover extends EventEmitter {
       // throw new Error("Could not find 'body/device' in XML.");
 
       throw new Error('Version 1 not implemented.');
-
     } else {
       let buffer = data;
       // Strip V3 header and hash
@@ -120,10 +215,12 @@ export default class Discover extends EventEmitter {
         throw new Error(`Error while decrypting data: ${err}`);
       }
 
-      this.logger.debug(`Decrypted data: ${decrypted_buffer.toString('hex')}`);
-
       // eslint-disable-next-line max-len
-      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
+      const ip_address = `${decrypted_buffer.readUint8(
+        3,
+      )}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(
+        1,
+      )}.${decrypted_buffer.readUint8(0)}`;
       const port = decrypted_buffer.readUIntLE(4, 2);
 
       if (ip_address !== ip) {
@@ -142,14 +239,14 @@ export default class Discover extends EventEmitter {
       const device_type = Number(`0x${name.split('_')[1]}`);
 
       return {
-        'ip': ip_address,
-        'port': port,
-        'id': device_id,
-        'model': model,
-        'sn': sn,
-        'name': name,
-        'type': device_type,
-        'version': version,
+        ip: ip_address,
+        port: port,
+        id: device_id,
+        model: model,
+        sn: sn,
+        name: name,
+        type: device_type,
+        version: version,
       };
     }
   }
@@ -167,5 +264,4 @@ export default class Discover extends EventEmitter {
   //     this.logger.error(`Error while getting device info: ${err}`);
   //   }
   // }
-
 }

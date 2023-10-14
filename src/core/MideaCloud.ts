@@ -1,11 +1,26 @@
+/***********************************************************************
+ * Midea Cloud access functions
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import { Logger } from 'homebridge';
 
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
-import { CloudSecurity, MeijuCloudSecurity, MideaAirSecurity } from './MideaSecurity';
+import {
+  CloudSecurity,
+  MeijuCloudSecurity,
+  NetHomePlusSecurity,
+  MideaAirSecurity,
+} from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
+import { Semaphore } from 'semaphore-promise';
 
 export abstract class CloudBase<T extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
@@ -21,29 +36,39 @@ export abstract class CloudBase<T extends CloudSecurity> {
   protected access_token?: string;
   protected key?: string;
 
+  private semaphore: Semaphore;
+  private loggedIn = false;
 
   constructor(
     protected readonly account: string,
     protected readonly password: string,
     protected readonly logger: Logger,
     protected readonly security: T,
-  ) { }
-
-  protected timestamp() {
-    return DateTime.utc().toFormat('yyyyMMddHHmmss');
+  ) {
+    // Required to serialize access to some cloud functions.
+    this.semaphore = new Semaphore();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async apiRequest(endpoint: string, args?: {[key: string]: any}, data?: {[key: string]: any}) {
+  protected timestamp() {
+    return DateTime.now().toFormat('yyyyMMddHHmmss');
+  }
+
+  async apiRequest(
+    endpoint: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    args?: { [key: string]: any },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: { [key: string]: any },
+  ) {
     if (data === undefined) {
       data = {
-        'appId': this.APP_ID,
-        'format': this.FORMAT,
-        'clientType': this.CLIENT_TYPE,
-        'language': this.LANGUAGE,
-        'src': this.SRC,
-        'stamp': this.timestamp(),
-        'deviceId': this.DEVICE_ID,
+        appId: this.APP_ID,
+        format: this.FORMAT,
+        clientType: this.CLIENT_TYPE,
+        language: this.LANGUAGE,
+        src: this.SRC,
+        stamp: this.timestamp(),
+        deviceId: this.DEVICE_ID,
       };
     }
     data = { ...data, ...args };
@@ -58,10 +83,10 @@ export abstract class CloudBase<T extends CloudSecurity> {
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
       'Content-Type': 'application/json',
-      'secretVersion': '1',
-      'sign': sign,
-      'random': random,
-      'accessToken': this.access_token,
+      secretVersion: '1',
+      sign: sign,
+      random: random,
+      accessToken: this.access_token,
     };
 
     for (let i = 0; i < 3; i++) {
@@ -70,7 +95,11 @@ export abstract class CloudBase<T extends CloudSecurity> {
         if (Number.parseInt(response.data['code']) === 0) {
           return response.data['data'];
         } else {
-          this.logger.error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
+          this.logger.error(
+            `Error while sending request to ${url}: ${JSON.stringify(
+              response.data,
+            )}`,
+          );
         }
       } catch (error) {
         this.logger.error(`Error while sending request to ${url}: ${error}`);
@@ -82,10 +111,11 @@ export abstract class CloudBase<T extends CloudSecurity> {
 
   async getLoginId() {
     const response = await this.apiRequest('/v1/user/login/id/get', {
-      'loginAccount': this.account,
+      loginAccount: this.account,
     });
 
     if (response) {
+      this.logger.info('Logged in to Midea Cloud.');
       return response['loginId'];
     }
 
@@ -93,45 +123,71 @@ export abstract class CloudBase<T extends CloudSecurity> {
   }
 
   async login() {
-    const login_id = await this.getLoginId();
-    const response = await this.apiRequest('/mj/user/login', {
-      'data': {
-        'appKey': this.APP_KEY,
-        'platform': this.FORMAT,
-        'deviceId': this.DEVICE_ID,
-      },
-      'iotData': {
-        'appId': this.APP_ID,
-        'clientType': this.CLIENT_TYPE,
-        'iampwd': this.security.encrpytIAMPassword(login_id, this.password),
-        'loginAccount': this.account,
-        'password': this.security.encrpytPassword(login_id, this.password),
-        'pushToken': randomBytes(20).toString('base64url'),
-        'reqId': randomBytes(16).toString('hex'),
-        'src': this.SRC,
-        'stamp': this.timestamp(),
-      },
-    });
-    if (response) {
-      this.access_token = response['mdata']['accessToken'];
-      if (response['key'] !== undefined) {
-        this.key = response['key'];
+    // We need to protect against multiple attempts to login, so we only login if not already
+    // logged in.  Protect this block with a semaphone.
+    const releaseSemaphore = await this.semaphore.acquire(
+      'Obtain login semaphore',
+    );
+    try {
+      if (this.loggedIn) {
+        return;
       }
-    } else {
-      throw new Error('Failed to login.');
+      // Not logged in so proceed...
+      const login_id = await this.getLoginId();
+      const response = await this.apiRequest('/mj/user/login', {
+        data: {
+          appKey: this.APP_KEY,
+          platform: this.FORMAT,
+          deviceId: this.DEVICE_ID,
+        },
+        iotData: {
+          appId: this.APP_ID,
+          clientType: this.CLIENT_TYPE,
+          iampwd: this.security.encrpytIAMPassword(login_id, this.password),
+          loginAccount: this.account,
+          password: this.security.encrpytPassword(login_id, this.password),
+          pushToken: randomBytes(20).toString('base64url'),
+          reqId: randomBytes(16).toString('hex'),
+          src: this.SRC,
+          stamp: this.timestamp(),
+        },
+      });
+      if (response) {
+        this.access_token = response['mdata']['accessToken'];
+        if (response['key'] !== undefined) {
+          this.key = response['key'];
+        }
+        this.loggedIn = true;
+      } else {
+        this.loggedIn = false;
+        throw new Error('Failed to login.');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.stack : e;
+      throw new Error(`Error in Adding new accessory:\n${msg}`);
+    } finally {
+      releaseSemaphore();
     }
   }
 
-  async getToken(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
-    const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
+  async getToken(
+    device_id: number,
+    endianess: Endianness,
+  ): Promise<[Buffer, Buffer]> {
+    const udpid = CloudSecurity.getUDPID(
+      numberToUint8Array(device_id, 6, endianess),
+    );
     const response = await this.apiRequest('/v1/iot/secure/getToken', {
-      'udpid': udpid,
+      udpid: udpid,
     });
 
     if (response) {
       for (const token of response['tokenlist']) {
         if (token['udpId'] === udpid) {
-          return [ Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex') ];
+          return [
+            Buffer.from(token['token'], 'hex'),
+            Buffer.from(token['key'], 'hex'),
+          ];
         }
       }
     } else {
@@ -145,66 +201,56 @@ export abstract class CloudBase<T extends CloudSecurity> {
 class MSmartHomeCloud extends CloudBase<CloudSecurity> {
   protected API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
-  constructor(
-    account: string,
-    password: string,
-    logger: Logger,
-  ) {
-    super(account, password, logger, new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'));
+  constructor(account: string, password: string, logger: Logger) {
+    super(
+      account,
+      password,
+      logger,
+      new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'),
+    );
   }
 }
 
 class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
   protected API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
-  constructor(
-    account: string,
-    password: string,
-    logger: Logger,
-  ) {
-    super(account, password, logger, new MeijuCloudSecurity('ad0ee21d48a64bf49f4fb583ab76e799', 'prod_secret123@muc'));
+  constructor(account: string, password: string, logger: Logger) {
+    super(
+      account,
+      password,
+      logger,
+      new MeijuCloudSecurity(
+        'ad0ee21d48a64bf49f4fb583ab76e799',
+        'prod_secret123@muc',
+      ),
+    );
   }
 }
 
-class NetHomePlusCloud extends CloudBase<CloudSecurity> {
+class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
   protected API_URL = 'https://mapp.appsmb.com';
-  protected APP_ID = '1017';
-  protected SRC = '1017';
 
-  constructor(
-    account: string,
-    password: string,
-    logger: Logger,
-  ) {
-    super(account, password, logger, new CloudSecurity('xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'));
-  }
-}
+  protected sessionId?: string;
 
-class MideaAirCloud extends CloudBase<MideaAirSecurity> {
-  protected API_URL = 'https://mapp.appsmb.com';
-  protected APP_ID = '1117';
-  protected SRC = '17';
-
-  private sessionId?: string;
-
-  constructor(
-    account: string,
-    password: string,
-    logger: Logger,
-  ) {
-    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af', undefined));
+  constructor(account: string, password: string, logger: Logger, security: T) {
+    super(account, password, logger, security);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async apiRequest(endpoint: string, args?: {[key: string]: any}, data?: {[key: string]: any}) {
+  async apiRequest(
+    endpoint: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    args?: { [key: string]: any },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: { [key: string]: any },
+  ) {
     if (data === undefined) {
       data = {
-        'appId': this.APP_ID,
-        'format': this.FORMAT,
-        'clientType': this.CLIENT_TYPE,
-        'language': this.LANGUAGE,
-        'src': this.SRC,
-        'stamp': this.timestamp(),
+        appId: this.APP_ID,
+        format: this.FORMAT,
+        clientType: this.CLIENT_TYPE,
+        language: this.LANGUAGE,
+        src: this.SRC,
+        stamp: this.timestamp(),
       };
     }
     data = { ...data, ...args };
@@ -214,13 +260,21 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
 
     const url = `${this.API_URL}${endpoint}`;
     const queryParams = new URLSearchParams(data);
+    queryParams.sort();
     data['sign'] = this.security.sign(url, queryParams.toString());
+
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
 
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data);
-        if (response.data['errorCode'] !== undefined && Number.parseInt(response.data['errorCode']) !== 0 &&
-            response.data['result'] !== undefined) {
+        const response = await axios.post(url, data, { headers: headers });
+        if (
+          response.data['errorCode'] !== undefined &&
+          Number.parseInt(response.data['errorCode']) === 0 &&
+          response.data['result'] !== undefined
+        ) {
           return response.data['result'];
         }
       } catch (error) {
@@ -233,8 +287,8 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
   async login() {
     const login_id = await this.getLoginId();
     const response = await this.apiRequest('/v1/user/login', {
-      'loginAccount': this.account,
-      'password': this.security.encrpytPassword(login_id, this.password),
+      loginAccount: this.account,
+      password: this.security.encrpytPassword(login_id, this.password),
     });
     if (response) {
       this.access_token = response['accessToken'];
@@ -242,6 +296,34 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
     } else {
       throw new Error('Failed to login.');
     }
+  }
+}
+
+class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
+  protected APP_ID = '1017';
+  protected SRC = '1017';
+
+  constructor(account: string, password: string, logger: Logger) {
+    super(
+      account,
+      password,
+      logger,
+      new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'),
+    );
+  }
+}
+
+class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
+  protected APP_ID = '1117';
+  protected SRC = '17';
+
+  constructor(account: string, password: string, logger: Logger) {
+    super(
+      account,
+      password,
+      logger,
+      new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'),
+    );
   }
 }
 
