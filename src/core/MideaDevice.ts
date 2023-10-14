@@ -32,9 +32,7 @@ export type DeviceAttributeBase = {
   [key: string]: number | string | boolean | undefined;
 };
 
-
-export default abstract class MideaDevice extends EventEmitter  {
-
+export default abstract class MideaDevice extends EventEmitter {
   private readonly SOCKET_TIMEOUT = 3000; // milliseconds
 
   public readonly ip: string;

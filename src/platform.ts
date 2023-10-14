@@ -73,16 +73,25 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       // If we have a deviceId then we copy it into another object and remove it
       // from the array.  This allows us to index into configuration by deviceId.
       this.config.devicesById = {};
+      // TODO: type this
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.config.devices = this.config.devices.filter((elem: any) => {
         if (elem.deviceId) {
-          elem.config.id = elem.deviceId
-          this.config.devicesById[String(elem.deviceId).toLowerCase()] = elem.config;
+          elem.config.id = elem.deviceId;
+          this.config.devicesById[String(elem.deviceId).toLowerCase()] =
+            elem.config;
           return false; // deletes this entry from the devices array so we don't have duplicates.
         }
         return true;
       });
     }
-    this.log.debug(`[${PLATFORM_NAME}] Configuration:\n${JSON.stringify(this.config, null, 2)}`);
+    this.log.debug(
+      `[${PLATFORM_NAME}] Configuration:\n${JSON.stringify(
+        this.config,
+        null,
+        2,
+      )}`,
+    );
 
     this.log.info(`Force login is set to ${this.config.forceLogin}`);
     this.log.info(`Verbose debug logging is set to ${this.config.verbose}`);
@@ -93,13 +102,22 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.log.info(
       `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
     );
-    this.log.info(`Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`);
+    this.log.info(
+      `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
+    );
 
-    this.cloud = CloudFactory.createCloud(this.config.user, this.config.password, log, this.config.registeredApp);
+    this.cloud = CloudFactory.createCloud(
+      this.config.user,
+      this.config.password,
+      log,
+      this.config.registeredApp,
+    );
     this.discover = new Discover(log);
 
     if (!(this.config.user && this.config.password)) {
-      this.log.error('The platform configuration is incomplete, missing "user" and "password"');
+      this.log.error(
+        'The platform configuration is incomplete, missing "user" and "password"',
+      );
       return;
     }
 
@@ -107,7 +125,11 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // they are discovered on the network.
     this.discover.on('device', (device_info: DeviceInfo) => {
       // If we have configuration indexed by ID use that, if not use IP address.
-      const deviceConfig: DeviceConfig = this.config.devicesById[device_info.id] ?? this.config.devices.find((dev: DeviceConfig) => dev.ip === device_info.ip);
+      const deviceConfig: DeviceConfig =
+        this.config.devicesById[device_info.id] ??
+        this.config.devices.find(
+          (dev: DeviceConfig) => dev.ip === device_info.ip,
+        );
       device_info.name = deviceConfig?.name ?? device_info.name;
       // deviceConfig could be undefined, at least pass in a name field...
       this.addDevice(device_info, deviceConfig ?? { name: device_info.name });
@@ -121,9 +143,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       this.log.info('Start device discovery...');
       // If individual devices are listed in config then probe them directly by IP address
       if (this.config.devicesById) {
+        // TODO: type this
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.values(this.config.devicesById).forEach((device: any) => {
           if (device.ip) {
-            this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`);
+            this.log.info(
+              `[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`,
+            );
             this.discover.discoverDeviceByIP(device.ip);
           }
         });
@@ -132,7 +158,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.config.devices.forEach((device: any) => {
           if (device.ip) {
-            this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`);
+            this.log.info(
+              `[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`,
+            );
             this.discover.discoverDeviceByIP(device.ip);
           }
         });
@@ -245,7 +273,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           );
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
-          AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
+          AccessoryFactory.createAccessory(
+            this,
+            accessory,
+            device,
+            deviceConfig,
+          );
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
             accessory,
