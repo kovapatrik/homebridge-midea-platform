@@ -34,7 +34,16 @@
         "default": 30,
         "minimum": 0,
         "maximum": 86400,
-        "description": "The plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried.  You can observe in the log whenever a state changes.  The default is 30 seconds, the maximum is 86,400 (24 hours).  Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically. "
+        "description": "The plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried.  You can observe in the log whenever a state changes.  The default is 30 seconds, the maximum is 86400 (24 hours).  Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically."
+      },
+      "heartbeatInterval": {
+        "title": "Interval, in seconds, to send keep-alive message to Midea devices",
+        "type": "number",
+        "required": false,
+        "default": 10,
+        "minimum": 10,
+        "maximum": 120,
+        "description": "The plugin sends a message to Midea devices every 10 seconds to keep the network socket open.  You can increase this up to a maximum of 120 (2 minutes).  If you see socket closed messages in the log reduce this value."
       },
       "forceLogin": {
         "title": "Login to Midea Cloud every restart",
@@ -187,6 +196,10 @@
     },
     {
       "key": "refreshInterval",
+      "type": "number"
+    },
+    {
+      "key": "heartbeatInterval",
       "type": "number"
     },
     {

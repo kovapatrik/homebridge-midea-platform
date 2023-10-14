@@ -56,7 +56,15 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // Make sure that config settings have a default value
     this.config.forceLogin ??= this.makeBoolean(this.config.forceLogin, false);
     this.config.verbose ??= this.makeBoolean(this.config.verbose, true);
-    this.config.refreshInterval ??= 30;
+    // make sure values are between allowed range and set to default if undefined.
+    this.config.refreshInterval = Math.max(0, Math.min(this.config.refreshInterval ?? 30, 86400));
+    this.config.heartbeatInterval = Math.max(10, Math.min(this.config.heartbeatInterval ?? 10, 120));
+
+    this.log.info(`Force login is set to ${this.config.forceLogin}`);
+    this.log.info(`Verbose debug logging is set to ${this.config.verbose}`);
+    this.log.info(`Device refresh interval set to ${this.config.refreshInterval} seconds`);
+    this.log.info(`Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`);
+
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.

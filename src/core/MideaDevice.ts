@@ -21,7 +21,7 @@ export type DeviceAttributeBase = {
 
 export default abstract class MideaDevice {
 
-  private readonly SOCKET_TIMEOUT = 3000;
+  private readonly SOCKET_TIMEOUT = 3000; // milliseconds
 
   public readonly ip: string;
   protected readonly port: number;
@@ -40,7 +40,7 @@ export default abstract class MideaDevice {
   protected device_protocol_version = 0;
 
   protected refresh_interval: number;
-  protected heartbeat_interval = 10 * 1000;
+  protected heartbeat_interval: number;
   protected verbose: boolean;
 
   private _sub_type?: number;
@@ -81,6 +81,7 @@ export default abstract class MideaDevice {
 
     this.verbose = config.verbose;
     this.refresh_interval = config.refreshInterval * 1000; // convert to miliseconds
+    this.heartbeat_interval = config.heartbeatInterval * 1000;
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);
@@ -118,7 +119,7 @@ export default abstract class MideaDevice {
   public async connect(refresh_status = true) {
     try {
       await this.promiseSocket.connect(this.port, this.ip);
-      await this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
+      this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       this.logger.debug(`Connecting to device ${this.name} (${this.ip}:${this.port})...`);
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
@@ -150,7 +151,7 @@ export default abstract class MideaDevice {
 
     const request = this.security.encode_8370(this.token, TCPMessageType.HANDSHAKE_REQUEST);
     await this.promiseSocket.write(request);
-    const response = await this.promiseSocket.read(512);
+    const response = await this.promiseSocket.read();
 
     if (response) {
       if (response.length < 20) {
@@ -217,7 +218,7 @@ export default abstract class MideaDevice {
           try {
             // eslint-disable-next-line no-constant-condition
             while (true) {
-              const message = await this.promiseSocket.read(512);
+              const message = await this.promiseSocket.read();
               if (message.length === 0) {
                 throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
               }
@@ -364,7 +365,7 @@ export default abstract class MideaDevice {
       while (this.promiseSocket.destroyed) {
         this.logger.debug(`Create new socket, reconnect`);
         this.promiseSocket = new PromiseSocket();
-        await this.connect(false);
+        await this.connect(true); // need to refresh_status on connect as we reset start time below.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
       }
@@ -385,8 +386,8 @@ export default abstract class MideaDevice {
           // We wait up to one second for a message, in effect we cause the while loop
           // we are in to itterate once a second... allowing us to check for heartbeat
           // and refresh intervals (above).
-          this.promiseSocket.setTimeout(1000); // milliseconds
-          const msg = await this.promiseSocket.read(512);
+          this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
+          const msg = await this.promiseSocket.read();
           if (msg.length > 0) {
             const result = this.parse_message(msg);
             if (result === ParseMessageResult.ERROR) {
@@ -397,10 +398,9 @@ export default abstract class MideaDevice {
             }
           } else {
             timeout_counter++;
-            if (timeout_counter > 120) {
-              // we've looped 120 times (~two minutes with 1 second timeouts) and not received
-              // a successful response to heartbeat or status refresh.  Therefore something must
-              // be broken
+            if (timeout_counter > 120 / (this.SOCKET_TIMEOUT / 1000)) {
+              // we've looped for ~two minutes and not received a successful response
+              // to heartbeat or status refresh.  Therefore something must be broken.
               this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
               this.close_socket();
               // We break out of inner loop, but within outer loop we will attempt to

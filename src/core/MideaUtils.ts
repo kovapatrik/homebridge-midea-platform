@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Homebridge-midea-platform miscellaneous support functions.
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Includes very basic implementation of a promise-wrapped Socket class.
+ *
+ */
 import { Endianness } from './MideaConstants';
 import { Socket } from 'net';
 
@@ -74,7 +83,11 @@ export function calculate(data: Buffer) {
   return crc;
 }
 
-
+/*********************************************************************
+ * PromiseSocket
+ * A very basic implementation of promise-wrapped Socket
+ *
+ */
 export class PromiseSocket {
   private innerSok: Socket;
   public destroyed: boolean;
@@ -82,33 +95,41 @@ export class PromiseSocket {
   constructor() {
     this.innerSok = new Socket();
     this.destroyed = false;
-    this.innerSok.on('error', (err) => {
-      this.destroy();
-      // throw Error(`Socket error: ${err}`);
+    this.innerSok.on('error', (e) => {
+      // Log the error
+      // eslint-disable-next-line no-console
+      const msg = (e instanceof Error) ? e.stack : e;
+      console.error(`[${new Date().toISOString().replace(/T/, ', ').replace(/\..+/, '')}]   [homebridge-midea-platform] Socket error:\n${msg}`);
+      // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
+      // will be called immediately following an "error" event.  So don't throw an error
+      // and handle the destory in the close event.
     });
-    this.innerSok.on('close', async () => {
+    this.innerSok.on('close', async (hadError: boolean) => {
       this.destroy();
+      // eslint-disable-next-line no-console
+      console.info(`[${new Date().toISOString().replace(/T/, ', ').replace(/\..+/, '')}]   [homebridge-midea-platform] Socket closed ${hadError ? 'with' : 'without'} error`);
     });
   }
 
-  public connect(port: number, host: string): Promise<void> {
+  public async connect(port: number, host: string): Promise<void> {
     return new Promise((resolve, reject) => {
 
       const errorHandler = (err: Error) => {
+        removeListeners();
         reject(err);
-        removeListeners();
       };
-
-      this.innerSok.connect(port, host, () => {
-        resolve();
-        removeListeners();
-      });
-
-      this.innerSok.on('error', errorHandler);
-
       const removeListeners = () => {
         this.innerSok.removeListener('error', errorHandler);
       };
+
+      this.innerSok.connect(port, host, () => {
+        // This function is added as a "connect" listener so called
+        // on successful connection.
+        removeListeners();
+        resolve();
+      });
+
+      this.innerSok.on('error', errorHandler);
     });
   }
 
@@ -121,103 +142,72 @@ export class PromiseSocket {
     this.innerSok.destroy();
   }
 
-  async write(data: string | Buffer, encoding?: BufferEncoding) {
+  public async write(data: string | Buffer, encoding?: BufferEncoding) {
     return new Promise<void>((resolve, reject) => {
 
       const errorHandler = (err: Error) => {
-        reject(err);
         removeListeners();
+        reject(err);
       };
       const removeListeners = () => {
         this.innerSok.removeListener('error', errorHandler);
       };
+
       this.innerSok.on('error', errorHandler);
+
       try {
         this.innerSok.write(data, encoding, (err) => {
-          if (err) {
-            reject(err);
-            removeListeners();
-            return;
-          }
-          resolve();
+          // This function is called when all data successfully sent
           removeListeners();
+          if (err) reject(err);
+          else resolve();
         });
       } catch (err) {
-        reject(err);
         removeListeners();
+        reject(err);
       }
     });
   }
 
-  async read(size: number) {
+  public async read() {
     return new Promise<Buffer>((resolve, reject) => {
       let buf = Buffer.alloc(0);
 
       const dataHandler = (data: Buffer) => {
         buf = Buffer.concat([buf, data]);
-        if (buf.length >= size) {
-          resolve(buf);
-          removeListeners();
-        }
+        removeListeners();
+        resolve(buf);
       };
       const timeoutHandler = () => {
-        resolve(buf);
         removeListeners();
+        resolve(buf);
       };
       const endHandler = () => {
-        resolve(buf);
         removeListeners();
+        resolve(buf);
       };
       const errorHandler = (err: Error) => {
-        reject(err);
         removeListeners();
+        reject(err);
       };
-
-      this.innerSok.on('data', dataHandler);
-      this.innerSok.on('timeout', timeoutHandler);
-      this.innerSok.on('end', endHandler);
-      this.innerSok.on('error', errorHandler);
-
+      const closeHandler = () => {
+        removeListeners();
+        resolve(buf);
+      };
       const removeListeners = () => {
+        this.innerSok.removeListener('close', closeHandler);
         this.innerSok.removeListener('data', dataHandler);
         this.innerSok.removeListener('timeout', timeoutHandler);
         this.innerSok.removeListener('end', endHandler);
         this.innerSok.removeListener('error', errorHandler);
       };
-    });
-  }
 
-  async readAll() {
-    return new Promise<Buffer>((resolve, reject) => {
-      let buf = Buffer.alloc(0);
-
-      const dataHandler = (data: Buffer) => {
-        buf = Buffer.concat([buf, data]);
-      };
-      const endHandler = () => {
-        resolve(buf);
-        removeListeners();
-      };
-      const errorHandler = (err: Error) => {
-        reject(err);
-        removeListeners();
-      };
-      const timeoutHandler = () => {
-        resolve(buf);
-        removeListeners();
-      };
-
+      this.innerSok.on('close', closeHandler);
       this.innerSok.on('data', dataHandler);
       this.innerSok.on('timeout', timeoutHandler);
       this.innerSok.on('end', endHandler);
       this.innerSok.on('error', errorHandler);
-
-      const removeListeners = () => {
-        this.innerSok.removeListener('data', dataHandler);
-        this.innerSok.removeListener('timeout', timeoutHandler);
-        this.innerSok.removeListener('end', endHandler);
-        this.innerSok.removeListener('error', errorHandler);
-      };
     });
   }
+
 }

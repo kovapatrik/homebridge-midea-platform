@@ -215,6 +215,8 @@ export default class MideaACDevice extends MideaDevice {
     // Now we update Homebridge / Homekit accessory
     if (Object.keys(changed).length > 0) {
       this.update(changed);
+    } else {
+      this.logger.debug(`[${this.name}] Status unchanged`);
     }
   }
 
@@ -264,6 +266,7 @@ export default class MideaACDevice extends MideaDevice {
   async set_attribute(attributes: Partial<ACAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
+      this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
       // not sensor data
       if (!['INDOOR_TEMPERATURE', 'OUTDOOR_TEMPERATURE', 'INDOOR_HUMIDITY', 'FULL_DUST',
