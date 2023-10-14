@@ -8,7 +8,7 @@ export default class PacketBuilder {
 
   constructor(
     device_id: number,
-    private readonly command: Buffer
+    private readonly command: Buffer,
   ) {
     this.security = new LocalSecurity();
     this.packet = Buffer.from([

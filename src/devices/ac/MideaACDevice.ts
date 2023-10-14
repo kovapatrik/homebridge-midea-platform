@@ -9,7 +9,6 @@
 import { Logger } from 'homebridge';
 import { DeviceInfo } from '../../core/MideaConstants';
 import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
-import { KeyToken } from '../../core/MideaSecurity';
 import {
   MessageACResponse,
   MessageGeneralSet,
@@ -103,7 +102,7 @@ export default class MideaACDevice extends MideaDevice {
   constructor(
     logger: Logger,
     device_info: DeviceInfo,
-    config: Partial<Config>
+    config: Partial<Config>,
   ) {
     super(logger, device_info, config);
     this.attributes = {
@@ -155,7 +154,7 @@ export default class MideaACDevice extends MideaDevice {
       new MessageQuery(this.device_protocol_version),
       new MessageNewProtocolQuery(
         this.device_protocol_version,
-        this.alternate_switch_display
+        this.alternate_switch_display,
       ),
       new MessagePowerQuery(this.device_protocol_version),
     ];
@@ -163,11 +162,12 @@ export default class MideaACDevice extends MideaDevice {
 
   process_message(msg: Buffer) {
     const message = new MessageACResponse(msg, this.power_analysis_method);
-    if (this.verbose)
+    if (this.verbose) {
       this.logger.debug(
-        `[${this.name}] Body:\n${JSON.stringify(message.body)}`
+        `[${this.name}] Body:\n${JSON.stringify(message.body)}`,
       );
-    let changed: DeviceAttributeBase = {};
+    }
+    const changed: DeviceAttributeBase = {};
     let has_fresh_air = false;
     if (message.used_subprotocol) {
       this.used_subprotocol = true;
@@ -187,7 +187,7 @@ export default class MideaACDevice extends MideaDevice {
           // HomeKit accessory we only update values that change.  First time through this
           // should be most/all attributes having initialized them to invalid values.
           this.logger.debug(
-            `[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`
+            `[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`,
           );
           changed[status] = value;
         }
@@ -203,7 +203,7 @@ export default class MideaACDevice extends MideaDevice {
     if (has_fresh_air) {
       if (this.attributes.FRESH_AIR_POWER) {
         for (const [k, v] of Object.entries(
-          this.FRESH_AIR_FAN_SPEEDS_REVERSE
+          this.FRESH_AIR_FAN_SPEEDS_REVERSE,
         )) {
           if (this.attributes.FRESH_AIR_FAN_SPEED > Number.parseInt(k)) {
             break;
@@ -336,8 +336,8 @@ export default class MideaACDevice extends MideaDevice {
           if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
             const speed = Number.parseInt(
               Object.keys(this.FRESH_AIR_FAN_SPEEDS).find(
-                (key) => this.FRESH_AIR_FAN_SPEEDS[key] === v
-              )!
+                (key) => this.FRESH_AIR_FAN_SPEEDS[key] === v,
+              )!,
             );
             const fresh_air =
               speed > 0
@@ -393,7 +393,7 @@ export default class MideaACDevice extends MideaDevice {
       }
       if (message) {
         this.logger.debug(
-          `[${this.name}] Set message:\n${JSON.stringify(message)}`
+          `[${this.name}] Set message:\n${JSON.stringify(message)}`,
         );
         await this.build_send(message);
       }

@@ -12,7 +12,7 @@ export default class AccessoryFactory {
     platform: MideaPlatform,
     accessory: MideaAccessory,
     device: T,
-    configDev: DeviceConfig
+    configDev: DeviceConfig,
   ) {
     switch (device.type) {
       case DeviceType.AIR_CONDITIONER:
@@ -20,14 +20,14 @@ export default class AccessoryFactory {
           platform,
           accessory,
           device as unknown as MideaACDevice,
-          configDev
+          configDev,
         );
       case DeviceType.DEHUMIDIFIER:
         return new DehumidifierAccessory(
           platform,
           accessory,
           device as unknown as MideaA1Device,
-          configDev
+          configDev,
         );
     }
   }

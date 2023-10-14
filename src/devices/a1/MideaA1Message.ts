@@ -28,13 +28,13 @@ abstract class MessageA1Base extends MessageRequest {
   constructor(
     device_protocol_version: number,
     message_type: MessageType,
-    body_type: number
+    body_type: number,
   ) {
     super(
       DeviceType.DEHUMIDIFIER,
       message_type,
       body_type,
-      device_protocol_version
+      device_protocol_version,
     );
     MessageA1Base.message_serial += 1;
     // I don't know why dehumidifier wraps at 100, air conditioner wraps at 254
@@ -71,7 +71,7 @@ export class MessageQuery extends MessageA1Base {
 export class MessageNewProtocolQuery extends MessageA1Base {
   constructor(
     device_protocol_version: number,
-    private readonly alternate_display = false
+    private readonly alternate_display = false,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
@@ -171,11 +171,12 @@ export class MessageNewProtocolSet extends MessageA1Base {
       pack_count += 1;
       payload = Buffer.concat([
         payload,
-        // original python code at https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
+        // original python code at:
+        // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
         // used "NewProtocolTags.INDIRECT_WIND" but that is/was not defined so assumed to be a bug and should be LIGHT
         NewProtocolMessageBody.packet(
           NewProtocolTags.LIGHT,
-          Buffer.from([this.light ? 0x01 : 0x00])
+          Buffer.from([this.light ? 0x01 : 0x00]),
         ),
       ]);
     }
@@ -250,7 +251,7 @@ export class MessageA1Response extends MessageResponse {
     super(message);
     if (
       [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type
+        this.message_type,
       )
     ) {
       if ([0xb0, 0xb1, 0xb5].includes(this.body_type)) {
@@ -259,8 +260,8 @@ export class MessageA1Response extends MessageResponse {
         this.set_body(new A1GeneralMessageBody(this.body));
       }
     } else if (
-      this.message_type == MessageType.NOTIFY2 &&
-      this.body_type == 0xa0
+      this.message_type === MessageType.NOTIFY2 &&
+      this.body_type === 0xa0
     ) {
       this.set_body(new A1GeneralMessageBody(this.body));
     }

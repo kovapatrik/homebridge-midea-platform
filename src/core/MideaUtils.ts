@@ -14,7 +14,7 @@ import { Socket } from 'net';
 export function numberToUint8Array(
   num: number,
   byte_length: number,
-  endianness: Endianness
+  endianness: Endianness,
 ) {
   const arr = new Uint8Array(byte_length);
   for (let i = 0; i < byte_length; i++) {
@@ -90,7 +90,7 @@ export class PromiseSocket {
 
   constructor(
     private readonly logger: Logger,
-    private readonly verbose: boolean
+    private readonly verbose: boolean,
   ) {
     this.innerSok = new Socket();
     this.destroyed = false;
@@ -99,7 +99,7 @@ export class PromiseSocket {
       const msg = e instanceof Error ? e.stack : e;
       if (this.verbose) {
         this.logger.error(
-          `[${formattedDate()}] [homebridge-midea-platform] Socket error:\n${msg}`
+          `[${formattedDate()}] [homebridge-midea-platform] Socket error:\n${msg}`,
         );
       }
       // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
@@ -112,7 +112,7 @@ export class PromiseSocket {
       console.info(
         `[${formattedDate()}] [homebridge-midea-platform] Socket closed ${
           hadError ? 'with' : 'without'
-        } error`
+        } error`,
       );
     });
   }
@@ -163,8 +163,11 @@ export class PromiseSocket {
         this.innerSok.write(data, encoding, (err) => {
           // This function is called when all data successfully sent
           removeListeners();
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
         });
       } catch (err) {
         removeListeners();

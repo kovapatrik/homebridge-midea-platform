@@ -7,7 +7,7 @@ export default class BaseAccessory<T extends MideaDevice> {
     protected readonly platform: MideaPlatform,
     protected readonly accessory: MideaAccessory,
     protected readonly device: T,
-    protected readonly configDev: DeviceConfig
+    protected readonly configDev: DeviceConfig,
   ) {
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -15,7 +15,7 @@ export default class BaseAccessory<T extends MideaDevice> {
       .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
       .setCharacteristic(
         this.platform.Characteristic.SerialNumber,
-        this.device.sn
+        this.device.sn,
       );
   }
 }

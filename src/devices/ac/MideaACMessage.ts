@@ -35,13 +35,13 @@ abstract class MessageACBase extends MessageRequest {
   constructor(
     device_protocol_version: number,
     message_type: MessageType,
-    body_type: number
+    body_type: number,
   ) {
     super(
       DeviceType.AIR_CONDITIONER,
       message_type,
       body_type,
-      device_protocol_version
+      device_protocol_version,
     );
     MessageACBase.message_serial += 1;
     if (MessageACBase.message_serial >= 254) {
@@ -106,7 +106,7 @@ export class MessageSwitchDisplay extends MessageACBase {
 export class MessageNewProtocolQuery extends MessageACBase {
   constructor(
     device_protocol_version: number,
-    private readonly alternate_display = false
+    private readonly alternate_display = false,
   ) {
     super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
@@ -136,7 +136,7 @@ export abstract class MessageSubProtocol extends MessageACBase {
   constructor(
     device_protocol_version: number,
     message_type: MessageType,
-    private readonly subprotocol_query_type: number
+    private readonly subprotocol_query_type: number,
   ) {
     super(device_protocol_version, message_type, 0xaa);
   }
@@ -386,7 +386,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.BREEZELESS,
-          Buffer.from([this.breezeless ? 0x01 : 0x00])
+          Buffer.from([this.breezeless ? 0x01 : 0x00]),
         ),
       ]);
     }
@@ -397,7 +397,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.INDIRECT_WIND,
-          Buffer.from([this.indirect_wind ? 0x02 : 0x01])
+          Buffer.from([this.indirect_wind ? 0x02 : 0x01]),
         ),
       ]);
     }
@@ -408,7 +408,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.SCREEN_DISPLAY,
-          Buffer.from([this.screen_display ? 0x64 : 0x00])
+          Buffer.from([this.screen_display ? 0x64 : 0x00]),
         ),
       ]);
     }
@@ -432,7 +432,7 @@ export class MessageNewProtocolSet extends MessageACBase {
             0x00,
             0x00,
             0x00,
-          ])
+          ]),
         ),
       ]);
     }
@@ -445,7 +445,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.FRESH_AIR_2,
-          Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff])
+          Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff]),
         ),
       ]);
     }
@@ -455,7 +455,7 @@ export class MessageNewProtocolSet extends MessageACBase {
       payload,
       NewProtocolMessageBody.packet(
         NewProtocolTags.PROMPT_TONE,
-        Buffer.from([this.prompt_tone ? 0x01 : 0x00])
+        Buffer.from([this.prompt_tone ? 0x01 : 0x00]),
       ),
     ]);
 
@@ -664,20 +664,20 @@ class XC1MessageBody extends MessageBody {
         body[4],
         body[5],
         body[6],
-        body[7]
+        body[7],
       );
       this.current_energy_consumption = XC1MessageBody.parse_consumption(
         analysis_method,
         body[12],
         body[13],
         body[14],
-        body[15]
+        body[15],
       );
       this.realtime_power = XC1MessageBody.parse_power(
         analysis_method,
         body[16],
         body[17],
-        body[18]
+        body[18],
       );
     }
   }
@@ -686,7 +686,7 @@ class XC1MessageBody extends MessageBody {
     analysis_method: number,
     byte1: number,
     byte2: number,
-    byte3: number
+    byte3: number,
   ) {
     if (analysis_method === 1) {
       return byte1 + byte2 / 100 + byte3 / 10000;
@@ -702,7 +702,7 @@ class XC1MessageBody extends MessageBody {
     byte1: number,
     byte2: number,
     byte3: number,
-    byte4: number
+    byte4: number,
   ) {
     if (analysis_method === 1) {
       return byte1 * 10000 + byte2 * 100 + byte3 + byte4 / 100;
@@ -783,7 +783,7 @@ export class MessageACResponse extends MessageResponse {
 
   constructor(
     private readonly message: Buffer,
-    power_analysis_method = 3
+    power_analysis_method = 3,
   ) {
     super(message);
 
@@ -796,7 +796,7 @@ export class MessageACResponse extends MessageResponse {
       this.set_body(new XA1MessageBody(this.body));
     } else if (
       [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type
+        this.message_type,
       ) &&
       [0xb0, 0xb1, 0xb5].includes(this.body_type)
     ) {
@@ -813,7 +813,7 @@ export class MessageACResponse extends MessageResponse {
       this.set_body(new XC1MessageBody(this.body, power_analysis_method));
     } else if (
       [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type
+        this.message_type,
       ) &&
       this.body_type === 0xbb &&
       this.body.length >= 21

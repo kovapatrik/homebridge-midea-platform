@@ -18,10 +18,13 @@
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint src/**.ts --max-warnings=0",
+    "lint:fix": "eslint src/**.ts --fix",
+    "prettier": "prettier --loglevel warn \"**/*.{ts,tsx,css,md}\"",
+    "prettier:fix": "prettier --loglevel warn \"**/*.{ts,tsx,css,md}\" --write",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run lint && npm run build",
-    "format": "prettier --loglevel warn --write \"**/*.{ts,tsx,css,md}\""
+    "format": "npm run prettier:fix && npm run lint:fix"
   },
   "keywords": [
     "homebridge-plugin"

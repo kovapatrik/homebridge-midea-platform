@@ -20,7 +20,7 @@ export class CloudSecurity {
 
   constructor(
     protected readonly login_key: string,
-    protected readonly iot_key?: string
+    protected readonly iot_key?: string,
   ) {}
 
   // Generate a HMAC signature for the provided data and random data.
@@ -92,12 +92,14 @@ export class MideaAirSecurity extends NetHomePlusSecurity {}
 export class LocalSecurity {
   private readonly aes_key = Buffer.from(
     '6a92ef406bad2f0359baad994171ea6d',
-    'hex'
+    'hex',
   );
+
   private readonly salt = Buffer.from(
     '78686469776a6e6368656b6434643531326368646a783564386534633339344432443753',
-    'hex'
+    'hex',
   );
+
   private readonly iv = Buffer.alloc(16);
 
   private request_count = 0;
@@ -139,7 +141,7 @@ export class LocalSecurity {
     }
     if (response.length !== 64) {
       throw Error(
-        'Authentication response has unexpected data length, cannot get TCP key..'
+        'Authentication response has unexpected data length, cannot get TCP key..',
       );
     }
     const payload = response.subarray(0, 32);

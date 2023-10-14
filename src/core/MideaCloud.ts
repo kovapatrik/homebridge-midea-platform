@@ -43,7 +43,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     protected readonly account: string,
     protected readonly password: string,
     protected readonly logger: Logger,
-    protected readonly security: T
+    protected readonly security: T,
   ) {
     // Required to serialize access to some cloud functions.
     this.semaphore = new Semaphore();
@@ -53,11 +53,12 @@ export abstract class CloudBase<T extends CloudSecurity> {
     return DateTime.now().toFormat('yyyyMMddHHmmss');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(
     endpoint: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     args?: { [key: string]: any },
-    data?: { [key: string]: any }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: { [key: string]: any },
   ) {
     if (data === undefined) {
       data = {
@@ -96,8 +97,8 @@ export abstract class CloudBase<T extends CloudSecurity> {
         } else {
           this.logger.error(
             `Error while sending request to ${url}: ${JSON.stringify(
-              response.data
-            )}`
+              response.data,
+            )}`,
           );
         }
       } catch (error) {
@@ -125,7 +126,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     // We need to protect against multiple attempts to login, so we only login if not already
     // logged in.  Protect this block with a semaphone.
     const releaseSemaphore = await this.semaphore.acquire(
-      'Obtain login semaphore'
+      'Obtain login semaphore',
     );
     try {
       if (this.loggedIn) {
@@ -171,10 +172,10 @@ export abstract class CloudBase<T extends CloudSecurity> {
 
   async getToken(
     device_id: number,
-    endianess: Endianness
+    endianess: Endianness,
   ): Promise<[Buffer, Buffer]> {
     const udpid = CloudSecurity.getUDPID(
-      numberToUint8Array(device_id, 6, endianess)
+      numberToUint8Array(device_id, 6, endianess),
     );
     const response = await this.apiRequest('/v1/iot/secure/getToken', {
       udpid: udpid,
@@ -205,7 +206,7 @@ class MSmartHomeCloud extends CloudBase<CloudSecurity> {
       account,
       password,
       logger,
-      new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud')
+      new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'),
     );
   }
 }
@@ -220,8 +221,8 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
       logger,
       new MeijuCloudSecurity(
         'ad0ee21d48a64bf49f4fb583ab76e799',
-        'prod_secret123@muc'
-      )
+        'prod_secret123@muc',
+      ),
     );
   }
 }
@@ -235,11 +236,12 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
     super(account, password, logger, security);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(
     endpoint: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     args?: { [key: string]: any },
-    data?: { [key: string]: any }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: { [key: string]: any },
   ) {
     if (data === undefined) {
       data = {
@@ -306,7 +308,7 @@ class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
       account,
       password,
       logger,
-      new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9')
+      new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'),
     );
   }
 }
@@ -320,7 +322,7 @@ class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
       account,
       password,
       logger,
-      new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af')
+      new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'),
     );
   }
 }
@@ -330,7 +332,7 @@ export default class CloudFactory {
     account: string,
     password: string,
     logger: Logger,
-    cloud: string
+    cloud: string,
   ): CloudBase<CloudSecurity> {
     switch (cloud) {
       case 'Midea SmartHome (MSmartHome)':

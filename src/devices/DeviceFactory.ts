@@ -2,14 +2,13 @@ import { Logger } from 'homebridge';
 import { DeviceInfo, DeviceType } from '../core/MideaConstants';
 import MideaACDevice from './ac/MideaACDevice';
 import MideaA1Device from './a1/MideaA1Device';
-import { KeyToken } from '../core/MideaSecurity';
 import { Config } from '../platformUtils';
 
 export default class DeviceFactory {
   public static createDevice(
     logger: Logger,
     device_info: DeviceInfo,
-    config: Partial<Config>
+    config: Partial<Config>,
   ) {
     switch (device_info.type) {
       case DeviceType.AIR_CONDITIONER:

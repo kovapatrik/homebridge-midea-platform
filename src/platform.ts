@@ -48,7 +48,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
-    public readonly api: API
+    public readonly api: API,
   ) {
     Error.stackTraceLimit = 100;
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
@@ -57,7 +57,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       this.config['user'],
       this.config['password'],
       log,
-      this.config['registeredApp']
+      this.config['registeredApp'],
     );
     this.discover = new Discover(log);
 
@@ -75,20 +75,20 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // make sure values are between allowed range and set to default if undefined.
     this.config.refreshInterval = Math.max(
       0,
-      Math.min(this.config.refreshInterval ?? 30, 86400)
+      Math.min(this.config.refreshInterval ?? 30, 86400),
     );
     this.config.heartbeatInterval = Math.max(
       10,
-      Math.min(this.config.heartbeatInterval ?? 10, 120)
+      Math.min(this.config.heartbeatInterval ?? 10, 120),
     );
 
     this.log.info(`Force login is set to ${this.config.forceLogin}`);
     this.log.info(`Verbose debug logging is set to ${this.config.verbose}`);
     this.log.info(
-      `Device refresh interval set to ${this.config.refreshInterval} seconds`
+      `Device refresh interval set to ${this.config.refreshInterval} seconds`,
     );
     this.log.info(
-      `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`
+      `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
     );
 
     // Register callback with Discover class that is called for each device as
@@ -96,7 +96,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.discover.on('device', (device_info: DeviceInfo) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const configDev: DeviceConfig = this.config['devices'].find(
-        (dev: DeviceConfig) => dev.ip === device_info.ip
+        (dev: DeviceConfig) => dev.ip === device_info.ip,
       );
       device_info.name = configDev?.name || device_info.name;
       this.addDevice(device_info, configDev);
@@ -136,18 +136,18 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   async addDevice(device_info: DeviceInfo, configDev: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.find(
-      (accessory) => accessory.UUID === uuid
+      (accessory) => accessory.UUID === uuid,
     );
     if (existingAccessory) {
       // the accessory already exists, restore from Homebridge cache
       this.log.info(
         'Restoring existing accessory from cache:',
-        existingAccessory.displayName
+        existingAccessory.displayName,
       );
       const device = DeviceFactory.createDevice(
         this.log,
         device_info,
-        this.config
+        this.config,
       );
       if (device) {
         try {
@@ -156,22 +156,22 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             const connected = await this.getNewCredentials(device);
             if (connected) {
               this.log.info(
-                `[${device_info.name}] Cached device with forced login, setting new credentials`
+                `[${device_info.name}] Cached device with forced login, setting new credentials`,
               );
               existingAccessory.context.token = device.token?.toString(
-                'hex'
+                'hex',
               ) as string;
               existingAccessory.context.key = device.key?.toString(
-                'hex'
+                'hex',
               ) as string;
             }
           } else {
             this.log.info(
-              `[${device_info.name}] Cached device, using saved credentials`
+              `[${device_info.name}] Cached device, using saved credentials`,
             );
             device.setCredentials(
               Buffer.from(existingAccessory.context.token, 'hex'),
-              Buffer.from(existingAccessory.context.key, 'hex')
+              Buffer.from(existingAccessory.context.key, 'hex'),
             );
             await device.connect(false);
           }
@@ -179,16 +179,16 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             this,
             existingAccessory,
             device,
-            configDev
+            configDev,
           );
         } catch (err) {
           this.log.error(
-            `Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`
+            `Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`,
           );
         }
       } else {
         this.log.error(
-          `Device type is unsupported by the plugin: ${device_info.type}`
+          `Device type is unsupported by the plugin: ${device_info.type}`,
         );
       }
     } else {
@@ -202,13 +202,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       const device = DeviceFactory.createDevice(
         this.log,
         device_info,
-        this.config
+        this.config,
       );
       if (device) {
         const connected = await this.getNewCredentials(device);
         if (connected) {
           this.log.info(
-            `[${device_info.name}] New device, setting new credentials`
+            `[${device_info.name}] New device, setting new credentials`,
           );
           accessory.context.token = device.token?.toString('hex') as string;
           accessory.context.key = device.key?.toString('hex') as string;
@@ -216,7 +216,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           accessory.context.type = 'main';
 
           this.log.info(
-            `Connected to device ${device_info.ip}:${device_info.port}`
+            `Connected to device ${device_info.ip}:${device_info.port}`,
           );
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
@@ -227,12 +227,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           ]);
         } else {
           this.log.error(
-            `Cannot connect to device ${device_info.ip}:${device_info.port}`
+            `Cannot connect to device ${device_info.ip}:${device_info.port}`,
           );
         }
       } else {
         this.log.error(
-          `Device type is unsupported by the plugin: ${device_info.type}`
+          `Device type is unsupported by the plugin: ${device_info.type}`,
         );
       }
     }
@@ -270,7 +270,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.log.debug(
-          `Getting token and key with ${endianess}-endian is not successful:\n${msg}`
+          `Getting token and key with ${endianess}-endian is not successful:\n${msg}`,
         );
       }
       if (token && key) {

@@ -43,7 +43,7 @@ export abstract class MessageRequest extends MessageBase {
     device_type: DeviceType,
     message_type: MessageType,
     body_type: number,
-    device_protocol_version: number
+    device_protocol_version: number,
   ) {
     super();
     this.device_type = device_type;
@@ -60,7 +60,7 @@ export abstract class MessageRequest extends MessageBase {
         ? [this.body_type]
         : this._body
         ? this._body
-        : []
+        : [],
     );
   }
 
@@ -113,7 +113,7 @@ export class MessageQuestCustom extends MessageRequest {
   constructor(
     device_type: DeviceType,
     message_type: MessageType,
-    cmd_body: Buffer
+    cmd_body: Buffer,
   ) {
     super(device_type, message_type, 0x00, 0);
     this.cmd_body = cmd_body;

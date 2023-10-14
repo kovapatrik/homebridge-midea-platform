@@ -31,7 +31,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     platform: MideaPlatform,
     accessory: MideaAccessory,
     protected readonly device: MideaACDevice,
-    protected readonly configDev: DeviceConfig
+    protected readonly configDev: DeviceConfig,
   ) {
     super(platform, accessory, device, configDev);
 
@@ -41,11 +41,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service.setCharacteristic(
       this.platform.Characteristic.Name,
-      this.device.name
+      this.device.name,
     );
 
     this.accessories = this.platform.accessories.filter(
-      (acc) => acc.context.id === this.accessory.UUID && acc !== this.accessory
+      (acc) => acc.context.id === this.accessory.UUID && acc !== this.accessory,
     );
 
     this.service
@@ -68,7 +68,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service
       .getCharacteristic(
-        this.platform.Characteristic.CoolingThresholdTemperature
+        this.platform.Characteristic.CoolingThresholdTemperature,
       )
       .onGet(this.getTargetTemperature.bind(this))
       .onSet(this.setTargetTemperature.bind(this))
@@ -80,7 +80,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service
       .getCharacteristic(
-        this.platform.Characteristic.HeatingThresholdTemperature
+        this.platform.Characteristic.HeatingThresholdTemperature,
       )
       .onGet(this.getTargetTemperature.bind(this))
       .onSet(this.setTargetTemperature.bind(this))
@@ -112,18 +112,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.configDev.AC_options!.outDoorTemp) {
       this.outDoorTemperatureService = this.accessory.getServiceById(
         this.platform.Service.TemperatureSensor,
-        'Outdoor'
+        'Outdoor',
       );
       if (!this.outDoorTemperatureService) {
         this.outDoorTemperatureService = this.accessory.addService(
           this.platform.Service.TemperatureSensor,
           `${this.device.name} Outdoor`,
-          'Outdoor'
+          'Outdoor',
         );
       }
       this.outDoorTemperatureService.setCharacteristic(
         this.platform.Characteristic.Name,
-        `${this.device.name} Outdoor`
+        `${this.device.name} Outdoor`,
       );
 
       this.outDoorTemperatureService
@@ -135,7 +135,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onGet(() =>
           this.device.attributes.OUTDOOR_TEMPERATURE === undefined
             ? this.platform.Characteristic.StatusFault.GENERAL_FAULT
-            : this.platform.Characteristic.StatusFault.NO_FAULT
+            : this.platform.Characteristic.StatusFault.NO_FAULT,
         );
 
       this.service.addLinkedService(this.outDoorTemperatureService);
@@ -151,17 +151,17 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       // Display
       if (this.configDev.AC_options.switchDisplay.flag) {
         this.device.set_alternate_switch_display(
-          this.configDev.AC_options.switchDisplay.command
+          this.configDev.AC_options.switchDisplay.command,
         );
         this.displayService = switchAccessory.getServiceById(
           this.platform.Service.Switch,
-          'Display'
+          'Display',
         );
         if (!this.displayService) {
           this.displayService = switchAccessory.addService(
             this.platform.Service.Switch,
             `${this.device.name} Display`,
-            'Display'
+            'Display',
           );
         }
         this.displayService
@@ -173,13 +173,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       if (this.configDev.AC_options.ecoSwitch) {
         this.ecoModeService = switchAccessory.getServiceById(
           this.platform.Service.Switch,
-          'EcoMode'
+          'EcoMode',
         );
         if (!this.ecoModeService) {
           this.ecoModeService = switchAccessory.addService(
             this.platform.Service.Switch,
             `${this.device.name} Eco`,
-            'EcoMode'
+            'EcoMode',
           );
         }
         this.ecoModeService
@@ -204,7 +204,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.platform.api.unregisterPlatformAccessories(
       PLUGIN_NAME,
       PLATFORM_NAME,
-      this.accessories
+      this.accessories,
     );
   }
 
@@ -215,7 +215,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private async updateCharacteristics(attributes: Partial<ACAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(
-        `[${this.device.name}] Set attribute ${k} to: ${v}`
+        `[${this.device.name}] Set attribute ${k} to: ${v}`,
       );
       let updateState = false;
       switch (k.toLowerCase()) {
@@ -224,14 +224,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
             this.platform.Characteristic.Active,
             v
               ? this.platform.Characteristic.Active.ACTIVE
-              : this.platform.Characteristic.Active.INACTIVE
+              : this.platform.Characteristic.Active.INACTIVE,
           );
           updateState = true;
           break;
         case 'screen_display':
           this.displayService?.updateCharacteristic(
             this.platform.Characteristic.On,
-            !!v
+            !!v,
           );
           break;
         case 'target_temperature':
@@ -239,12 +239,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           if (this.device.attributes.MODE === 4) {
             this.service.updateCharacteristic(
               this.platform.Characteristic.HeatingThresholdTemperature,
-              v as CharacteristicValue
+              v as CharacteristicValue,
             );
           } else {
             this.service.updateCharacteristic(
               this.platform.Characteristic.CoolingThresholdTemperature,
-              v as CharacteristicValue
+              v as CharacteristicValue,
             );
           }
           updateState = true;
@@ -252,21 +252,21 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'indoor_temperature':
           this.service.updateCharacteristic(
             this.platform.Characteristic.CurrentTemperature,
-            v as CharacteristicValue
+            v as CharacteristicValue,
           );
           updateState = true;
           break;
         case 'fan_speed':
           this.service.updateCharacteristic(
             this.platform.Characteristic.RotationSpeed,
-            v as CharacteristicValue
+            v as CharacteristicValue,
           );
           break;
         case 'swing_vertical':
         case 'swing_horizontal':
           this.service.updateCharacteristic(
             this.platform.Characteristic.SwingMode,
-            this.getSwingMode()
+            this.getSwingMode(),
           );
           break;
         case 'mode':
@@ -274,17 +274,17 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           break;
         default:
           this.platform.log.warn(
-            `[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`
+            `[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`,
           );
       }
       if (updateState) {
         this.service.updateCharacteristic(
           this.platform.Characteristic.TargetHeaterCoolerState,
-          this.getTargetHeaterCoolerState()
+          this.getTargetHeaterCoolerState(),
         );
         this.service.updateCharacteristic(
           this.platform.Characteristic.CurrentHeaterCoolerState,
-          this.getCurrentHeaterCoolerState()
+          this.getCurrentHeaterCoolerState(),
         );
       }
     }
@@ -305,7 +305,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.device.attributes.SCREEN_DISPLAY = !!value;
     this.displayService?.updateCharacteristic(
       this.platform.Characteristic.On,
-      !!value
+      !!value,
     );
   }
 
@@ -373,15 +373,15 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.configDev.AC_options!.minTemp,
       Math.min(
         this.configDev.AC_options!.maxTemp,
-        this.device.attributes.TARGET_TEMPERATURE
-      )
+        this.device.attributes.TARGET_TEMPERATURE,
+      ),
     );
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
     value = Math.max(
       this.configDev.AC_options!.minTemp,
-      Math.min(this.configDev.AC_options!.maxTemp, value as number)
+      Math.min(this.configDev.AC_options!.maxTemp, value as number),
     );
     await this.device.set_target_temperature(value);
   }
@@ -398,11 +398,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       case this.platform.Characteristic.SwingMode.SWING_ENABLED:
         await this.device.set_swing(
           [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(
-            this.configDev.AC_options!.swingMode
+            this.configDev.AC_options!.swingMode,
           ),
           [SwingMode.VERTICAL, SwingMode.BOTH].includes(
-            this.configDev.AC_options!.swingMode
-          )
+            this.configDev.AC_options!.swingMode,
+          ),
         );
         break;
       case this.platform.Characteristic.SwingMode.SWING_DISABLED:
@@ -451,7 +451,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       accessory = this.accessory;
     } else {
       const tempFind = this.accessories.findIndex(
-        (acc) => acc.context.type === type
+        (acc) => acc.context.type === type,
       );
       if (tempFind !== -1) {
         accessory = this.accessories[tempFind];
@@ -459,7 +459,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       } else {
         accessory = new this.platform.api.platformAccessory(
           `${this.device.name} ${type}`,
-          this.platform.api.hap.uuid.generate(`${this.device.id}:${type}`)
+          this.platform.api.hap.uuid.generate(`${this.device.id}:${type}`),
         );
         accessory.context.type = type;
         accessory.context.id = this.accessory.UUID;
@@ -467,7 +467,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.platform.api.registerPlatformAccessories(
           PLUGIN_NAME,
           PLATFORM_NAME,
-          [accessory]
+          [accessory],
         );
       }
       accessory
@@ -475,11 +475,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
         .setCharacteristic(
           this.platform.Characteristic.Model,
-          this.device.model
+          this.device.model,
         )
         .setCharacteristic(
           this.platform.Characteristic.SerialNumber,
-          this.device.sn
+          this.device.sn,
         );
     }
     return accessory;
