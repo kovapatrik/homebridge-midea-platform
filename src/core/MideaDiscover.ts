@@ -1,3 +1,13 @@
+/***********************************************************************
+ * Midea device discovery class where we broadcast to network to find
+ * connected devices.
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import dgram from 'dgram';
 import { Logger } from 'homebridge';
 import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants';

@@ -14,12 +14,13 @@ import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtype
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
 import { Config } from '../platformUtils';
+import EventEmitter from 'events';
 
 export type DeviceAttributeBase = {
   [key: string]: number | string | boolean | undefined;
 };
 
-export default abstract class MideaDevice {
+export default abstract class MideaDevice extends EventEmitter  {
 
   private readonly SOCKET_TIMEOUT = 3000; // milliseconds
 
@@ -48,8 +49,6 @@ export default abstract class MideaDevice {
   public token: KeyToken = undefined;
   public key: KeyToken = undefined;
 
-  private update_fns: { (values: DeviceAttributeBase): void; }[] = [];
-
   protected readonly security: LocalSecurity;
   private buffer: Buffer;
 
@@ -68,6 +67,8 @@ export default abstract class MideaDevice {
     device_info: DeviceInfo,
     config: Partial<Config>
   ) {
+
+    super();
 
     this.ip = device_info.ip;
     this.port = device_info.port;
@@ -320,16 +321,9 @@ export default abstract class MideaDevice {
     await this.send_message(message);
   }
 
-  // Register callback function to be called on any status change
-  public register_update(update) {
-    this.update_fns.push(update);
-  }
-
   protected async update(values: DeviceAttributeBase) {
     this.logger.info(`[${this.name}] Status change: ${JSON.stringify(values)}`);
-    for (const fn of this.update_fns) {
-      fn(values);
-    }
+    this.emit('update', values);
   }
 
   public open() {
