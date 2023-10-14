@@ -2,6 +2,7 @@
   "parser": "@typescript-eslint/parser",
   "extends": [
     "eslint:recommended",
+    "plugin:prettier/recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended" // uses the recommended rules from the @typescript-eslint/eslint-plugin
   ],
@@ -15,7 +16,7 @@
   "rules": {
     "quotes": ["warn", "single"],
     "indent": ["warn", 2, { "SwitchCase": 1 }],
-    "semi": ["off"],
+    "semi": ["on"],
     "comma-dangle": ["warn", "always-multiline"],
     "dot-notation": "off",
     "eqeqeq": "warn",

@@ -56,7 +56,7 @@
         "title": "Enable verbose logging",
         "type": "boolean",
         "required": false,
-        "default": true,
+        "default": false,
         "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support.  Homebridge must be running with debug enabled for any debug logging to be visible."
       },
       "devices": {

@@ -8,24 +8,34 @@
  *
  */
 import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
+import {
+  MessageBody,
+  MessageRequest,
+  MessageResponse,
+  MessageType,
+  NewProtocolMessageBody,
+} from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
-  LIGHT = 0x05B
+  LIGHT = 0x05b,
 }
 
 abstract class MessageA1Base extends MessageRequest {
-
   private static message_serial = 0;
   private message_id: number;
 
   constructor(
     device_protocol_version: number,
     message_type: MessageType,
-    body_type: number,
+    body_type: number
   ) {
-    super(DeviceType.DEHUMIDIFIER, message_type, body_type, device_protocol_version);
+    super(
+      DeviceType.DEHUMIDIFIER,
+      message_type,
+      body_type,
+      device_protocol_version
+    );
     MessageA1Base.message_serial += 1;
     // I don't know why dehumidifier wraps at 100, air conditioner wraps at 254
     if (MessageA1Base.message_serial >= 100) {
@@ -35,27 +45,25 @@ abstract class MessageA1Base extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
+    let body = Buffer.concat([
+      Buffer.from([this.body_type]),
+      this._body,
+      Buffer.from([this.message_id]),
+    ]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
 }
 
 export class MessageQuery extends MessageA1Base {
-
-  constructor(
-    device_protocol_version: number,
-  ) {
+  constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.QUERY, 0x41);
   }
 
   get _body() {
     return Buffer.from([
-      0x81, 0x00, 0xFF, 0x00,
-      0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00
+      0x81, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ]);
   }
 }
@@ -63,19 +71,17 @@ export class MessageQuery extends MessageA1Base {
 export class MessageNewProtocolQuery extends MessageA1Base {
   constructor(
     device_protocol_version: number,
-    private readonly alternate_display = false,
+    private readonly alternate_display = false
   ) {
-    super(device_protocol_version, MessageType.QUERY, 0xB1);
+    super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
 
   get _body() {
-    const query_params = [
-      NewProtocolTags.LIGHT
-    ];
+    const query_params = [NewProtocolTags.LIGHT];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
       if (param) {
-        body = Buffer.concat([body, Buffer.from([param & 0xFF, param >> 8])]);
+        body = Buffer.concat([body, Buffer.from([param & 0xff, param >> 8])]);
       }
     }
     return body;
@@ -83,7 +89,6 @@ export class MessageNewProtocolQuery extends MessageA1Base {
 }
 
 export class MessageSet extends MessageA1Base {
-
   public power: boolean;
   public prompt_tone: boolean;
   public mode: number;
@@ -94,9 +99,7 @@ export class MessageSet extends MessageA1Base {
   public anion: boolean;
   public water_level_set: number;
 
-  constructor(
-    device_protocol_version: number,
-  ) {
+  constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0x48);
     this.power = false;
     this.prompt_tone = true;
@@ -132,27 +135,32 @@ export class MessageSet extends MessageA1Base {
       power | prompt_tone | 0x02,
       mode,
       fan_speed,
-      0x00, 0x00, 0x00,
+      0x00,
+      0x00,
+      0x00,
       target_humidity,
       child_lock,
       anion,
       swing,
-      0x00, 0x00,
+      0x00,
+      0x00,
       water_level_set,
-      0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
     ]);
   }
 }
 
 export class MessageNewProtocolSet extends MessageA1Base {
-
   public light = false;
 
-  constructor(
-    device_protocol_version: number,
-  ) {
-    super(device_protocol_version, MessageType.SET, 0xB0);
+  constructor(device_protocol_version: number) {
+    super(device_protocol_version, MessageType.SET, 0xb0);
   }
 
   get _body() {
@@ -161,10 +169,15 @@ export class MessageNewProtocolSet extends MessageA1Base {
 
     if (this.light !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([payload,
+      payload = Buffer.concat([
+        payload,
         // original python code at https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
         // used "NewProtocolTags.INDIRECT_WIND" but that is/was not defined so assumed to be a bug and should be LIGHT
-        NewProtocolMessageBody.packet(NewProtocolTags.LIGHT, Buffer.from([this.light ? 0x01 : 0x00]))]);
+        NewProtocolMessageBody.packet(
+          NewProtocolTags.LIGHT,
+          Buffer.from([this.light ? 0x01 : 0x00])
+        ),
+      ]);
     }
 
     payload[0] = pack_count;
@@ -173,7 +186,6 @@ export class MessageNewProtocolSet extends MessageA1Base {
 }
 
 class A1GeneralMessageBody extends MessageBody {
-
   public power: boolean;
   public mode: number;
   public fan_speed: number;
@@ -191,29 +203,27 @@ class A1GeneralMessageBody extends MessageBody {
   public current_temperature: number;
   public swing: boolean;
 
-  constructor(
-    body: Buffer,
-  ) {
+  constructor(body: Buffer) {
     super(body);
 
     this.power = (body[1] & 0x01) > 0;
-    this.mode = (body[2] & 0x0F);
+    this.mode = body[2] & 0x0f;
     this.fan_speed = body[3] & 0x7f;
     // Target humidity between 35% and 85%
-    this.target_humidity = (body[7] < 35) ? 35 : (body[7] > 85) ? 85 : body[7];
+    this.target_humidity = body[7] < 35 ? 35 : body[7] > 85 ? 85 : body[7];
     this.child_lock = (body[8] & 0x80) > 0;
     this.filter_indicator = (body[9] & 0x80) > 0;
     this.anion = (body[9] & 0x40) > 0;
     this.sleep_mode = (body[9] & 0x20) > 0;
     this.pump_switch_flag = (body[9] & 0x10) > 0;
     this.pump = (body[9] & 0x08) > 0;
-    this.defrosting =  (body[10] & 0x80) > 0;
-    this.tank_level = body[10] & 0x7F;
+    this.defrosting = (body[10] & 0x80) > 0;
+    this.tank_level = body[10] & 0x7f;
     this.water_level_set = body[15];
     this.current_humidity = body[16];
     this.current_temperature = (body[17] - 50) / 2;
     // vertical swing or horizontal swing
-    this.swing = (body[19] & 0x20) > 0 || (body[19] & 0x10) > 0
+    this.swing = (body[19] & 0x20) > 0 || (body[19] & 0x10) > 0;
     // Not sure the purpose of thisfan speed check, but it is part of the original python code at
     // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
     if (this.fan_speed < 5) {
@@ -223,35 +233,35 @@ class A1GeneralMessageBody extends MessageBody {
 }
 
 class A1NewProtocolMessageBody extends NewProtocolMessageBody {
-
   public light = false;
 
-  constructor(
-    body: Buffer,
-    body_type: number,
-  ) {
+  constructor(body: Buffer, body_type: number) {
     super(body, body_type);
     const params = this.parse();
 
     if (NewProtocolTags.LIGHT in params) {
-      this.light = (params[NewProtocolTags.LIGHT][0] > 0);
+      this.light = params[NewProtocolTags.LIGHT][0] > 0;
     }
   }
 }
 
 export class MessageA1Response extends MessageResponse {
-
-  constructor(
-    private readonly message: Buffer,
-  ) {
+  constructor(private readonly message: Buffer) {
     super(message);
-    if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type)) {
-      if ([0xB0, 0xB1, 0xB5].includes(this.body_type)) {
+    if (
+      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
+        this.message_type
+      )
+    ) {
+      if ([0xb0, 0xb1, 0xb5].includes(this.body_type)) {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));
       } else {
         this.set_body(new A1GeneralMessageBody(this.body));
       }
-    } else if (this.message_type == MessageType.NOTIFY2 && this.body_type == 0xA0) {
+    } else if (
+      this.message_type == MessageType.NOTIFY2 &&
+      this.body_type == 0xa0
+    ) {
       this.set_body(new A1GeneralMessageBody(this.body));
     }
   }

@@ -40,27 +40,26 @@ export interface A1Attributes extends DeviceAttributeBase {
 }
 
 export default class MideaA1Device extends MideaDevice {
-
   readonly MIN_HUMIDITY = 35;
   readonly MAX_HUMIDITY = 85;
   private readonly HUMIDITY_STEP = 5;
   public attributes: A1Attributes;
 
   readonly MODES = {
-    0: "Off",
-    1: "Auto",
-    2: "Continuous",
-    3: "Clothes-Dry",
-    4: "Shoes-Dry"
+    0: 'Off',
+    1: 'Auto',
+    2: 'Continuous',
+    3: 'Clothes-Dry',
+    4: 'Shoes-Dry',
   };
 
   readonly SPEEDS = {
-    1: "Lowest",
-    40: "Low",
-    60: "Medium",
-    80: "High",
-    102: "Auto",
-    127: "Off"
+    1: 'Lowest',
+    40: 'Low',
+    60: 'Medium',
+    80: 'High',
+    102: 'Auto',
+    127: 'Off',
   };
 
   readonly WATER_LEVEL_SETS = {
@@ -83,36 +82,37 @@ export default class MideaA1Device extends MideaDevice {
   ) {
     super(logger, device_info, config);
     this.attributes = {
-      POWER: undefined,       // invalid
+      POWER: undefined, // invalid
       PROMPT_TONE: false,
-      CHILD_LOCK: undefined,  // invalid
-      MODE: 99,               // invalid
-      FAN_SPEED: 999,         // invalid
-      SWING: undefined,       // invalid
-      TARGET_HUMIDITY: 999,   // invalid
+      CHILD_LOCK: undefined, // invalid
+      MODE: 99, // invalid
+      FAN_SPEED: 999, // invalid
+      SWING: undefined, // invalid
+      TARGET_HUMIDITY: 999, // invalid
       ANION: false,
-      TANK_LEVEL: 999,        // invalid
-      WATER_LEVEL_SET: 999,   // invalid
-      TANK_FULL: undefined,   // invalid
-      CURRENT_HUMIDITY: 999,  // invalid
+      TANK_LEVEL: 999, // invalid
+      WATER_LEVEL_SET: 999, // invalid
+      TANK_FULL: undefined, // invalid
+      CURRENT_HUMIDITY: 999, // invalid
       CURRENT_TEMPERATURE: 999, // invalid
       DEFROSTING: false,
       FILTER_INDICATOR: false,
       PUMP: false,
       PUMP_SWITCH_FLAG: false,
-      SLEEP_MODE: false
+      SLEEP_MODE: false,
     };
   }
 
   build_query() {
-    return [
-      new MessageQuery(this.device_protocol_version)
-    ];
+    return [new MessageQuery(this.device_protocol_version)];
   }
 
   process_message(msg: Buffer) {
     const message = new MessageA1Response(msg);
-    if (this.verbose) this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
+    if (this.verbose)
+      this.logger.debug(
+        `[${this.name}] Body:\n${JSON.stringify(message.body)}`
+      );
     let changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
@@ -121,15 +121,19 @@ export default class MideaA1Device extends MideaDevice {
           // Track only those attributes that change value.  So when we send to the Homebridge /
           // HomeKit accessory we only update values that change.  First time through this
           // should be most/all attributes having initialized them to invalid values.
-          this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
+          this.logger.debug(
+            `[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`
+          );
           changed[status] = value;
         }
         this.attributes[status] = value;
       }
     }
-    const value = (this.attributes.TANK_LEVEL >= this.attributes.WATER_LEVEL_SET);
+    const value = this.attributes.TANK_LEVEL >= this.attributes.WATER_LEVEL_SET;
     if (this.attributes.TANK_FULL !== value) {
-      this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`);
+      this.logger.debug(
+        `[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`
+      );
       changed.TANK_FULL = value;
     }
     this.attributes.TANK_FULL = value;
@@ -144,10 +148,10 @@ export default class MideaA1Device extends MideaDevice {
 
   make_message_set() {
     const message = new MessageSet(this.device_protocol_version);
-    message.power = !!this.attributes.POWER;  // force to boolean
+    message.power = !!this.attributes.POWER; // force to boolean
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.mode = this.attributes.MODE;
-    message.child_lock = !!this.attributes.CHILD_LOCK;  // force to boolean
+    message.child_lock = !!this.attributes.CHILD_LOCK; // force to boolean
     message.fan_speed = this.attributes.FAN_SPEED;
     message.target_humidity = this.attributes.TARGET_HUMIDITY;
     message.swing = !!this.attributes.SWING;
@@ -162,9 +166,16 @@ export default class MideaA1Device extends MideaDevice {
       this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
       // not sensor data
-      if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING',
-        'FILTER_INDICATOR', 'PUMP'].includes(k)) {
-
+      if (
+        ![
+          'CURRENT_TEMPERATURE',
+          'CURRENT_HUMIDITY',
+          'TANK_FULL',
+          'DEFROSTING',
+          'FILTER_INDICATOR',
+          'PUMP',
+        ].includes(k)
+      ) {
         this.attributes[k] = v;
 
         if (k === 'PROMPT_TONE') {
@@ -175,7 +186,9 @@ export default class MideaA1Device extends MideaDevice {
         }
       }
       if (message) {
-        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
+        this.logger.debug(
+          `[${this.name}] Set message:\n${JSON.stringify(message)}`
+        );
         await this.build_send(message);
       }
     }
