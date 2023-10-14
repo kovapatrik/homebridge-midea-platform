@@ -58,7 +58,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       this.config.devicesById = {};
       this.config.devices = this.config.devices.filter((elem: any) => {
         if (elem.deviceId) {
-          this.log.warn(`Convert ${elem.deviceId}`);
           elem.config.id = elem.deviceId
           this.config.devicesById[String(elem.deviceId).toLowerCase()] = elem.config;
           return false; // deletes this entry from the devices array so we don't have duplicates.
