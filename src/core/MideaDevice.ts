@@ -287,8 +287,9 @@ export default abstract class MideaDevice extends EventEmitter {
             }
           } catch (err) {
             error_cnt++;
+            // TODO: handle connection error
             // this.unsupported_protocol.push(cmd.constructor.name);
-            this.logger.error(
+            this.logger.warn(
               `[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`,
             );
           }

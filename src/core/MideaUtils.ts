@@ -98,7 +98,7 @@ export class PromiseSocket {
       // Log the error
       const msg = e instanceof Error ? e.stack : e;
       if (this.verbose) {
-        this.logger.error(
+        this.logger.warn(
           `[${formattedDate()}] [homebridge-midea-platform] Socket error:\n${msg}`,
         );
       }
@@ -108,12 +108,13 @@ export class PromiseSocket {
     });
     this.innerSok.on('close', async (hadError: boolean) => {
       this.destroy();
-      // eslint-disable-next-line no-console
-      console.info(
-        `[${formattedDate()}] [homebridge-midea-platform] Socket closed ${
-          hadError ? 'with' : 'without'
-        } error`,
-      );
+      if (this.verbose) {
+        this.logger.warn(
+          `[${formattedDate()}] [homebridge-midea-platform] Socket closed ${
+            hadError ? 'with' : 'without'
+          } error`,
+        );
+      }
     });
   }
 
