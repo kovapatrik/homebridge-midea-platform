@@ -36,8 +36,8 @@ export abstract class CloudBase<T extends CloudSecurity> {
   protected access_token?: string;
   protected key?: string;
 
-  private semaphore: Semaphore;
-  private loggedIn = false;
+  protected semaphore: Semaphore;
+  protected loggedIn = false;
 
   constructor(
     protected readonly account: string,
@@ -285,16 +285,32 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
   }
 
   async login() {
-    const login_id = await this.getLoginId();
-    const response = await this.apiRequest('/v1/user/login', {
-      loginAccount: this.account,
-      password: this.security.encrpytPassword(login_id, this.password),
-    });
-    if (response) {
-      this.access_token = response['accessToken'];
-      this.sessionId = response['sessionId'];
-    } else {
-      throw new Error('Failed to login.');
+    // We need to protect against multiple attempts to login, so we only login if not already
+    // logged in.  Protect this block with a semaphone.
+    const releaseSemaphore = await this.semaphore.acquire(
+      'Obtain login semaphore',
+    );
+    try {
+      if (this.loggedIn) {
+        return;
+      }
+      // Not logged in so proceed...
+      const login_id = await this.getLoginId();
+      const response = await this.apiRequest('/v1/user/login', {
+        loginAccount: this.account,
+        password: this.security.encrpytPassword(login_id, this.password),
+      });
+      if (response) {
+        this.access_token = response['accessToken'];
+        this.sessionId = response['sessionId'];
+      } else {
+        throw new Error('Failed to login.');
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.stack : e;
+      throw new Error(`Error in Adding new accessory:\n${msg}`);
+    } finally {
+      releaseSemaphore();
     }
   }
 }
