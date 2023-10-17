@@ -131,6 +131,7 @@ export default class Discover extends EventEmitter {
       if (tries++ > retries) {
         clearInterval(interval);
         this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
+        this.emit('complete');
         return;
       }
       for (const ip of broadcastAddrs) {

@@ -11,11 +11,15 @@ export type Config = {
   [key: string]: any;
 };
 
+// All values are optional... an empty device config is permitted.
 export type DeviceConfig = {
-  ip: string;
+  id?: string;
+  ip?: string;
   name?: string;
-  deviceType: string;
-  singleAccessory: boolean;
+  token?: string;
+  key?: string;
+  type?: number;
+  singleAccessory?: boolean;
   AC_options?: ACOptions;
 };
 
