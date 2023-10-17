@@ -8,13 +8,7 @@
  *
  */
 import { DeviceType } from '../../core/MideaConstants';
-import {
-  MessageBody,
-  MessageRequest,
-  MessageResponse,
-  MessageType,
-  NewProtocolMessageBody,
-} from '../../core/MideaMessage';
+import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
@@ -25,17 +19,8 @@ abstract class MessageA1Base extends MessageRequest {
   private static message_serial = 0;
   private message_id: number;
 
-  constructor(
-    device_protocol_version: number,
-    message_type: MessageType,
-    body_type: number,
-  ) {
-    super(
-      DeviceType.DEHUMIDIFIER,
-      message_type,
-      body_type,
-      device_protocol_version,
-    );
+  constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
+    super(DeviceType.DEHUMIDIFIER, message_type, body_type, device_protocol_version);
     MessageA1Base.message_serial += 1;
     // I don't know why dehumidifier wraps at 100, air conditioner wraps at 254
     if (MessageA1Base.message_serial >= 100) {
@@ -45,11 +30,7 @@ abstract class MessageA1Base extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([
-      Buffer.from([this.body_type]),
-      this._body,
-      Buffer.from([this.message_id]),
-    ]);
+    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -61,10 +42,7 @@ export class MessageQuery extends MessageA1Base {
   }
 
   get _body() {
-    return Buffer.from([
-      0x81, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ]);
+    return Buffer.from([0x81, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -174,10 +152,7 @@ export class MessageNewProtocolSet extends MessageA1Base {
         // original python code at:
         // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
         // used "NewProtocolTags.INDIRECT_WIND" but that is/was not defined so assumed to be a bug and should be LIGHT
-        NewProtocolMessageBody.packet(
-          NewProtocolTags.LIGHT,
-          Buffer.from([this.light ? 0x01 : 0x00]),
-        ),
+        NewProtocolMessageBody.packet(NewProtocolTags.LIGHT, Buffer.from([this.light ? 0x01 : 0x00])),
       ]);
     }
 
@@ -249,20 +224,13 @@ class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 export class MessageA1Response extends MessageResponse {
   constructor(private readonly message: Buffer) {
     super(message);
-    if (
-      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type,
-      )
-    ) {
+    if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type)) {
       if ([0xb0, 0xb1, 0xb5].includes(this.body_type)) {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));
       } else {
         this.set_body(new A1GeneralMessageBody(this.body));
       }
-    } else if (
-      this.message_type === MessageType.NOTIFY2 &&
-      this.body_type === 0xa0
-    ) {
+    } else if (this.message_type === MessageType.NOTIFY2 && this.body_type === 0xa0) {
       this.set_body(new A1GeneralMessageBody(this.body));
     }
   }

@@ -99,11 +99,7 @@ export default class MideaACDevice extends MideaDevice {
    * refresh... and passed back to the Homebridge/HomeKit accessory callback
    * function to set their initial values.
    */
-  constructor(
-    logger: Logger,
-    device_info: DeviceInfo,
-    config: Partial<Config>,
-  ) {
+  constructor(logger: Logger, device_info: DeviceInfo, config: Partial<Config>) {
     super(logger, device_info, config);
     this.attributes = {
       PROMPT_TONE: false,
@@ -152,10 +148,7 @@ export default class MideaACDevice extends MideaDevice {
     }
     return [
       new MessageQuery(this.device_protocol_version),
-      new MessageNewProtocolQuery(
-        this.device_protocol_version,
-        this.alternate_switch_display,
-      ),
+      new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display),
       new MessagePowerQuery(this.device_protocol_version),
     ];
   }
@@ -163,9 +156,7 @@ export default class MideaACDevice extends MideaDevice {
   process_message(msg: Buffer) {
     const message = new MessageACResponse(msg, this.power_analysis_method);
     if (this.verbose) {
-      this.logger.debug(
-        `[${this.name}] Body:\n${JSON.stringify(message.body)}`,
-      );
+      this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
     const changed: DeviceAttributeBase = {};
     let has_fresh_air = false;
@@ -186,9 +177,7 @@ export default class MideaACDevice extends MideaDevice {
           // Track only those attributes that change value.  So when we send to the Homebridge /
           // HomeKit accessory we only update values that change.  First time through this
           // should be most/all attributes having initialized them to invalid values.
-          this.logger.debug(
-            `[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`,
-          );
+          this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
           changed[status] = value;
         }
         this.attributes[status] = value;
@@ -202,9 +191,7 @@ export default class MideaACDevice extends MideaDevice {
     // there is no need to track whether anything has changed.
     if (has_fresh_air) {
       if (this.attributes.FRESH_AIR_POWER) {
-        for (const [k, v] of Object.entries(
-          this.FRESH_AIR_FAN_SPEEDS_REVERSE,
-        )) {
+        for (const [k, v] of Object.entries(this.FRESH_AIR_FAN_SPEEDS_REVERSE)) {
           if (this.attributes.FRESH_AIR_FAN_SPEED > Number.parseInt(k)) {
             break;
           } else {
@@ -276,19 +263,12 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   make_message_unique_set(): MessageGeneralSet | MessageSubProtocolSet {
-    return this.used_subprotocol
-      ? this.make_subprotocol_message_set()
-      : this.make_message_set();
+    return this.used_subprotocol ? this.make_subprotocol_message_set() : this.make_message_set();
   }
 
   async set_attribute(attributes: Partial<ACAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
-      let message:
-        | MessageGeneralSet
-        | MessageSubProtocolSet
-        | MessageNewProtocolSet
-        | MessageSwitchDisplay
-        | undefined = undefined;
+      let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
       this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
       // not sensor data
@@ -327,54 +307,27 @@ export default class MideaACDevice extends MideaDevice {
         } else if (k === 'FRESH_AIR_POWER') {
           if (this.fresh_air_version) {
             message = new MessageNewProtocolSet(this.device_protocol_version);
-            message[this.fresh_air_version] = [
-              !!v,
-              this.attributes.FRESH_AIR_FAN_SPEED,
-            ];
+            message[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
           }
         } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version) {
           if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
-            const speed = Number.parseInt(
-              Object.keys(this.FRESH_AIR_FAN_SPEEDS).find(
-                (key) => this.FRESH_AIR_FAN_SPEEDS[key] === v,
-              )!,
-            );
-            const fresh_air =
-              speed > 0
-                ? [true, speed]
-                : [false, this.attributes.FRESH_AIR_FAN_SPEED];
+            const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find((key) => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
+            const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
             message = new MessageNewProtocolSet(this.device_protocol_version);
             message[this.fresh_air_version] = fresh_air;
           } else if (!v) {
             message = new MessageNewProtocolSet(this.device_protocol_version);
-            message[this.fresh_air_version] = [
-              false,
-              this.attributes.FRESH_AIR_FAN_SPEED,
-            ];
+            message[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
           }
         } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version) {
           message = new MessageNewProtocolSet(this.device_protocol_version);
           const value = v as number;
-          const fresh_air =
-            value > 0
-              ? [true, value]
-              : [false, this.attributes.FRESH_AIR_FAN_SPEED];
+          const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
           message[this.fresh_air_version] = fresh_air;
         } else {
           message = this.make_message_unique_set();
-          if (
-            [
-              'BOOST_MODE',
-              'SLEEP_MODE',
-              'FROST_PROTECT',
-              'COMFORT_MODE',
-              'ECO_MODE',
-            ].includes(k)
-          ) {
-            if (
-              message instanceof MessageGeneralSet ||
-              message instanceof MessageSubProtocolSet
-            ) {
+          if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
+            if (message instanceof MessageGeneralSet || message instanceof MessageSubProtocolSet) {
               message.sleep_mode = false;
               message.boost_mode = false;
               message.eco_mode = false;
@@ -392,9 +345,7 @@ export default class MideaACDevice extends MideaDevice {
         }
       }
       if (message) {
-        this.logger.debug(
-          `[${this.name}] Set message:\n${JSON.stringify(message)}`,
-        );
+        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
         await this.build_send(message);
       }
     }

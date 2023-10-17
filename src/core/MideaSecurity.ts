@@ -1,10 +1,4 @@
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  randomBytes,
-} from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
 import { TCPMessageType } from './MideaConstants';
 import { numberToUint8Array, strxor } from './MideaUtils';
 import { unescape } from 'querystring';
@@ -90,15 +84,9 @@ export class NetHomePlusSecurity extends CloudSecurity {
 export class MideaAirSecurity extends NetHomePlusSecurity {}
 
 export class LocalSecurity {
-  private readonly aes_key = Buffer.from(
-    '6a92ef406bad2f0359baad994171ea6d',
-    'hex',
-  );
+  private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
 
-  private readonly salt = Buffer.from(
-    '78686469776a6e6368656b6434643531326368646a783564386534633339344432443753',
-    'hex',
-  );
+  private readonly salt = Buffer.from('78686469776a6e6368656b6434643531326368646a783564386534633339344432443753', 'hex');
 
   private readonly iv = Buffer.alloc(16);
 
@@ -140,9 +128,7 @@ export class LocalSecurity {
       throw Error('Authentication response is ERROR, cannot get TCP key.');
     }
     if (response.length !== 64) {
-      throw Error(
-        'Authentication response has unexpected data length, cannot get TCP key..',
-      );
+      throw Error('Authentication response has unexpected data length, cannot get TCP key..');
     }
     const payload = response.subarray(0, 32);
     const sign = response.subarray(32, response.length);
@@ -163,10 +149,7 @@ export class LocalSecurity {
     let size = data.length;
     let padding = 0;
 
-    if (
-      message_type === TCPMessageType.ENCRYPTED_REQUEST ||
-      message_type === TCPMessageType.ENCRYPTED_RESPONSE
-    ) {
+    if (message_type === TCPMessageType.ENCRYPTED_REQUEST || message_type === TCPMessageType.ENCRYPTED_RESPONSE) {
       if ((size + 2) % 16 !== 0) {
         padding = 16 - ((size + 2) & 0xf);
         size += padding + 32;
@@ -175,22 +158,13 @@ export class LocalSecurity {
     }
 
     header = Buffer.concat([header, numberToUint8Array(size, 2, 'big')]);
-    header = Buffer.concat([
-      header,
-      Buffer.from([0x20, (padding << 4) | message_type]),
-    ]);
-    data = Buffer.concat([
-      numberToUint8Array(this.request_count, 2, 'big'),
-      data,
-    ]);
+    header = Buffer.concat([header, Buffer.from([0x20, (padding << 4) | message_type])]);
+    data = Buffer.concat([numberToUint8Array(this.request_count, 2, 'big'), data]);
     this.request_count += 1;
     if (this.request_count >= 0xffff) {
       this.request_count = 0;
     }
-    if (
-      message_type === TCPMessageType.ENCRYPTED_REQUEST ||
-      message_type === TCPMessageType.ENCRYPTED_RESPONSE
-    ) {
+    if (message_type === TCPMessageType.ENCRYPTED_REQUEST || message_type === TCPMessageType.ENCRYPTED_RESPONSE) {
       const sign = createHash('sha256')
         .update(Buffer.concat([header, data]))
         .digest();
@@ -221,12 +195,7 @@ export class LocalSecurity {
     const padding = header[5] >> 4;
     const message_type_received = header[5] & 0xf;
     data = data.subarray(6, data.length);
-    if (
-      [
-        TCPMessageType.ENCRYPTED_RESPONSE,
-        TCPMessageType.ENCRYPTED_REQUEST,
-      ].includes(message_type_received)
-    ) {
+    if ([TCPMessageType.ENCRYPTED_RESPONSE, TCPMessageType.ENCRYPTED_REQUEST].includes(message_type_received)) {
       const sign = data.subarray(data.length - 32, data.length);
       data = data.subarray(0, data.length - 32);
       data = this.aes_cbc_decrypt(data, this.tcp_key!);

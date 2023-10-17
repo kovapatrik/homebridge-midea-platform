@@ -39,12 +39,7 @@ export abstract class MessageRequest extends MessageBase {
 
   protected abstract _body: Buffer;
 
-  constructor(
-    device_type: DeviceType,
-    message_type: MessageType,
-    body_type: number,
-    device_protocol_version: number,
-  ) {
+  constructor(device_type: DeviceType, message_type: MessageType, body_type: number, device_protocol_version: number) {
     super();
     this.device_type = device_type;
     this.message_type = message_type;
@@ -54,13 +49,7 @@ export abstract class MessageRequest extends MessageBase {
 
   get body() {
     return Buffer.from(
-      this.body_type && this._body
-        ? [this.body_type, ...this._body]
-        : this.body_type
-        ? [this.body_type]
-        : this._body
-        ? this._body
-        : [],
+      this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : [],
     );
   }
 
@@ -91,10 +80,7 @@ export abstract class MessageRequest extends MessageBase {
 
   public serialize() {
     let stream = Buffer.concat([this.header, this.body]);
-    stream = Buffer.concat([
-      stream,
-      Buffer.from([this.checksum(stream.subarray(1, stream.length))]),
-    ]);
+    stream = Buffer.concat([stream, Buffer.from([this.checksum(stream.subarray(1, stream.length))])]);
     return stream;
   }
 }
@@ -110,11 +96,7 @@ export class MessageQuerySubtype extends MessageRequest {
 export class MessageQuestCustom extends MessageRequest {
   protected _body = Buffer.alloc(0);
   protected cmd_body: Buffer;
-  constructor(
-    device_type: DeviceType,
-    message_type: MessageType,
-    cmd_body: Buffer,
-  ) {
+  constructor(device_type: DeviceType, message_type: MessageType, cmd_body: Buffer) {
     super(device_type, message_type, 0x00, 0);
     this.cmd_body = cmd_body;
   }
@@ -152,15 +134,9 @@ export class NewProtocolMessageBody extends MessageBody {
   static packet(param: number, value: Buffer, packet_length = 4) {
     const length = value.length;
     if (packet_length === 4) {
-      return Buffer.concat([
-        Buffer.from([param & 0xff, param >> 8, length]),
-        value,
-      ]);
+      return Buffer.concat([Buffer.from([param & 0xff, param >> 8, length]), value]);
     } else {
-      return Buffer.concat([
-        Buffer.from([param & 0xff, param >> 8, 0x00, length]),
-        value,
-      ]);
+      return Buffer.concat([Buffer.from([param & 0xff, param >> 8, 0x00, length]), value]);
     }
   }
 
@@ -200,11 +176,7 @@ export class MessageResponse extends MessageBase {
 
   constructor(message: Buffer | null | undefined) {
     super();
-    if (
-      message === null ||
-      message === undefined ||
-      message.length < this.HEADER_LENGTH + 1
-    ) {
+    if (message === null || message === undefined || message.length < this.HEADER_LENGTH + 1) {
       throw new Error('Invalid message length');
     }
     this.header = message.subarray(0, this.HEADER_LENGTH);
@@ -240,8 +212,7 @@ export class MessageSubtypeResponse extends MessageResponse {
     super(message);
     if (this.message_type === MessageType.QUERY_SUBTYPE) {
       const body = message!.subarray(this.HEADER_LENGTH, -1);
-      this.sub_type =
-        (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0);
+      this.sub_type = (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0);
     } else {
       throw new Error('Invalid message type');
     }

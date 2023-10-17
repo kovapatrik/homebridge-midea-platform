@@ -7,13 +7,7 @@
  *
  */
 import { DeviceType } from '../../core/MideaConstants';
-import {
-  MessageBody,
-  MessageRequest,
-  MessageResponse,
-  MessageType,
-  NewProtocolMessageBody,
-} from '../../core/MideaMessage';
+import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
@@ -32,17 +26,8 @@ abstract class MessageACBase extends MessageRequest {
   private static message_serial = 0;
   private message_id: number;
 
-  constructor(
-    device_protocol_version: number,
-    message_type: MessageType,
-    body_type: number,
-  ) {
-    super(
-      DeviceType.AIR_CONDITIONER,
-      message_type,
-      body_type,
-      device_protocol_version,
-    );
+  constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
+    super(DeviceType.AIR_CONDITIONER, message_type, body_type, device_protocol_version);
     MessageACBase.message_serial += 1;
     if (MessageACBase.message_serial >= 254) {
       MessageACBase.message_serial = 1;
@@ -51,11 +36,7 @@ abstract class MessageACBase extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([
-      Buffer.from([this.body_type]),
-      this._body,
-      Buffer.from([this.message_id]),
-    ]);
+    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -67,10 +48,7 @@ export class MessageQuery extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([
-      0x81, 0x00, 0xff, 0x03, 0xff, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ]);
+    return Buffer.from([0x81, 0x00, 0xff, 0x03, 0xff, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -96,10 +74,7 @@ export class MessageSwitchDisplay extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([
-      0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ]);
+    return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -206,16 +181,10 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
     const boost_mode = this.boost_mode ? 0x20 : 0;
     const aux_heating = this.aux_heating ? 0x40 : 0;
     const sleep_mode = this.sleep_mode ? 0x80 : 0;
-    const mode =
-      this.mode === 0
-        ? 0
-        : this.mode < BB_AC_MODES.length
-        ? BB_AC_MODES[this.mode] - 1
-        : 2;
+    const mode = this.mode === 0 ? 0 : this.mode < BB_AC_MODES.length ? BB_AC_MODES[this.mode] - 1 : 2;
     const target_temperature = (this.target_temperature * 2 + 30) | 0;
 
-    const water_model_temperature_set =
-      ((this.target_temperature - 1) * 2 + 50) | 0;
+    const water_model_temperature_set = ((this.target_temperature - 1) * 2 + 50) | 0;
     const fan_speed = this.fan_speed;
     const eco = this.eco_mode ? 0x40 : 0;
     const prompt_tone = this.prompt_tone ? 0x01 : 0;
@@ -309,16 +278,11 @@ export class MessageGeneralSet extends MessageACBase {
     const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
     // Byte2, mode target_temperature
     const mode = (this.mode << 5) & 0xe0;
-    const target_temperature =
-      ((this.target_temperature | 0) & 0xf) |
-      ((Math.round(this.target_temperature * 2) | 0) % 2 !== 0 ? 0x10 : 0);
+    const target_temperature = ((this.target_temperature | 0) & 0xf) | ((Math.round(this.target_temperature * 2) | 0) % 2 !== 0 ? 0x10 : 0);
     // Byte 3, fan_speed
     const fan_speed = this.fan_speed & 0x7f;
     // Byte 7, swing_mode
-    const swing_mode =
-      0x30 |
-      (this.swing_vertical ? 0x0c : 0) |
-      (this.swing_horizontal ? 0x03 : 0);
+    const swing_mode = 0x30 | (this.swing_vertical ? 0x0c : 0) | (this.swing_horizontal ? 0x03 : 0);
     // Byte 8, turbo
     const boost_mode = this.boost_mode ? 0x20 : 0;
     // Byte 9 aux_heating eco_mode
@@ -384,10 +348,7 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       payload = Buffer.concat([
         payload,
-        NewProtocolMessageBody.packet(
-          NewProtocolTags.BREEZELESS,
-          Buffer.from([this.breezeless ? 0x01 : 0x00]),
-        ),
+        NewProtocolMessageBody.packet(NewProtocolTags.BREEZELESS, Buffer.from([this.breezeless ? 0x01 : 0x00])),
       ]);
     }
 
@@ -395,10 +356,7 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       payload = Buffer.concat([
         payload,
-        NewProtocolMessageBody.packet(
-          NewProtocolTags.INDIRECT_WIND,
-          Buffer.from([this.indirect_wind ? 0x02 : 0x01]),
-        ),
+        NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01])),
       ]);
     }
 
@@ -406,10 +364,7 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       payload = Buffer.concat([
         payload,
-        NewProtocolMessageBody.packet(
-          NewProtocolTags.SCREEN_DISPLAY,
-          Buffer.from([this.screen_display ? 0x64 : 0x00]),
-        ),
+        NewProtocolMessageBody.packet(NewProtocolTags.SCREEN_DISPLAY, Buffer.from([this.screen_display ? 0x64 : 0x00])),
       ]);
     }
 
@@ -421,18 +376,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.FRESH_AIR_1,
-          Buffer.from([
-            fresh_air_power,
-            fresh_air_fan_speed,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-          ]),
+          Buffer.from([fresh_air_power, fresh_air_fan_speed, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
         ),
       ]);
     }
@@ -443,20 +387,14 @@ export class MessageNewProtocolSet extends MessageACBase {
       const fresh_air_fan_speed = this.fresh_air_2[1];
       payload = Buffer.concat([
         payload,
-        NewProtocolMessageBody.packet(
-          NewProtocolTags.FRESH_AIR_2,
-          Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff]),
-        ),
+        NewProtocolMessageBody.packet(NewProtocolTags.FRESH_AIR_2, Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff])),
       ]);
     }
 
     pack_count += 1;
     payload = Buffer.concat([
       payload,
-      NewProtocolMessageBody.packet(
-        NewProtocolTags.PROMPT_TONE,
-        Buffer.from([this.prompt_tone ? 0x01 : 0x00]),
-      ),
+      NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00])),
     ]);
 
     payload[0] = pack_count;
@@ -485,8 +423,7 @@ class XA0MessageBody extends MessageBody {
     super(body);
 
     this.power = (body[1] & 0x1) > 0;
-    this.target_temperature =
-      ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
+    this.target_temperature = ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
     this.mode = (body[2] & 0xe0) >> 5;
     this.fan_speed = body[3] & 0x7f;
     this.swing_vertical = (body[7] & 0xc) > 0;
@@ -525,8 +462,7 @@ class XA1MessageBody extends MessageBody {
       this.outdoor_temperature = undefined;
     } else {
       const temp_integer = ((body[14] - 50) / 2) | 0;
-      const temp_decimal =
-        body.length > 20 ? ((body[18] & 0xf0) >> 4) * 0.1 : 0;
+      const temp_decimal = body.length > 20 ? ((body[18] & 0xf0) >> 4) * 0.1 : 0;
       if (body[14] > 49) {
         this.outdoor_temperature = temp_integer + temp_decimal;
       } else {
@@ -607,8 +543,7 @@ class XC0MessageBody extends MessageBody {
 
     this.power = (body[1] & 0x1) > 0;
     this.mode = (body[2] & 0xe0) >> 5;
-    this.target_temperature =
-      (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
+    this.target_temperature = (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
     this.fan_speed = body[3] & 0x7f;
     this.swing_vertical = (body[7] & 0x0c) > 0;
     this.swing_horizontal = (body[7] & 0x03) > 0;
@@ -659,35 +594,13 @@ class XC1MessageBody extends MessageBody {
     super(body);
 
     if (body[3] === 0x44) {
-      this.total_energy_consumption = XC1MessageBody.parse_consumption(
-        analysis_method,
-        body[4],
-        body[5],
-        body[6],
-        body[7],
-      );
-      this.current_energy_consumption = XC1MessageBody.parse_consumption(
-        analysis_method,
-        body[12],
-        body[13],
-        body[14],
-        body[15],
-      );
-      this.realtime_power = XC1MessageBody.parse_power(
-        analysis_method,
-        body[16],
-        body[17],
-        body[18],
-      );
+      this.total_energy_consumption = XC1MessageBody.parse_consumption(analysis_method, body[4], body[5], body[6], body[7]);
+      this.current_energy_consumption = XC1MessageBody.parse_consumption(analysis_method, body[12], body[13], body[14], body[15]);
+      this.realtime_power = XC1MessageBody.parse_power(analysis_method, body[16], body[17], body[18]);
     }
   }
 
-  static parse_power(
-    analysis_method: number,
-    byte1: number,
-    byte2: number,
-    byte3: number,
-  ) {
+  static parse_power(analysis_method: number, byte1: number, byte2: number, byte3: number) {
     if (analysis_method === 1) {
       return byte1 + byte2 / 100 + byte3 / 10000;
     } else if (analysis_method === 2) {
@@ -697,13 +610,7 @@ class XC1MessageBody extends MessageBody {
     }
   }
 
-  static parse_consumption(
-    analysis_method: number,
-    byte1: number,
-    byte2: number,
-    byte3: number,
-    byte4: number,
-  ) {
+  static parse_consumption(analysis_method: number, byte1: number, byte2: number, byte3: number, byte4: number) {
     if (analysis_method === 1) {
       return byte1 * 10000 + byte2 * 100 + byte3 + byte4 / 100;
     } else if (analysis_method === 2) {
@@ -748,31 +655,21 @@ class XBBMessageBody extends MessageBody {
       }
       this.target_temperature = (subprotocol_body[6] - 30) / 2;
       this.fan_speed = subprotocol_body[7];
-      this.timer =
-        subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
-      this.eco_mode =
-        subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
+      this.timer = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
+      this.eco_mode = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
     } else if (data_type === 0x10) {
       if ((subprotocol_body[8] & 0x80) === 0x80) {
-        this.indoor_temperature =
-          ((0 - (~(subprotocol_body[7] + subprotocol_body[8] * 256) + 1)) &
-            0xffff) /
-          100;
+        this.indoor_temperature = ((0 - (~(subprotocol_body[7] + subprotocol_body[8] * 256) + 1)) & 0xffff) / 100;
       } else {
-        this.indoor_temperature =
-          (subprotocol_body[7] + subprotocol_body[8] * 256) / 100;
+        this.indoor_temperature = (subprotocol_body[7] + subprotocol_body[8] * 256) / 100;
       }
       this.indoor_humidity = subprotocol_body[30];
       this.sn8_flag = subprotocol_body[80] === 0x31;
     } else if (data_type === 0x30) {
       if ((subprotocol_body[6] & 0x80) === 0x80) {
-        this.outdoor_temperature =
-          ((0 - (~(subprotocol_body[5] + subprotocol_body[6] * 256) + 1)) &
-            0xffff) /
-          100;
+        this.outdoor_temperature = ((0 - (~(subprotocol_body[5] + subprotocol_body[6] * 256) + 1)) & 0xffff) / 100;
       } else {
-        this.outdoor_temperature =
-          (subprotocol_body[5] + subprotocol_body[6] * 256) / 100;
+        this.outdoor_temperature = (subprotocol_body[5] + subprotocol_body[6] * 256) / 100;
       }
     }
   }
@@ -789,32 +686,19 @@ export class MessageACResponse extends MessageResponse {
 
     if (this.message_type === MessageType.NOTIFY2 && this.body_type === 0xa0) {
       this.set_body(new XA0MessageBody(this.body));
-    } else if (
-      this.message_type === MessageType.NOTIFY1 &&
-      this.body_type === 0xa1
-    ) {
+    } else if (this.message_type === MessageType.NOTIFY1 && this.body_type === 0xa1) {
       this.set_body(new XA1MessageBody(this.body));
     } else if (
-      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type,
-      ) &&
+      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
       [0xb0, 0xb1, 0xb5].includes(this.body_type)
     ) {
       this.set_body(new XBXMessageBody(this.body, this.body_type));
-    } else if (
-      [MessageType.QUERY, MessageType.SET].includes(this.message_type) &&
-      this.body_type === 0xc0
-    ) {
+    } else if ([MessageType.QUERY, MessageType.SET].includes(this.message_type) && this.body_type === 0xc0) {
       this.set_body(new XC0MessageBody(this.body));
-    } else if (
-      this.message_type === MessageType.QUERY &&
-      this.body_type === 0xc1
-    ) {
+    } else if (this.message_type === MessageType.QUERY && this.body_type === 0xc1) {
       this.set_body(new XC1MessageBody(this.body, power_analysis_method));
     } else if (
-      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(
-        this.message_type,
-      ) &&
+      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
       this.body_type === 0xbb &&
       this.body.length >= 21
     ) {

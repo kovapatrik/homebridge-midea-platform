@@ -12,12 +12,7 @@ import { Logger } from 'homebridge';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
-import {
-  CloudSecurity,
-  MeijuCloudSecurity,
-  NetHomePlusSecurity,
-  MideaAirSecurity,
-} from './MideaSecurity';
+import { CloudSecurity, MeijuCloudSecurity, NetHomePlusSecurity, MideaAirSecurity } from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
@@ -95,11 +90,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
         if (Number.parseInt(response.data['code']) === 0) {
           return response.data['data'];
         } else {
-          this.logger.error(
-            `Error while sending request to ${url}: ${JSON.stringify(
-              response.data,
-            )}`,
-          );
+          this.logger.error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
         }
       } catch (error) {
         this.logger.error(`Error while sending request to ${url}: ${error}`);
@@ -125,9 +116,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
   async login() {
     // We need to protect against multiple attempts to login, so we only login if not already
     // logged in.  Protect this block with a semaphone.
-    const releaseSemaphore = await this.semaphore.acquire(
-      'Obtain login semaphore',
-    );
+    const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
       if (this.loggedIn) {
         return;
@@ -170,13 +159,8 @@ export abstract class CloudBase<T extends CloudSecurity> {
     }
   }
 
-  async getToken(
-    device_id: number,
-    endianess: Endianness,
-  ): Promise<[Buffer, Buffer]> {
-    const udpid = CloudSecurity.getUDPID(
-      numberToUint8Array(device_id, 6, endianess),
-    );
+  async getToken(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
+    const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
     const response = await this.apiRequest('/v1/iot/secure/getToken', {
       udpid: udpid,
     });
@@ -184,10 +168,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     if (response) {
       for (const token of response['tokenlist']) {
         if (token['udpId'] === udpid) {
-          return [
-            Buffer.from(token['token'], 'hex'),
-            Buffer.from(token['key'], 'hex'),
-          ];
+          return [Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex')];
         }
       }
     } else {
@@ -202,12 +183,7 @@ class MSmartHomeCloud extends CloudBase<CloudSecurity> {
   protected API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string, logger: Logger) {
-    super(
-      account,
-      password,
-      logger,
-      new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'),
-    );
+    super(account, password, logger, new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'));
   }
 }
 
@@ -215,15 +191,7 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
   protected API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string, logger: Logger) {
-    super(
-      account,
-      password,
-      logger,
-      new MeijuCloudSecurity(
-        'ad0ee21d48a64bf49f4fb583ab76e799',
-        'prod_secret123@muc',
-      ),
-    );
+    super(account, password, logger, new MeijuCloudSecurity('ad0ee21d48a64bf49f4fb583ab76e799', 'prod_secret123@muc'));
   }
 }
 
@@ -287,9 +255,7 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
   async login() {
     // We need to protect against multiple attempts to login, so we only login if not already
     // logged in.  Protect this block with a semaphone.
-    const releaseSemaphore = await this.semaphore.acquire(
-      'Obtain login semaphore',
-    );
+    const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
       if (this.loggedIn) {
         return;
@@ -320,12 +286,7 @@ class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
   protected SRC = '1017';
 
   constructor(account: string, password: string, logger: Logger) {
-    super(
-      account,
-      password,
-      logger,
-      new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'),
-    );
+    super(account, password, logger, new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'));
   }
 }
 
@@ -334,22 +295,12 @@ class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
   protected SRC = '17';
 
   constructor(account: string, password: string, logger: Logger) {
-    super(
-      account,
-      password,
-      logger,
-      new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'),
-    );
+    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'));
   }
 }
 
 export default class CloudFactory {
-  static createCloud(
-    account: string,
-    password: string,
-    logger: Logger,
-    cloud: string,
-  ): CloudBase<CloudSecurity> {
+  static createCloud(account: string, password: string, logger: Logger, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
       case 'Midea SmartHome (MSmartHome)':
         return new MSmartHomeCloud(account, password, logger);

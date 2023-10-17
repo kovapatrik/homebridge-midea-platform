@@ -19,11 +19,7 @@
         "title": "Registered App",
         "type": "string",
         "description": "Select the app where your devices are registered in.",
-        "enum": [
-          "Midea SmartHome (MSmartHome)",
-          "NetHome Plus",
-          "Meiju"
-        ],
+        "enum": ["Midea SmartHome (MSmartHome)", "NetHome Plus", "Meiju"],
         "default": "Midea SmartHome (MSmartHome)",
         "required": true
       },
@@ -80,9 +76,7 @@
               "title": "Device Type",
               "description": "Select the type of device you are adding.",
               "type": "string",
-              "enum": [
-                "Air Conditioner"
-              ],
+              "enum": ["Air Conditioner"],
               "required": true
             },
             "singleAccessory": {
@@ -102,11 +96,7 @@
                   "title": "Swing Mode",
                   "description": "Set swing mode of the unit. If you AC does not support this feature then leave it on None.",
                   "type": "string",
-                  "enum": [
-                    "Vertical",
-                    "Horizontal",
-                    "Both"
-                  ]
+                  "enum": ["Vertical", "Horizontal", "Both"]
                 },
                 "outDoorTemp": {
                   "title": "Outdoor Temperature",
@@ -157,10 +147,7 @@
                   "title": "Temperature Step",
                   "type": "number",
                   "default": 1,
-                  "enum": [
-                    0.5,
-                    1
-                  ]
+                  "enum": [0.5, 1]
                 },
                 "fahrenHeit": {
                   "title": "Fahrenheit",
@@ -232,10 +219,7 @@
             "devices[].AC_options.ecoSwitch",
             {
               "key": "devices[].AC_options.switchDisplay",
-              "items": [
-                "devices[].AC_options.switchDisplay.flag",
-                "devices[].AC_options.switchDisplay.command"
-              ]
+              "items": ["devices[].AC_options.switchDisplay.flag", "devices[].AC_options.switchDisplay.command"]
             },
             "devices[].AC_options.minTemp",
             "devices[].AC_options.maxTemp",

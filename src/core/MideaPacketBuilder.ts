@@ -30,9 +30,7 @@ export default class PacketBuilder {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ]);
     this.packet.subarray(12, 20).set(PacketBuilder.packet_time());
-    this.packet
-      .subarray(20, 28)
-      .set(numberToUint8Array(device_id, 8, 'little'));
+    this.packet.subarray(20, 28).set(numberToUint8Array(device_id, 8, 'little'));
   }
 
   public finalize(message_type = 1) {
@@ -40,19 +38,11 @@ export default class PacketBuilder {
       this.packet[3] = 0x10;
       this.packet[6] = 0x7b;
     } else {
-      this.packet = Buffer.concat([
-        this.packet,
-        this.security.aes_encrypt(this.command),
-      ]);
+      this.packet = Buffer.concat([this.packet, this.security.aes_encrypt(this.command)]);
     }
 
-    this.packet
-      .subarray(4, 6)
-      .set(numberToUint8Array(this.packet.length + 16, 2, 'little'));
-    this.packet = Buffer.concat([
-      this.packet,
-      this.security.encode32_data(this.packet),
-    ]);
+    this.packet.subarray(4, 6).set(numberToUint8Array(this.packet.length + 16, 2, 'little'));
+    this.packet = Buffer.concat([this.packet, this.security.encode32_data(this.packet)]);
     return this.packet;
   }
 

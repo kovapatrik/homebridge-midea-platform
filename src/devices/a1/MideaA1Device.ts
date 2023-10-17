@@ -74,11 +74,7 @@ export default class MideaA1Device extends MideaDevice {
    * refresh... and passed back to the Homebridge/HomeKit accessory callback
    * function to set their initial values.
    */
-  constructor(
-    logger: Logger,
-    device_info: DeviceInfo,
-    config: Partial<Config>,
-  ) {
+  constructor(logger: Logger, device_info: DeviceInfo, config: Partial<Config>) {
     super(logger, device_info, config);
     this.attributes = {
       POWER: undefined, // invalid
@@ -109,9 +105,7 @@ export default class MideaA1Device extends MideaDevice {
   process_message(msg: Buffer) {
     const message = new MessageA1Response(msg);
     if (this.verbose) {
-      this.logger.debug(
-        `[${this.name}] Body:\n${JSON.stringify(message.body)}`,
-      );
+      this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
     const changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
@@ -121,9 +115,7 @@ export default class MideaA1Device extends MideaDevice {
           // Track only those attributes that change value.  So when we send to the Homebridge /
           // HomeKit accessory we only update values that change.  First time through this
           // should be most/all attributes having initialized them to invalid values.
-          this.logger.debug(
-            `[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`,
-          );
+          this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
           changed[status] = value;
         }
         this.attributes[status] = value;
@@ -131,9 +123,7 @@ export default class MideaA1Device extends MideaDevice {
     }
     const value = this.attributes.TANK_LEVEL >= this.attributes.WATER_LEVEL_SET;
     if (this.attributes.TANK_FULL !== value) {
-      this.logger.debug(
-        `[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`,
-      );
+      this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`);
       changed.TANK_FULL = value;
     }
     this.attributes.TANK_FULL = value;
@@ -166,16 +156,7 @@ export default class MideaA1Device extends MideaDevice {
       this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
       // not sensor data
-      if (
-        ![
-          'CURRENT_TEMPERATURE',
-          'CURRENT_HUMIDITY',
-          'TANK_FULL',
-          'DEFROSTING',
-          'FILTER_INDICATOR',
-          'PUMP',
-        ].includes(k)
-      ) {
+      if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 'FILTER_INDICATOR', 'PUMP'].includes(k)) {
         this.attributes[k] = v;
 
         if (k === 'PROMPT_TONE') {
@@ -186,9 +167,7 @@ export default class MideaA1Device extends MideaDevice {
         }
       }
       if (message) {
-        this.logger.debug(
-          `[${this.name}] Set message:\n${JSON.stringify(message)}`,
-        );
+        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
         await this.build_send(message);
       }
     }
