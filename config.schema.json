@@ -145,17 +145,17 @@
                 },
                 "minTemp": {
                   "title": "Minimum Temperature",
-                  "type": "integer",
+                  "type": "number",
                   "default": 16
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature",
-                  "type": "integer",
+                  "type": "number",
                   "default": 30
                 },
                 "tempStep": {
                   "title": "Temperature Step",
-                  "type": "integer",
+                  "type": "number",
                   "default": 1,
                   "enum": [
                     0.5,
