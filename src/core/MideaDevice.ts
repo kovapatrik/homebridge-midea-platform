@@ -33,7 +33,7 @@ export type DeviceAttributeBase = {
 };
 
 export default abstract class MideaDevice extends EventEmitter {
-  private readonly SOCKET_TIMEOUT = 3000; // milliseconds
+  private readonly SOCKET_TIMEOUT = 1000; // milliseconds
 
   public readonly ip: string;
   protected readonly port: number;
@@ -128,11 +128,11 @@ export default abstract class MideaDevice extends EventEmitter {
 
   public async connect(refresh_status = true) {
     try {
-      await this.promiseSocket.connect(this.port, this.ip);
-      this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       this.logger.debug(
         `Connecting to device ${this.name} (${this.ip}:${this.port})...`,
       );
+      await this.promiseSocket.connect(this.port, this.ip);
+      this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
       }
@@ -287,8 +287,9 @@ export default abstract class MideaDevice extends EventEmitter {
             }
           } catch (err) {
             error_cnt++;
+            // TODO: handle connection error
             // this.unsupported_protocol.push(cmd.constructor.name);
-            this.logger.error(
+            this.logger.warn(
               `[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`,
             );
           }
@@ -344,6 +345,17 @@ export default abstract class MideaDevice extends EventEmitter {
       }
       const payload_length = msg[4] + (msg[5] << 8) - 56;
       const payload_type = msg[2] + (msg[3] << 8);
+      if (this.verbose) {
+        this.logger.debug(
+          `[${
+            this.name
+          }] Msg to process. Length: ${payload_length} (0x${payload_length.toString(
+            16,
+          )}), Type: ${payload_type} (0x${payload_type.toString(
+            16,
+          )})\n${msg.toString('hex')}`,
+        );
+      }
       if ([0x1001, 0x0001].includes(payload_type)) {
         // Heartbeat
         if (this.verbose) {
@@ -366,9 +378,12 @@ export default abstract class MideaDevice extends EventEmitter {
             this.process_message(decrypted);
           }
         } else {
-          this.logger.warn(
-            `[${this.name}] Invalid payload length: ${payload_length}`,
-          );
+          if (this.verbose) {
+            this.logger.warn(
+              `[${this.name}] Invalid payload length: ` +
+                `${payload_length} (0x${payload_length.toString(16)})`,
+            );
+          }
         }
       } else {
         this.logger.warn(`[${this.name}] Illegal message.`);
@@ -431,10 +446,10 @@ export default abstract class MideaDevice extends EventEmitter {
    * and proceses each message as received.
    */
   private async run() {
-    this.logger.info(`Starting network listener for [${this.name}]`);
+    this.logger.info(`[${this.name}] Starting network listener.`);
     while (this.is_running) {
       while (this.promiseSocket.destroyed) {
-        this.logger.debug('Create new socket, reconnect');
+        this.logger.info(`[${this.name}] Create new socket, reconnect`);
         this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
         await this.connect(true); // need to refresh_status on connect as we reset start time below.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -488,12 +503,14 @@ export default abstract class MideaDevice extends EventEmitter {
           }
         } catch (e) {
           const msg = e instanceof Error ? e.stack : e;
-          this.logger.error(
-            `[${this.name} | run] Error reading from socket:\n${msg}`,
-          );
+          if (this.verbose) {
+            this.logger.warn(
+              `[${this.name} | run] Error reading from socket:\n${msg}`,
+            );
+          }
         }
       }
     }
-    this.logger.info(`Stopping network listener for [${this.name}]`);
+    this.logger.info(`[${this.name}] Stopping network listener.`);
   }
 }
