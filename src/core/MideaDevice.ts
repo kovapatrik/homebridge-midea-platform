@@ -33,7 +33,7 @@ export type DeviceAttributeBase = {
 };
 
 export default abstract class MideaDevice extends EventEmitter {
-  private readonly SOCKET_TIMEOUT = 3000; // milliseconds
+  private readonly SOCKET_TIMEOUT = 1000; // milliseconds
 
   public readonly ip: string;
   protected readonly port: number;
@@ -128,11 +128,11 @@ export default abstract class MideaDevice extends EventEmitter {
 
   public async connect(refresh_status = true) {
     try {
-      await this.promiseSocket.connect(this.port, this.ip);
-      this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       this.logger.debug(
         `Connecting to device ${this.name} (${this.ip}:${this.port})...`,
       );
+      await this.promiseSocket.connect(this.port, this.ip);
+      this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
       }
@@ -345,6 +345,17 @@ export default abstract class MideaDevice extends EventEmitter {
       }
       const payload_length = msg[4] + (msg[5] << 8) - 56;
       const payload_type = msg[2] + (msg[3] << 8);
+      if (this.verbose) {
+        this.logger.debug(
+          `[${
+            this.name
+          }] Msg to process. Length: ${payload_length} (0x${payload_length.toString(
+            16,
+          )}), Type: ${payload_type} (0x${payload_type.toString(
+            16,
+          )})\n${msg.toString('hex')}`,
+        );
+      }
       if ([0x1001, 0x0001].includes(payload_type)) {
         // Heartbeat
         if (this.verbose) {
@@ -367,9 +378,12 @@ export default abstract class MideaDevice extends EventEmitter {
             this.process_message(decrypted);
           }
         } else {
-          this.logger.warn(
-            `[${this.name}] Invalid payload length: ${payload_length}`,
-          );
+          if (this.verbose) {
+            this.logger.warn(
+              `[${this.name}] Invalid payload length: ` +
+                `${payload_length} (0x${payload_length.toString(16)})`,
+            );
+          }
         }
       } else {
         this.logger.warn(`[${this.name}] Illegal message.`);

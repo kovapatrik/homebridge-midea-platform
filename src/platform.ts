@@ -102,9 +102,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.log.info(
       `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
     );
-    this.log.info(
-      `Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`,
-    );
 
     this.cloud = CloudFactory.createCloud(
       this.config.user,
@@ -315,8 +312,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   private async getNewCredentials(device: MideaDevice): Promise<boolean> {
     let connected = false;
     let i = 0;
-    let token: Buffer | undefined,
-      key: Buffer | undefined = undefined;
+    let token: Buffer | undefined = undefined;
+    let key: Buffer | undefined = undefined;
     // Need to make two passes to obtain token/key credentials as they may work or not
     // depending on byte order (little or big-endian).  Exit the loop as soon as one
     // works or having tried both.
@@ -340,6 +337,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // token / key pair to undefined.  Handle the error in the calling function.
     if (!connected) {
       device.setCredentials(undefined, undefined);
+    } else {
+      if (this.config.verbose) {
+        this.log.debug(
+          `[${device.name}] New token/key from cloud: ` +
+            `${token?.toString('hex')} / ${key?.toString('hex')}`,
+        );
+      }
     }
     return connected;
   }

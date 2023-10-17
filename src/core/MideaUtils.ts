@@ -75,10 +75,6 @@ export function calculate(data: Buffer) {
   return crc;
 }
 
-function formattedDate() {
-  return new Date().toISOString().replace(/T/, ', ').replace(/\..+/, '');
-}
-
 /*********************************************************************
  * PromiseSocket
  * A very basic implementation of promise-wrapped Socket
@@ -98,9 +94,7 @@ export class PromiseSocket {
       // Log the error
       const msg = e instanceof Error ? e.stack : e;
       if (this.verbose) {
-        this.logger.warn(
-          `[${formattedDate()}] [homebridge-midea-platform] Socket error:\n${msg}`,
-        );
+        this.logger.warn(`Socket error:\n${msg}`);
       }
       // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
       // will be called immediately following an "error" event.  So don't throw an error
@@ -110,9 +104,7 @@ export class PromiseSocket {
       this.destroy();
       if (this.verbose) {
         this.logger.warn(
-          `[${formattedDate()}] [homebridge-midea-platform] Socket closed ${
-            hadError ? 'with' : 'without'
-          } error`,
+          `Socket closed ${hadError ? 'with' : 'without'} error`,
         );
       }
     });
