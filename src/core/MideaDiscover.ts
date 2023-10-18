@@ -10,11 +10,7 @@
  */
 import dgram from 'dgram';
 import { Logger } from 'homebridge';
-import {
-  DISCOVERY_MESSAGE,
-  DeviceInfo,
-  ProtocolVersion,
-} from './MideaConstants';
+import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants';
 import { XMLParser } from 'fast-xml-parser';
 import EventEmitter from 'events';
 import { LocalSecurity } from './MideaSecurity';
@@ -54,11 +50,7 @@ export default class Discover extends EventEmitter {
         this.ips.push(rinfo.address);
 
         const device_version = this.getDeviceVersion(msg);
-        const device_info = await this.getDeviceInfo(
-          rinfo.address,
-          device_version,
-          msg,
-        );
+        const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
         this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
         // Send signal to Homebridge platform with details on the discovered device
@@ -112,11 +104,7 @@ export default class Discover extends EventEmitter {
               const netmask_splitted = f.netmask.split('.');
               // Bitwise OR over the splitted NAND netmask, then glue them back together with a dot character to form an ip
               // we have to do a NAND operation because of the 2-complements; getting rid of all the 'prepended' 1's with & 0xFF
-              const broadcast = addr_splitted
-                .map(
-                  (e, i) => (~netmask_splitted[i] & 0xff) | Number.parseInt(e),
-                )
-                .join('.');
+              const broadcast = addr_splitted.map((e, i) => (~netmask_splitted[i] & 0xff) | Number.parseInt(e)).join('.');
               list.push(broadcast);
             }
           }
@@ -142,22 +130,16 @@ export default class Discover extends EventEmitter {
     const interval = setInterval(() => {
       if (tries++ > retries) {
         clearInterval(interval);
-        this.logger.info(
-          `Device discovery complete after ${retries + 1} network broadcasts.`,
-        );
+        this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
         return;
       }
       for (const ip of broadcastAddrs) {
-        this.logger.debug(
-          `Sending discovery message to ${ip}, try ${tries}...`,
-        );
+        this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
         for (const port of [6445, 20086]) {
           this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, ip, (err) => {
             if (err) {
               const msg = err instanceof Error ? err.stack : err;
-              this.logger.error(
-                `Error while sending message to ${ip}:${port}:\n${msg}`,
-              );
+              this.logger.error(`Error while sending message to ${ip}:${port}:\n${msg}`);
             }
           });
         }
@@ -182,11 +164,7 @@ export default class Discover extends EventEmitter {
     throw new Error('Unknown device version.');
   }
 
-  private async getDeviceInfo(
-    ip: string,
-    version: ProtocolVersion,
-    data: Buffer,
-  ): Promise<DeviceInfo> {
+  private async getDeviceInfo(ip: string, version: ProtocolVersion, data: Buffer): Promise<DeviceInfo> {
     if (version === ProtocolVersion.V1) {
       // const root = this.xml_parser.parse(data.toString());
       // const device = root["body"]["device"]
@@ -216,9 +194,7 @@ export default class Discover extends EventEmitter {
       }
 
       // eslint-disable-next-line max-len
-      const ip_address = `${decrypted_buffer.readUint8(
-        3,
-      )}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(
+      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(
         1,
       )}.${decrypted_buffer.readUint8(0)}`;
       const port = decrypted_buffer.readUIntLE(4, 2);
