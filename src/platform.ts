@@ -45,7 +45,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   private readonly cloud: CloudBase<CloudSecurity>;
   private readonly discover: Discover;
 
-  private devices: DeviceConfig[] = [];
+  private devices = {};
 
   constructor(
     public readonly log: Logger,
@@ -62,7 +62,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.config.refreshInterval = Math.max(0, Math.min(this.config.refreshInterval ?? 30, 86400));
     this.config.heartbeatInterval = Math.max(10, Math.min(this.config.heartbeatInterval ?? 10, 120));
     // make sure devices / devicesById / IP is never undefined.
-    this.config.devices ??= [];
+    this.config.devices ??= {};
     this.config.devicesById = {};
     this.config.devicesByIP = {};
 
@@ -129,7 +129,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * finishedLaunching
    * Function called when Homebridge has finished loading the plugin.
    */
-  private finishedLaunching() {
+  private finishedLaunching(this: MideaPlatform) {
     this.log.info('Start device discovery...');
     // If individual devices are listed in config then probe them directly by IP address
     if (this.config.devicesById) {
@@ -142,10 +142,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         }
       });
     }
-    if (this.config.devices) {
-      this.config.devices.forEach((device: DeviceConfig) => {
+    if (this.config.devicesByIP) {
+      (Object.values(this.config.devicesByIP) as DeviceConfig[]).forEach((device: DeviceConfig) => {
         if (device.ip) {
-          this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`);
+          this.log.info(
+            `[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`,
+          );
           this.discover.discoverDeviceByIP(device.ip);
         }
       });
@@ -158,7 +160,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * deviceDiscovered
    * Function called by the 'device' on handler.
    */
-  private deviceDiscovered(device_info: DeviceInfo) {
+  private deviceDiscovered(this: MideaPlatform, device_info: DeviceInfo) {
     // Find device specific configuration from within the homebridge config file.
     // If we have configuration indexed by ID use that, if not use IP address.
     const deviceConfig: DeviceConfig = this.config.devicesById[device_info.id] ?? this.config.devicesByIP[device_info.ip];
@@ -183,7 +185,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * discoveryComplete
    * Function called by the 'complete' on handler.
    */
-  private discoveryComplete() {
+  private discoveryComplete(this: MideaPlatform) {
     // Check if network broadcasting found all devices that user configured.  If not then
     // we have to handle those.
     for (const key of Object.keys(this.config.devicesById)) {
@@ -197,21 +199,31 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         // it comes back online without restarting plugin.
       }
     }
+    for (const key of Object.keys(this.config.devicesByIP)) {
+      if (!Object.values(this.devices).find((elem) => (elem as DeviceConfig).ip === key)) {
+        // This device was not found by network discovery.
+        const missingDev: DeviceConfig = this.config.devicesByIP[key];
+        this.log.warn(`[${missingDev.name}] Manually configured device not found by network discovery (ip: ${missingDev.ip})`);
+        // TODO... Figure out if we can add a device that is offline, so that it will work when
+        // it comes back online without restarting plugin.
+      }
+    }
 
     // now we can summarize details of all discovered devices which we will print to
     // log so that a user can easily copy/paste into the config file if they want.
     const deviceConfigArray: object[] = [];
     for (const [key, value] of Object.entries(this.devices)) {
+      const v = value as DeviceConfig;
       const obj = {
         type: Object.keys(DeviceType)
-          .find((key) => DeviceType[key] === value.type)
+          .find((key) => DeviceType[key] === v.type)
           ?.toLocaleLowerCase(),
-        name: value.name,
-        ip: value.ip,
+        name: v.name,
+        ip: v.ip,
         deviceId: String(key),
         config: {
-          token: value.token,
-          key: value.key,
+          token: v.token,
+          key: v.key,
         },
       };
       deviceConfigArray.push(obj);
