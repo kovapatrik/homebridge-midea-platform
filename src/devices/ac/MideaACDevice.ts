@@ -283,87 +283,92 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<ACAttributes>) {
-    for (const [k, v] of Object.entries(attributes)) {
-      let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
-      this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+    try {
+      for (const [k, v] of Object.entries(attributes)) {
+        let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
-      // not sensor data
-      if (
-        ![
-          'INDOOR_TEMPERATURE',
-          'OUTDOOR_TEMPERATURE',
-          'INDOOR_HUMIDITY',
-          'FULL_DUST',
-          'TOTAL_ENERGY_CONSUMPTION',
-          'CURRENT_ENERGY_CONSUMPTION',
-          'REALTIME_POWER',
-        ].includes(k)
-      ) {
-        this.attributes[k] = v;
+        // not sensor data
+        if (
+          ![
+            'INDOOR_TEMPERATURE',
+            'OUTDOOR_TEMPERATURE',
+            'INDOOR_HUMIDITY',
+            'FULL_DUST',
+            'TOTAL_ENERGY_CONSUMPTION',
+            'CURRENT_ENERGY_CONSUMPTION',
+            'REALTIME_POWER',
+          ].includes(k)
+        ) {
+          this.attributes[k] = v;
 
-        if (k === 'PROMPT_TONE') {
-          this.attributes.PROMPT_TONE = !!v;
-        } else if (k === 'SCREEN_DISPLAY') {
-          // if (this.attributes.SCREEN_DISPLAY_NEW)
-          if (this.alternate_switch_display) {
+          if (k === 'PROMPT_TONE') {
+            this.attributes.PROMPT_TONE = !!v;
+          } else if (k === 'SCREEN_DISPLAY') {
+            // if (this.attributes.SCREEN_DISPLAY_NEW)
+            if (this.alternate_switch_display) {
+              message = new MessageNewProtocolSet(this.device_protocol_version);
+              if (message instanceof MessageNewProtocolSet) {
+                message.screen_display = !!v;
+                message.prompt_tone = this.attributes.PROMPT_TONE;
+              }
+            } else {
+              message = new MessageSwitchDisplay(this.device_protocol_version);
+            }
+          } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
             message = new MessageNewProtocolSet(this.device_protocol_version);
             if (message instanceof MessageNewProtocolSet) {
-              message.screen_display = !!v;
+              message[k.toLowerCase()] = !!v;
               message.prompt_tone = this.attributes.PROMPT_TONE;
             }
-          } else {
-            message = new MessageSwitchDisplay(this.device_protocol_version);
-          }
-        } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
-          message = new MessageNewProtocolSet(this.device_protocol_version);
-          if (message instanceof MessageNewProtocolSet) {
-            message[k.toLowerCase()] = !!v;
-            message.prompt_tone = this.attributes.PROMPT_TONE;
-          }
-        } else if (k === 'FRESH_AIR_POWER') {
-          if (this.fresh_air_version) {
+          } else if (k === 'FRESH_AIR_POWER') {
+            if (this.fresh_air_version) {
+              message = new MessageNewProtocolSet(this.device_protocol_version);
+              message[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
+            }
+          } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version) {
+            if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
+              const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find((key) => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
+              const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
+              message = new MessageNewProtocolSet(this.device_protocol_version);
+              message[this.fresh_air_version] = fresh_air;
+            } else if (!v) {
+              message = new MessageNewProtocolSet(this.device_protocol_version);
+              message[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
+            }
+          } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version) {
             message = new MessageNewProtocolSet(this.device_protocol_version);
-            message[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
-          }
-        } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version) {
-          if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
-            const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find((key) => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
-            const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-            message = new MessageNewProtocolSet(this.device_protocol_version);
+            const value = v as number;
+            const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
             message[this.fresh_air_version] = fresh_air;
-          } else if (!v) {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
-            message[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
-          }
-        } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version) {
-          message = new MessageNewProtocolSet(this.device_protocol_version);
-          const value = v as number;
-          const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-          message[this.fresh_air_version] = fresh_air;
-        } else {
-          message = this.make_message_unique_set();
-          if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
-            if (message instanceof MessageGeneralSet || message instanceof MessageSubProtocolSet) {
-              message.sleep_mode = false;
-              message.boost_mode = false;
-              message.eco_mode = false;
+          } else {
+            message = this.make_message_unique_set();
+            if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
+              if (message instanceof MessageGeneralSet || message instanceof MessageSubProtocolSet) {
+                message.sleep_mode = false;
+                message.boost_mode = false;
+                message.eco_mode = false;
 
-              if (message instanceof MessageGeneralSet) {
-                message.frost_protect = false;
-                message.comfort_mode = false;
-              }
-              message[k.toLowerCase()] = !!v;
-              if (k === 'MODE') {
-                message.power = true;
+                if (message instanceof MessageGeneralSet) {
+                  message.frost_protect = false;
+                  message.comfort_mode = false;
+                }
+                message[k.toLowerCase()] = !!v;
+                if (k === 'MODE') {
+                  message.power = true;
+                }
               }
             }
           }
         }
+        if (message) {
+          this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
+          await this.build_send(message);
+        }
       }
-      if (message) {
-        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-        await this.build_send(message);
-      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
     }
   }
 

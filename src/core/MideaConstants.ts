@@ -26,8 +26,8 @@ export type DeviceInfo = {
   ip: string;
   port: number;
   id: number;
-  model: string;
-  sn: string;
+  model: string | undefined;
+  sn: string | undefined;
   name: string;
   type: number;
   version: number;

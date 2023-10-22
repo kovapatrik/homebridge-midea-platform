@@ -12,7 +12,8 @@ export default class BaseAccessory<T extends MideaDevice> {
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
-      .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
+      .setCharacteristic(this.platform.Characteristic.Model, this.accessory.context.model ?? this.device.model)
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.sn ?? this.device.sn)
+      .setCharacteristic(this.platform.Characteristic.ProductData, `deviceId: ${this.accessory.context.id ?? this.device.id.toString()}`);
   }
 }

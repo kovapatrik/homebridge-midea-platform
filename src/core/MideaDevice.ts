@@ -65,7 +65,6 @@ export default abstract class MideaDevice extends EventEmitter {
     protected readonly logger: Logger,
     device_info: DeviceInfo,
     config: Partial<Config>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     configDev: Partial<DeviceConfig>,
   ) {
     super();
@@ -74,14 +73,20 @@ export default abstract class MideaDevice extends EventEmitter {
     this.port = device_info.port;
 
     this.id = device_info.id;
-    this.model = device_info.model;
-    this.sn = device_info.sn;
+    this.model = device_info.model ?? 'unknown';
+    this.sn = device_info.sn ?? 'unknown';
     this.name = device_info.name;
     this.type = device_info.type;
     this.version = device_info.version;
 
-    this.verbose = config.verbose ?? false;
-    this.logRecoverableErrors = config.logRecoverableErrors ?? true;
+    this.verbose = configDev.verbose ?? config.verbose ?? false;
+    this.logRecoverableErrors = configDev.logRecoverableErrors ?? config.logRecoverableErrors ?? true;
+    if (configDev.verbose !== undefined) {
+      this.logger.warn(`[${this.name}] Device specific verbose debug logging is set to ${configDev.verbose}`);
+    }
+    if (configDev.logRecoverableErrors !== undefined) {
+      this.logger.warn(`[${this.name}] Device specific log recoverable errors is set to ${configDev.logRecoverableErrors}`);
+    }
     this.refresh_interval = (config.refreshInterval ?? 30) * 1000; // convert to miliseconds
     this.heartbeat_interval = (config.heartbeatInterval ?? 10) * 1000;
 
@@ -141,8 +146,11 @@ export default abstract class MideaDevice extends EventEmitter {
       this.open();
       return true;
     } catch (err) {
-      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): ${err}`);
-      return false;
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}):\n${msg}`);
+      // Even though error thrown, it is probably because device is offline.  Start listening anyway.
+      this.open();
+      return true;
     }
   }
 
@@ -214,44 +222,55 @@ export default abstract class MideaDevice extends EventEmitter {
     if (this._sub_type === undefined) {
       commands.unshift(new MessageQuerySubtype(this.type));
     }
-    let error_cnt = 0;
-    for (const cmd of commands) {
-      if (ignore_unsupported || !this.unsupported_protocol.includes(cmd.constructor.name)) {
-        await this.build_send(cmd);
-        if (wait_response) {
-          try {
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-              const message = await this.promiseSocket.read();
-              if (message.length === 0) {
-                throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
-              }
-              const result = this.parse_message(message);
-              if (result === ParseMessageResult.SUCCESS) {
-                const cmd_idx = this.unsupported_protocol.indexOf(cmd.constructor.name);
-                if (cmd_idx !== -1) {
-                  this.unsupported_protocol.splice(cmd_idx, 1);
+    try {
+      let error_cnt = 0;
+      for (const cmd of commands) {
+        if (ignore_unsupported || !this.unsupported_protocol.includes(cmd.constructor.name)) {
+          await this.build_send(cmd);
+          if (wait_response) {
+            try {
+              // eslint-disable-next-line no-constant-condition
+              while (true) {
+                const message = await this.promiseSocket.read();
+                if (message.length === 0) {
+                  throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
                 }
-                break;
-              } else if (result === ParseMessageResult.PADDING) {
-                continue;
-              } else {
-                throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
+                const result = this.parse_message(message);
+                if (result === ParseMessageResult.SUCCESS) {
+                  const cmd_idx = this.unsupported_protocol.indexOf(cmd.constructor.name);
+                  if (cmd_idx !== -1) {
+                    this.unsupported_protocol.splice(cmd_idx, 1);
+                  }
+                  break;
+                } else if (result === ParseMessageResult.PADDING) {
+                  continue;
+                } else {
+                  throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
+                }
               }
+            } catch (err) {
+              error_cnt++;
+              // TODO: handle connection error
+              // this.unsupported_protocol.push(cmd.constructor.name);
+              this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
             }
-          } catch (err) {
-            error_cnt++;
-            // TODO: handle connection error
-            // this.unsupported_protocol.push(cmd.constructor.name);
-            this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
           }
+        } else {
+          error_cnt++;
         }
-      } else {
-        error_cnt++;
       }
-    }
-    if (error_cnt === commands.length) {
-      this.logger.error(`[${this.name}] Refresh failed.`);
+
+      if (error_cnt === commands.length) {
+        this.logger.error(`[${this.name}] Refresh failed.`);
+        return false;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      if (this.logRecoverableErrors) {
+        this.logger.warn(`[${this.name} | refresh_status] Recoverable error:\n${msg}`);
+      } else {
+        this.logger.debug(`[${this.name} | refresh_status] Recoverable error:\n${msg}`);
+      }
       return false;
     }
     return true;

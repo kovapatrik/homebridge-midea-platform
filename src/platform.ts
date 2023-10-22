@@ -24,6 +24,8 @@ export interface MideaAccessory extends PlatformAccessory {
     key: string;
     id: string;
     type: string;
+    sn: string;
+    model: string;
   };
 }
 
@@ -186,29 +188,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * Function called by the 'complete' on handler.
    */
   private discoveryComplete(this: MideaPlatform) {
-    // Check if network broadcasting found all devices that user configured.  If not then
-    // we have to handle those.
-    for (const key of Object.keys(this.config.devicesById)) {
-      if (!(key in this.devices)) {
-        // This device was not found by network discovery.
-        const missingDev: DeviceConfig = this.config.devicesById[key];
-        this.log.warn(
-          `[${missingDev.name}] Manually configured device not found by network discovery (id: ${missingDev.id}, ip: ${missingDev.ip})`,
-        );
-        // TODO... Figure out if we can add a device that is offline, so that it will work when
-        // it comes back online without restarting plugin.
-      }
-    }
-    for (const key of Object.keys(this.config.devicesByIP)) {
-      if (!Object.values(this.devices).find((elem) => (elem as DeviceConfig).ip === key)) {
-        // This device was not found by network discovery.
-        const missingDev: DeviceConfig = this.config.devicesByIP[key];
-        this.log.warn(`[${missingDev.name}] Manually configured device not found by network discovery (ip: ${missingDev.ip})`);
-        // TODO... Figure out if we can add a device that is offline, so that it will work when
-        // it comes back online without restarting plugin.
-      }
-    }
-
     // now we can summarize details of all discovered devices which we will print to
     // log so that a user can easily copy/paste into the config file if they want.
     const deviceConfigArray: object[] = [];
@@ -228,7 +207,52 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       };
       deviceConfigArray.push(obj);
     }
-    this.log.info(`\n"devices": ${JSON.stringify(deviceConfigArray, null, 2)}`);
+    if (deviceConfigArray.length > 0) {
+      this.log.info(`Details of discovered devices on your network:\n"devices": ${JSON.stringify(deviceConfigArray, null, 2)}`);
+    } else {
+      this.log.info('No Midea devices discovered on your local network');
+    }
+
+    // Check if network broadcasting found all devices that user configured.  If not then
+    // we have to handle those.
+    for (const key of Object.keys(this.config.devicesById)) {
+      if (!(key in this.devices)) {
+        // This device was not found by network discovery.
+        const missingDev: DeviceConfig = this.config.devicesById[key];
+        this.log.warn(
+          // eslint-disable-next-line max-len
+          `[${missingDev.name}] Manually configured device not found by network discovery (type: ${missingDev.type}, id: ${missingDev.id}, ip: ${missingDev.ip})`,
+        );
+        if (missingDev.id && missingDev.token && missingDev.key && missingDev.ip && missingDev.type && missingDev.name) {
+          // TODO... Figure out if we can add a device that is offline, so that it will work when
+          // it comes back online without restarting plugin.
+          this.log.info(`[${missingDev.name}] Attempting to register offline device`);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const device_info: DeviceInfo = {
+            name: missingDev.name,
+            type: missingDev.type,
+            ip: missingDev.ip,
+            id: Number(missingDev.id),
+            port: 6444,
+            model: undefined,
+            sn: undefined,
+            version: 3,
+          };
+          this.devices[device_info.id] = {};
+          this.addDevice(device_info, missingDev);
+        }
+      }
+    }
+    for (const key of Object.keys(this.config.devicesByIP)) {
+      if (!Object.values(this.devices).find((elem) => (elem as DeviceConfig).ip === key)) {
+        // This device was not found by network discovery.
+        const missingDev: DeviceConfig = this.config.devicesByIP[key];
+        this.log.warn(
+          // eslint-disable-next-line max-len
+          `[${missingDev.name}] Manually configured device not found by network discovery (ip: ${missingDev.ip}), insufficient info to add it.`,
+        );
+      }
+    }
   }
 
   /*********************************************************************
@@ -241,7 +265,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
     if (existingAccessory) {
       // the accessory already exists, restore from Homebridge cache
-      this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+      this.log.info(`[${device_info.name}] Restoring existing accessory from cache: ${existingAccessory.displayName}`);
       const device = DeviceFactory.createDevice(this.log, device_info, this.config, deviceConfig);
       if (device) {
         try {
@@ -251,16 +275,14 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             const connected = await this.getNewCredentials(device);
             if (connected) {
               this.log.info(`[${device_info.name}] Cached device with forced login, setting new credentials`);
-              this.devices[device_info.id].token = device.token?.toString('hex');
-              this.devices[device_info.id].key = device.key?.toString('hex');
-              existingAccessory.context.token = this.devices[device_info.id].token as string;
-              existingAccessory.context.key = this.devices[device_info.id].key as string;
+              this.devices[device_info.id].token = existingAccessory.context.token = device.token?.toString('hex') as string;
+              this.devices[device_info.id].key = existingAccessory.context.key = device.key?.toString('hex') as string;
             }
-          } else if (this.devices[device_info.id].token && this.devices[device_info.id].key) {
+          } else if (deviceConfig.token && deviceConfig.key) {
             // token/key provided in config file, use those... replacing values in cached context
             this.log.info(`[${device_info.name}] Cached device, using token/key from config file`);
-            existingAccessory.context.token = this.devices[device_info.id].token as string;
-            existingAccessory.context.key = this.devices[device_info.id].key as string;
+            this.devices[device_info.id].token = existingAccessory.context.token = deviceConfig.token;
+            this.devices[device_info.id].key = existingAccessory.context.key = deviceConfig.key;
             device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             await device.connect(false);
           } else {
@@ -271,10 +293,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             await device.connect(false);
           }
-
+          // Set serial number and model into the context if they are provided.
+          existingAccessory.context.sn = device_info.sn ?? 'unknown';
+          existingAccessory.context.model = device_info.model ?? 'unknown';
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
-          this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error: ${err}`);
+          const msg = err instanceof Error ? err.stack : err;
+          this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);
         }
       } else {
         this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
@@ -286,12 +311,11 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       if (device) {
         // We only need to login to Midea cloud if we are setting up a new accessory.  This is to
         // retrieve token/key credentials.  If device was cached then we already have credentials.
-        if (!this.config.forceLogin && this.devices[device_info.id].token && this.devices[device_info.id].key) {
+        if (!this.config.forceLogin && deviceConfig.token && deviceConfig.key) {
           this.log.info(`[${device_info.name}] New device at ${device_info.ip}:${device_info.port}, using token/key from config file`);
-          accessory.context.token = this.devices[device_info.id].token as string;
-          accessory.context.key = this.devices[device_info.id].key as string;
+          accessory.context.token = deviceConfig.token;
+          accessory.context.key = deviceConfig.key;
           accessory.context.id = device_info.id.toString();
-          accessory.context.type = 'main';
           device.setCredentials(Buffer.from(accessory.context.token, 'hex'), Buffer.from(accessory.context.key, 'hex'));
           await device.connect(false);
         } else {
@@ -302,20 +326,21 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             accessory.context.token = device.token?.toString('hex') as string;
             accessory.context.key = device.key?.toString('hex') as string;
             accessory.context.id = device.id.toString();
-            accessory.context.type = 'main';
             this.devices[device_info.id].token = accessory.context.token;
             this.devices[device_info.id].key = accessory.context.key;
           } else {
             this.log.error(`[${device_info.name}] Cannot connect to device ${device_info.ip}:${device_info.port}`);
-            if (this.devices[device_info.id].token && this.devices[device_info.id].key) {
+            if (deviceConfig.token && deviceConfig.key) {
               this.log.info(`[${device_info.name}] Using token/key from config file`);
-              accessory.context.token = this.devices[device_info.id].token as string;
-              accessory.context.key = this.devices[device_info.id].key as string;
+              accessory.context.token = deviceConfig.token;
+              accessory.context.key = deviceConfig.key;
               accessory.context.id = device_info.id.toString();
-              accessory.context.type = 'main';
               device.setCredentials(Buffer.from(accessory.context.token, 'hex'), Buffer.from(accessory.context.key, 'hex'));
             }
           }
+          accessory.context.type = device_info.type.toString();
+          accessory.context.sn = device_info.sn ?? 'unknown';
+          accessory.context.model = device_info.model ?? 'unknown';
         }
         // create the accessory handler for the newly create accessory
         // this is imported from `platformAccessory.ts`

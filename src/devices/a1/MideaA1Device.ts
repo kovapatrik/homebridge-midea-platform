@@ -158,25 +158,30 @@ export default class MideaA1Device extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<A1Attributes>) {
-    for (const [k, v] of Object.entries(attributes)) {
-      let message: MessageSet | undefined = undefined;
-      this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+    try {
+      for (const [k, v] of Object.entries(attributes)) {
+        let message: MessageSet | undefined = undefined;
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
-      // not sensor data
-      if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 'FILTER_INDICATOR', 'PUMP'].includes(k)) {
-        this.attributes[k] = v;
+        // not sensor data
+        if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 'FILTER_INDICATOR', 'PUMP'].includes(k)) {
+          this.attributes[k] = v;
 
-        if (k === 'PROMPT_TONE') {
-          this.attributes.PROMPT_TONE = !!v;
-        } else {
-          message = this.make_message_set();
-          // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
+          if (k === 'PROMPT_TONE') {
+            this.attributes.PROMPT_TONE = !!v;
+          } else {
+            message = this.make_message_set();
+            // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
+          }
+        }
+        if (message) {
+          this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
+          await this.build_send(message);
         }
       }
-      if (message) {
-        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-        await this.build_send(message);
-      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
     }
   }
 

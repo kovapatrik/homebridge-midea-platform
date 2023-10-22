@@ -62,6 +62,8 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
                     "config": {
                         "token": "ABCDEF1234567890",
                         "key": "1234567890ABCDEF",
+                        "verbose": false,
+                        "logRecoverableErrors": true,
                         "<device_options>": {
                             "device_option": "value"
                         }
@@ -92,17 +94,19 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
   * **type** *(required)*: Must be set to one of the supported devices.
   * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebridge accessories page. Entries in the log are prefixed with this name to assist in identifying the source of information being logged.
   * **ip** *(optional)*: IP Address of the device. **Caution**, IP address for a device may change, a more reliable method of uniquely tagging a device is to use the Midea *deviceID*.
-  * **deviceId** *(optional)*: ID to identify specific device. You can find this from the Homebridge log during plugin initialization. <!-- or in the Homebridge Config UI X by clicking on an accessory settings and copying the ??? field.-->
+  * **deviceId** *(optional)*: ID to identify specific device. You can find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
   * **config** *(optional)*: Object with settings specific for this device:
     * **token** *(optional)*: Device login token.
-    * **key** *(optional)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin and avoid the need to login to the Midea cloud servers to retrieve device credentials.  <!-- In addition it will also allow a device to be registered even if it is offline during plugin initialization -->
+    * **key** *(optional)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin and avoid the need to login to the Midea cloud servers to retrieve device credentials. In addition it will also allow a device to be registered even if it is offline during plugin initialization.
+    * **verbose** *(optional)*: Override global setting for this one device.
+    * **logRecoverableErrors** *(optional)*: Override global setting for this one device.
     * **<device_options>** *(optional)*: Object with name and options that are device type specific.  See *device notes* below.
 
 ## Device Discovery
 
 When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN).  It first sends a message to devices configiured in the *devices* array with a specified IP address, it then sends a message to the broadcast address of each network interface's IP subnet attached to the Homebridge server.  Midea devices attached to the network will respond and are added as Homebridge accessories.  Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).  At the end of the  process details of all devices discovered is sent to the Homebridge log.  This is useful if you want to record device credentials in the *devices* array.
 
-At the end of the discovery process, if there are devices configured in the *devices* array with IP or deviceID that were not discovered, then a warning is noted in the log. <!-- and (TODO... figure out if we can add a Homebridge accessory for a device that is offline... so that when it comes back online it will start working). -->
+At the end of the discovery process, if there are devices configured in the *devices* array with IP or deviceID that were not discovered, then a warning is noted in the log. If the device configiration includes *name, type, ip, deviceId, token* and *key* then the plugin will register an accessory for the device even if it is offline. When the device comes back online then it will function normally without requiring a restart.
 
 ## Device Notes
 

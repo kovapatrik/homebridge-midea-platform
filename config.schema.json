@@ -128,6 +128,18 @@
                   "required": false,
                   "description": "You can find the Device key in the Homebridge log during plugin startup."
                 },
+                "verbose": {
+                  "title": "Enable verbose logging",
+                  "type": "boolean",
+                  "required": false,
+                  "description": "Override global setting for this one device."
+                },
+                "logRecoverableErrors": {
+                  "title": "Log recoverable errors",
+                  "type": "boolean",
+                  "required": false,
+                  "description": "Override global setting for this one device."
+                },
                 "A1_options": {
                   "title": "Dehumidifier Options",
                   "type": "object",
@@ -254,7 +266,7 @@
           "type": "fieldset",
           "expandable": true,
           "expanded": true,
-          "title": "Plugin settings",
+          "title": "Settings",
           "items": [
             "user",
             "password",
@@ -302,7 +314,9 @@
                       "key": "devices[].config",
                       "items": [
                         "devices[].config.token",
-                        "devices[].config.key"
+                        "devices[].config.key",
+                        "devices[].config.verbose",
+                        "devices[].config.logRecoverableErrors"
                       ]
                     },
                     {

@@ -222,8 +222,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   // Handle requests to get the target value of the "HumidifierDehumidifierState" characteristic
   private async getTargetHumidifierDehumidifierState(): Promise<CharacteristicValue> {
     this.platform.log.debug(
-      `[${this.device.name}] GET TargetHumidifierDehumidifierState, value: 
-      ${this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER}`,
+      // eslint-disable-next-line max-len
+      `[${this.device.name}] GET TargetHumidifierDehumidifierState, value: ${this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER}`,
     );
     // Always return that we are a dehumidifier, other states not supported.
     return this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER;

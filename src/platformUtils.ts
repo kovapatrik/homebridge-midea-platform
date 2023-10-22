@@ -20,6 +20,9 @@ export type DeviceConfig = {
   token?: string;
   key?: string;
   type?: number;
+  verbose?: boolean; // override global setting
+  logRecoverableErrors?: boolean; // override global setting
+  registerIfOffline?: boolean;
   AC_options?: ACOptions;
   A1_options?: A1Options;
 };
