@@ -73,6 +73,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       // TODO: type this
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.config.devices = this.config.devices.filter((elem: any) => {
+        // make sure config object exists.
+        elem.config ??= {};
         if (elem.deviceId) {
           // copy the values into the config object before we delete this object.
           elem.config.id = elem.deviceId;

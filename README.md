@@ -90,20 +90,19 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 * **Devices** is an array of objects that allow settings or overrides on a device-by-device basis. This array is optional but if provided contains the following fields:
   * **type** *(required)*: Must be set to one of the supported devices.
-  * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebride accessories page. Entries in the log are prefixed with this name to assist in identifying the source of the information being logged.
-  * **ip** *(optional)*: IP Address of the device. **Caution**, IP address for a device may change, a more reliable method of uniquely tagging a device is to use the Midea *deviceID* which overrides any value set her.
+  * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebridge accessories page. Entries in the log are prefixed with this name to assist in identifying the source of information being logged.
+  * **ip** *(optional)*: IP Address of the device. **Caution**, IP address for a device may change, a more reliable method of uniquely tagging a device is to use the Midea *deviceID*.
   * **deviceId** *(optional)*: ID to identify specific device. You can find this from the Homebridge log during plugin initialization. <!-- or in the Homebridge Config UI X by clicking on an accessory settings and copying the ??? field.-->
   * **config** *(optional)*: Object with settings specific for this device:
-    * **token** *(optional)*:
-    * **key** *(optional)*: 
+    * **token** *(optional)*: Device login token.
+    * **key** *(optional)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin and avoid the need to login to the Midea cloud servers to retrieve device credentials.  <!-- In addition it will also allow a device to be registered even if it is offline during plugin initialization -->
     * **<device_options>** *(optional)*: Object with name and options that are device type specific.  See *device notes* below.
 
 ## Device Discovery
 
 When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN).  It first sends a message to devices configiured in the *devices* array with a specified IP address, it then sends a message to the broadcast address of each network interface's IP subnet attached to the Homebridge server.  Midea devices attached to the network will respond and are added as Homebridge accessories.  Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).  At the end of the  process details of all devices discovered is sent to the Homebridge log.  This is useful if you want to record device credentials in the *devices* array.
 
-If at the end of the discovery process there are devices configured in the *devices* array with IP or deviceID that were not discovered then a warning is noted in the log and...
-(TODO... figure out if we can add a Homebridge accessory for a device that is offline... so that when it comes back online it will start working).
+At the end of the discovery process, if there are devices configured in the *devices* array with IP or deviceID that were not discovered, then a warning is noted in the log. <!-- and (TODO... figure out if we can add a Homebridge accessory for a device that is offline... so that when it comes back online it will start working). -->
 
 ## Device Notes
 
@@ -173,11 +172,6 @@ If you have a device not supported by the plugin then useful information will be
 ### Network Resiliency
 
 Various strategies are employed in an attempt to handle an unstable network. If a failure occurs at any point while accessing the network or Midea devices then the plugin will attempt to reconnect.  During testing we have observed that if a Midea device is isolated from the public internet, and therefore unable to connect to Midea cloud servers, it will close the internal LAN connection to this plugin after a few minutes.  The plugin is able to recover and reopen this connection.  See *logging* setion below.
-<!--
-For login and retrieving access tokens the plugin will retry indefinitely with 5 second initial delay, increasing by 5 seconds for each repeated attempt to a maximum of 60 seconds between retries. If the network goes down, then this should ensure that the connection to YoLink is reestablished within 60 seconds of network recovery.
-
-For getting or setting device information the plugin will retry a maximum of 10 times before giving up. The initial retry delay is 2 seconds, incrementing by 2 seconds each time with a maximum interval of 10 seconds. After all attempts it will fail with a message to log, but this will not terminate the plugin.
--->
 
 ### Logging
 
