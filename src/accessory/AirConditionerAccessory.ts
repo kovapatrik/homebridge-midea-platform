@@ -121,11 +121,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
 
     // Switches
-    if (this.configDev.AC_options?.ecoSwitch || this.configDev.AC_options?.switchDisplay.flag) {
+    if (this.configDev.AC_options?.ecoSwitch || this.configDev?.AC_options?.switchDisplay?.flag) {
       const switchAccessory = this.getOrCreateSubAccessory('Switch');
 
       // Display
-      if (this.configDev.AC_options.switchDisplay.flag) {
+      if (this.configDev.AC_options.switchDisplay?.flag) {
         this.device.set_alternate_switch_display(this.configDev.AC_options.switchDisplay.command);
         this.displayService = switchAccessory.getServiceById(this.platform.Service.Switch, 'Display');
         if (!this.displayService) {
@@ -150,8 +150,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
 
     // Misc
-    this.device.attributes.PROMPT_TONE = this.configDev.AC_options!.audioFeedback;
-    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options!.fahrenHeit;
+    this.device.attributes.PROMPT_TONE = this.configDev.AC_options!.audioFeedback!;
+    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options!.fahrenHeit!;
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
@@ -275,18 +275,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getCurrentTemperature(): CharacteristicValue {
-    return this.device.attributes.INDOOR_TEMPERATURE ?? this.configDev.AC_options!.minTemp;
+    return this.device.attributes.INDOOR_TEMPERATURE ?? this.configDev.AC_options!.minTemp!;
   }
 
   getTargetTemperature(): CharacteristicValue {
     return Math.max(
-      this.configDev.AC_options!.minTemp,
-      Math.min(this.configDev.AC_options!.maxTemp, this.device.attributes.TARGET_TEMPERATURE),
+      this.configDev.AC_options!.minTemp!,
+      Math.min(this.configDev.AC_options!.maxTemp!, this.device.attributes.TARGET_TEMPERATURE),
     );
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.AC_options!.minTemp, Math.min(this.configDev.AC_options!.maxTemp, value as number));
+    value = Math.max(this.configDev.AC_options!.minTemp!, Math.min(this.configDev.AC_options!.maxTemp!, value as number));
     await this.device.set_target_temperature(value);
   }
 
@@ -300,8 +300,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     switch (value) {
       case this.platform.Characteristic.SwingMode.SWING_ENABLED:
         await this.device.set_swing(
-          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options!.swingMode),
-          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options!.swingMode),
+          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options!.swingMode!),
+          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options!.swingMode!),
         );
         break;
       case this.platform.Characteristic.SwingMode.SWING_DISABLED:
@@ -346,7 +346,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   getOrCreateSubAccessory(type: string): MideaAccessory {
     let accessory: MideaAccessory;
-    if (this.configDev.singleAccessory) {
+    if (this.configDev.AC_options!.singleAccessory) {
       accessory = this.accessory;
     } else {
       const tempFind = this.accessories.findIndex((acc) => acc.context.type === type);

@@ -74,14 +74,14 @@ export class PromiseSocket {
 
   constructor(
     private readonly logger: Logger,
-    private readonly verbose: boolean,
+    private readonly logerror: boolean,
   ) {
     this.innerSok = new Socket();
     this.destroyed = false;
     this.innerSok.on('error', (e) => {
       // Log the error
       const msg = e instanceof Error ? e.stack : e;
-      if (this.verbose) {
+      if (this.logerror) {
         this.logger.warn(`Socket error:\n${msg}`);
       }
       // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
@@ -90,7 +90,7 @@ export class PromiseSocket {
     });
     this.innerSok.on('close', async (hadError: boolean) => {
       this.destroy();
-      if (this.verbose) {
+      if (this.logerror) {
         this.logger.warn(`Socket closed ${hadError ? 'with' : 'without'} error`);
       }
     });

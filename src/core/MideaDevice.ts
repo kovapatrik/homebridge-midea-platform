@@ -13,7 +13,7 @@ import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageRe
 import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
-import { Config } from '../platformUtils';
+import { Config, DeviceConfig } from '../platformUtils';
 import EventEmitter from 'events';
 
 export type DeviceAttributeBase = {
@@ -42,6 +42,7 @@ export default abstract class MideaDevice extends EventEmitter {
   protected refresh_interval: number;
   protected heartbeat_interval: number;
   protected verbose: boolean;
+  protected logRecoverableErrors: boolean;
 
   private _sub_type?: number;
 
@@ -64,6 +65,8 @@ export default abstract class MideaDevice extends EventEmitter {
     protected readonly logger: Logger,
     device_info: DeviceInfo,
     config: Partial<Config>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    configDev: Partial<DeviceConfig>,
   ) {
     super();
 
@@ -78,13 +81,14 @@ export default abstract class MideaDevice extends EventEmitter {
     this.version = device_info.version;
 
     this.verbose = config.verbose ?? false;
+    this.logRecoverableErrors = config.logRecoverableErrors ?? true;
     this.refresh_interval = (config.refreshInterval ?? 30) * 1000; // convert to miliseconds
     this.heartbeat_interval = (config.heartbeatInterval ?? 10) * 1000;
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);
 
-    this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+    this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
   }
 
   get sub_type(): number {
@@ -179,7 +183,7 @@ export default abstract class MideaDevice extends EventEmitter {
       throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
     }
     if (force_reinit || !this.promiseSocket || this.promiseSocket.destroyed) {
-      this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+      this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
       let connected = await this.connect(false);
       while (!connected) {
         connected = await this.connect(false);
@@ -308,7 +312,7 @@ export default abstract class MideaDevice extends EventEmitter {
             this.process_message(decrypted);
           }
         } else {
-          if (this.verbose) {
+          if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
           }
         }
@@ -375,7 +379,7 @@ export default abstract class MideaDevice extends EventEmitter {
     while (this.is_running) {
       while (this.promiseSocket.destroyed) {
         this.logger.info(`[${this.name}] Create new socket, reconnect`);
-        this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+        this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
         await this.connect(true); // need to refresh_status on connect as we reset start time below.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
@@ -412,7 +416,9 @@ export default abstract class MideaDevice extends EventEmitter {
             if (timeout_counter > 120 / (this.SOCKET_TIMEOUT / 1000)) {
               // we've looped for ~two minutes and not received a successful response
               // to heartbeat or status refresh.  Therefore something must be broken.
-              this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              if (this.logRecoverableErrors) {
+                this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              }
               this.close_socket();
               // We break out of inner loop, but within outer loop we will attempt to
               // reopen the socket and continue.
@@ -421,7 +427,7 @@ export default abstract class MideaDevice extends EventEmitter {
           }
         } catch (e) {
           const msg = e instanceof Error ? e.stack : e;
-          if (this.verbose) {
+          if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name} | run] Error reading from socket:\n${msg}`);
           }
         }

@@ -11,7 +11,7 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import CloudFactory, { CloudBase } from './core/MideaCloud';
 import Discover from './core/MideaDiscover';
-import { DeviceInfo, Endianness } from './core/MideaConstants';
+import { DeviceInfo, DeviceType, Endianness } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { DeviceConfig } from './platformUtils';
@@ -25,6 +25,15 @@ export interface MideaAccessory extends PlatformAccessory {
     id: string;
     type: string;
   };
+}
+
+/*********************************************************************
+ * makeBoolean
+ * Allow for both 'true' as a boolean and "true" as a string to equal
+ * true.  And provide a default for when it is undefined.
+ */
+export function makeBoolean(a, b: boolean): boolean {
+  return typeof a === 'undefined' ? b : String(a).toLowerCase() === 'true' || a === true;
 }
 
 export class MideaPlatform implements DynamicPlatformPlugin {
@@ -46,26 +55,38 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     Error.stackTraceLimit = 100;
 
     // Make sure that config settings have a default value
-    this.config.forceLogin ??= this.makeBoolean(this.config.forceLogin, false);
-    this.config.verbose ??= this.makeBoolean(this.config.verbose, true);
+    this.config.forceLogin ??= makeBoolean(this.config.forceLogin, false);
+    this.config.verbose ??= makeBoolean(this.config.verbose, true);
+    this.config.logRecoverableErrors ??= makeBoolean(this.config.logRecoverableErrors, true);
     // make sure values are between allowed range and set to default if undefined.
     this.config.refreshInterval = Math.max(0, Math.min(this.config.refreshInterval ?? 30, 86400));
     this.config.heartbeatInterval = Math.max(10, Math.min(this.config.heartbeatInterval ?? 10, 120));
-    // make sure devices / devicesById is never undefined.
+    // make sure devices / devicesById / IP is never undefined.
     this.config.devices ??= [];
     this.config.devicesById = {};
+    this.config.devicesByIP = {};
 
     // transforms array of devices into object that can be referenced by deviceId...
     if (this.config.devices) {
       // If we have a deviceId then we copy it into another object and remove it
       // from the array.  This allows us to index into configuration by deviceId.
-      this.config.devicesById = {};
       // TODO: type this
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.config.devices = this.config.devices.filter((elem: any) => {
         if (elem.deviceId) {
+          // copy the values into the config object before we delete this object.
           elem.config.id = elem.deviceId;
+          elem.config.ip = elem.ip;
+          elem.config.name = elem.name;
+          elem.config.type = DeviceType[String(elem.type).toUpperCase()];
           this.config.devicesById[String(elem.deviceId).toLowerCase()] = elem.config;
+          return false; // deletes this entry from the devices array so we don't have duplicates.
+        } else if (elem.ip) {
+          // copy the values into the config object before we delete this object.
+          elem.config.ip = elem.ip;
+          elem.config.name = elem.name;
+          elem.config.type = DeviceType[String(elem.type).toUpperCase()];
+          this.config.devicesByIP[String(elem.ip).toLowerCase()] = elem.config;
           return false; // deletes this entry from the devices array so we don't have duplicates.
         }
         return true;
@@ -75,94 +96,125 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     this.log.info(`Force login is set to ${this.config.forceLogin}`);
     this.log.info(`Verbose debug logging is set to ${this.config.verbose}`);
-
+    this.log.info(`Log recoverable errors is set to ${this.config.logRecoverableErrors}`);
     this.log.info(`Device refresh interval set to ${this.config.refreshInterval} seconds`);
     this.log.info(`Socket heartbeat interval set to ${this.config.heartbeatInterval} seconds`);
 
     this.cloud = CloudFactory.createCloud(this.config.user, this.config.password, log, this.config.registeredApp);
     this.discover = new Discover(log);
 
-    if (!(this.config.user && this.config.password)) {
-      this.log.error('The platform configuration is incomplete, missing "user" and "password"');
-      return;
-    }
+    //if (!(this.config.user && this.config.password)) {
+    //  this.log.error('The platform configuration is incomplete, missing "user" and "password"');
+    //  return;
+    //}
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
-    this.discover.on('device', (device_info: DeviceInfo) => {
-      // Find device specific configuration from within the homebridge config file.
-      // If we have configuration indexed by ID use that, if not use IP address.
-      const deviceConfig: DeviceConfig =
-        this.config.devicesById[device_info.id] ?? this.config.devices.find((dev: DeviceConfig) => dev.ip === device_info.ip);
-      device_info.name = deviceConfig?.name ?? device_info.name;
-
-      this.devices[device_info.id] = {};
-      this.devices[device_info.id].name = device_info.name;
-      this.devices[device_info.id].ip = device_info.ip;
-      this.devices[device_info.id].type = device_info.type;
-      // If token/key provided in config file then use those...
-      if (deviceConfig?.token && deviceConfig?.key) {
-        this.devices[device_info.id].token = deviceConfig.token;
-        this.devices[device_info.id].key = deviceConfig.key;
-      }
-
-      // deviceConfig could be undefined, at least pass in a name field...
-      this.addDevice(device_info, deviceConfig ?? { name: device_info.name });
-    });
+    this.discover.on('device', this.deviceDiscovered.bind(this));
 
     // Register callback with Discover class that is called when we have exhausted
     // all retries to discover devices.  We can now check what was found.
-    this.discover.on('complete', () => {
-      // now we can summarize details of all discovered devices
-      const deviceConfigArray: object[] = [];
-
-      for (const [key, value] of Object.entries(this.devices)) {
-        const obj = {
-          deviceId: String(key),
-          config: value,
-        };
-        deviceConfigArray.push(obj);
-      }
-      this.log.info(`\n"devices": ${JSON.stringify(deviceConfigArray, null, 2)}`);
-    });
+    this.discover.on('complete', this.discoveryComplete.bind(this));
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
-    this.api.on('didFinishLaunching', () => {
-      this.log.info('Start device discovery...');
-      // If individual devices are listed in config then probe them directly by IP address
-      if (this.config.devicesById) {
-        (Object.values(this.config.devicesById) as DeviceConfig[]).forEach((device: DeviceConfig) => {
-          if (device.ip) {
-            this.log.info(
-              `[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`,
-            );
-            this.discover.discoverDeviceByIP(device.ip);
-          }
-        });
-      }
-      if (this.config.devices) {
-        this.config.devices.forEach((device: DeviceConfig) => {
-          if (device.ip) {
-            this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`);
-            this.discover.discoverDeviceByIP(device.ip);
-          }
-        });
-      }
-      // And then send broadcast to network(s)
-      this.discover.startDiscover();
-    });
+    this.api.on('didFinishLaunching', this.finishedLaunching.bind(this));
   }
 
   /*********************************************************************
-   * makeBoolean
-   * Allow for both 'true' as a boolean and "true" as a string to equal
-   * true.  And provide a default for when it is undefined.
+   * finishedLaunching
+   * Function called when Homebridge has finished loading the plugin.
    */
-  makeBoolean(a, b: boolean): boolean {
-    return typeof a === 'undefined' ? b : String(a).toLowerCase() === 'true' || a === true;
+  private finishedLaunching() {
+    this.log.info('Start device discovery...');
+    // If individual devices are listed in config then probe them directly by IP address
+    if (this.config.devicesById) {
+      (Object.values(this.config.devicesById) as DeviceConfig[]).forEach((device: DeviceConfig) => {
+        if (device.ip) {
+          this.log.info(
+            `[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (ID: ${device.id},  IP: ${device.ip})`,
+          );
+          this.discover.discoverDeviceByIP(device.ip);
+        }
+      });
+    }
+    if (this.config.devices) {
+      this.config.devices.forEach((device: DeviceConfig) => {
+        if (device.ip) {
+          this.log.info(`[${PLATFORM_NAME}] Send discover for user configured device: ${device.name} (IP: ${device.ip})`);
+          this.discover.discoverDeviceByIP(device.ip);
+        }
+      });
+    }
+    // And then send broadcast to network(s)
+    this.discover.startDiscover();
+  }
+
+  /*********************************************************************
+   * deviceDiscovered
+   * Function called by the 'device' on handler.
+   */
+  private deviceDiscovered(device_info: DeviceInfo) {
+    // Find device specific configuration from within the homebridge config file.
+    // If we have configuration indexed by ID use that, if not use IP address.
+    const deviceConfig: DeviceConfig = this.config.devicesById[device_info.id] ?? this.config.devicesByIP[device_info.ip];
+
+    device_info.name = deviceConfig?.name ?? device_info.name;
+
+    this.devices[device_info.id] = {};
+    this.devices[device_info.id].name = device_info.name;
+    this.devices[device_info.id].ip = device_info.ip;
+    this.devices[device_info.id].type = device_info.type;
+    // If token/key provided in config file then use those...
+    if (deviceConfig?.token && deviceConfig?.key) {
+      this.devices[device_info.id].token = deviceConfig.token;
+      this.devices[device_info.id].key = deviceConfig.key;
+    }
+
+    // deviceConfig could be undefined, at least pass in a name field...
+    this.addDevice(device_info, deviceConfig ?? { name: device_info.name });
+  }
+
+  /*********************************************************************
+   * discoveryComplete
+   * Function called by the 'complete' on handler.
+   */
+  private discoveryComplete() {
+    // Check if network broadcasting found all devices that user configured.  If not then
+    // we have to handle those.
+    for (const key of Object.keys(this.config.devicesById)) {
+      if (!(key in this.devices)) {
+        // This device was not found by network discovery.
+        const missingDev: DeviceConfig = this.config.devicesById[key];
+        this.log.warn(
+          `[${missingDev.name}] Manually configured device not found by network discovery (id: ${missingDev.id}, ip: ${missingDev.ip})`,
+        );
+        // TODO... Figure out if we can add a device that is offline, so that it will work when
+        // it comes back online without restarting plugin.
+      }
+    }
+
+    // now we can summarize details of all discovered devices which we will print to
+    // log so that a user can easily copy/paste into the config file if they want.
+    const deviceConfigArray: object[] = [];
+    for (const [key, value] of Object.entries(this.devices)) {
+      const obj = {
+        type: Object.keys(DeviceType)
+          .find((key) => DeviceType[key] === value.type)
+          ?.toLocaleLowerCase(),
+        name: value.name,
+        ip: value.ip,
+        deviceId: String(key),
+        config: {
+          token: value.token,
+          key: value.key,
+        },
+      };
+      deviceConfigArray.push(obj);
+    }
+    this.log.info(`\n"devices": ${JSON.stringify(deviceConfigArray, null, 2)}`);
   }
 
   /*********************************************************************
@@ -176,7 +228,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     if (existingAccessory) {
       // the accessory already exists, restore from Homebridge cache
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-      const device = DeviceFactory.createDevice(this.log, device_info, this.config);
+      const device = DeviceFactory.createDevice(this.log, device_info, this.config, deviceConfig);
       if (device) {
         try {
           if (this.config.forceLogin) {
@@ -216,7 +268,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     } else {
       this.log.info('Adding new accessory:', device_info.name);
       const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
-      const device = DeviceFactory.createDevice(this.log, device_info, this.config);
+      const device = DeviceFactory.createDevice(this.log, device_info, this.config, deviceConfig);
       if (device) {
         // We only need to login to Midea cloud if we are setting up a new accessory.  This is to
         // retrieve token/key credentials.  If device was cached then we already have credentials.
