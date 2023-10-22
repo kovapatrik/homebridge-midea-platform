@@ -314,6 +314,8 @@ export default abstract class MideaDevice extends EventEmitter {
         } else {
           if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
+          } else {
+            this.logger.debug(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
           }
         }
       } else {
@@ -378,7 +380,11 @@ export default abstract class MideaDevice extends EventEmitter {
     this.logger.info(`[${this.name}] Starting network listener.`);
     while (this.is_running) {
       while (this.promiseSocket.destroyed) {
-        this.logger.info(`[${this.name}] Create new socket, reconnect`);
+        if (this.logRecoverableErrors) {
+          this.logger.info(`[${this.name}] Create new socket, reconnect`);
+        } else {
+          this.logger.debug(`[${this.name}] Create new socket, reconnect`);
+        }
         this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
         await this.connect(true); // need to refresh_status on connect as we reset start time below.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -418,6 +424,8 @@ export default abstract class MideaDevice extends EventEmitter {
               // to heartbeat or status refresh.  Therefore something must be broken.
               if (this.logRecoverableErrors) {
                 this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              } else {
+                this.logger.debug(`[${this.name} | run] Heartbeat timeout, closing.`);
               }
               this.close_socket();
               // We break out of inner loop, but within outer loop we will attempt to
@@ -429,6 +437,8 @@ export default abstract class MideaDevice extends EventEmitter {
           const msg = e instanceof Error ? e.stack : e;
           if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name} | run] Error reading from socket:\n${msg}`);
+          } else {
+            this.logger.debug(`[${this.name} | run] Error reading from socket:\n${msg}`);
           }
         }
       }

@@ -83,6 +83,8 @@ export class PromiseSocket {
       const msg = e instanceof Error ? e.stack : e;
       if (this.logerror) {
         this.logger.warn(`Socket error:\n${msg}`);
+      } else {
+        this.logger.debug(`Socket error:\n${msg}`);
       }
       // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
       // will be called immediately following an "error" event.  So don't throw an error
@@ -92,6 +94,8 @@ export class PromiseSocket {
       this.destroy();
       if (this.logerror) {
         this.logger.warn(`Socket closed ${hadError ? 'with' : 'without'} error`);
+      } else {
+        this.logger.debug(`Socket closed ${hadError ? 'with' : 'without'} error`);
       }
     });
   }
