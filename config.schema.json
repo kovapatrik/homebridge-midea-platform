@@ -44,7 +44,7 @@
         "title": "Interval, in seconds, to query Midea devices for state",
         "type": "number",
         "required": false,
-        "default": 30,
+        "placeholder": 30,
         "minimum": 0,
         "maximum": 86400,
         "description": "Frequency that the plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried. The default is 30 seconds, the maximum is 86400 (24 hours). Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically."
@@ -53,7 +53,7 @@
         "title": "Interval, in seconds, to send keep-alive message to Midea devices",
         "type": "number",
         "required": false,
-        "default": 10,
+        "placeholder": 10,
         "minimum": 10,
         "maximum": 120,
         "description": "Frequency that the plugin sends a message to Midea devices to keep the network socket open. The default and minimum is 10 seconds, you can increase this up to a maximum of 120 (2 minutes). If you see socket closed messages in the log reduce this value."
@@ -74,7 +74,7 @@
         "title": "Log recoverable errors",
         "type": "boolean",
         "required": false,
-        "default": true,
+        "placeholder": true,
         "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
       },
       "devices": {
@@ -138,6 +138,7 @@
                   "title": "Log recoverable errors",
                   "type": "boolean",
                   "required": false,
+                  "placeholder": true,
                   "description": "Override global setting for this one device."
                 },
                 "A1_options": {
@@ -152,13 +153,15 @@
                       "title": "Minimum Relative Humidity",
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 100
+                      "maximum": 100,
+                      "placeholder": 35
                     },
                     "maxHumidity": {
                       "title": "Maximum Relative Humidity",
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 100
+                      "maximum": 100,
+                      "placeholder": 85
                     },
                     "humidityStep": {
                       "title": "Humidity Step",
@@ -166,7 +169,8 @@
                       "enum": [
                         5,
                         10
-                      ]
+                      ],
+                      "placeholder": 5
                     }
                   }
                 },
@@ -181,7 +185,8 @@
                     "singleAccessory": {
                       "title": "Single Accessory",
                       "description": "Toggles if the AC and the optional sub accessories (e.g.: outdoor temperature sensor, display switch) are combined into one accessory or not.",
-                      "type": "boolean"
+                      "type": "boolean",
+                      "placeholder": true
                     },
                     "swingMode": {
                       "title": "Swing Mode",
@@ -206,7 +211,8 @@
                     "ecoSwitch": {
                       "title": "Eco Mode Switch",
                       "description": "Toggles if the ECO mode switch is created with the accessory.",
-                      "type": "boolean"
+                      "type": "boolean",
+                      "placeholder": true
                     },
                     "switchDisplay": {
                       "type": "object",
@@ -214,7 +220,8 @@
                         "flag": {
                           "title": "Switch Display",
                           "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
-                          "type": "boolean"
+                          "type": "boolean",
+                          "placeholder": true
                         },
                         "command": {
                           "title": "Switch Display Alternate Command",
@@ -225,11 +232,13 @@
                     },
                     "minTemp": {
                       "title": "Minimum Temperature",
-                      "type": "number"
+                      "type": "number",
+                      "placeholder": 16
                     },
                     "maxTemp": {
                       "title": "Maximum Temperature",
-                      "type": "number"
+                      "type": "number",
+                      "placeholder": 30
                     },
                     "tempStep": {
                       "title": "Temperature Step",
@@ -237,7 +246,8 @@
                       "enum": [
                         0.5,
                         1
-                      ]
+                      ],
+                      "placeholder": 1
                     },
                     "fahrenHeit": {
                       "title": "Fahrenheit",
