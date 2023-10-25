@@ -150,7 +150,7 @@ export default class MideaACDevice extends MideaDevice {
     deviceConfig.AC_options.minTemp ??= 16;
     deviceConfig.AC_options.maxTemp ??= 30;
     deviceConfig.AC_options.tempStep ??= 1;
-    deviceConfig.AC_options.fahrenHeit ??= makeBoolean(deviceConfig.AC_options.fahrenHeit, false);
+    deviceConfig.AC_options.fahrenheit ??= makeBoolean(deviceConfig.AC_options.fahrenheit, false);
     deviceConfig.AC_options.fanOnlyMode ??= makeBoolean(deviceConfig.AC_options.fanOnlyMode, false);
   }
 

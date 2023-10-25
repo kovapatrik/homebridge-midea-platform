@@ -46,7 +46,7 @@ type ACOptions = {
   minTemp?: number;
   maxTemp?: number;
   tempStep?: number;
-  fahrenHeit?: boolean;
+  fahrenheit?: boolean;
   fanOnlyMode?: boolean;
   outDoorTemp?: boolean;
   audioFeedback?: boolean;

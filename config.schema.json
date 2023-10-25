@@ -249,7 +249,7 @@
                       ],
                       "placeholder": 1
                     },
-                    "fahrenHeit": {
+                    "fahrenheit": {
                       "title": "Fahrenheit",
                       "description": "Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.",
                       "type": "boolean"
@@ -355,7 +355,7 @@
                         "devices[].config.AC_options.minTemp",
                         "devices[].config.AC_options.maxTemp",
                         "devices[].config.AC_options.tempStep",
-                        "devices[].config.AC_options.fahrenHeit",
+                        "devices[].config.AC_options.fahrenheit",
                         "devices[].config.AC_options.fanOnlyMode"
                       ]
                     }

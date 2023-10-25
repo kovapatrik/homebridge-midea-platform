@@ -151,7 +151,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Misc
     this.device.attributes.PROMPT_TONE = this.configDev.AC_options!.audioFeedback!;
-    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options!.fahrenHeit!;
+    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options!.fahrenheit!;
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.

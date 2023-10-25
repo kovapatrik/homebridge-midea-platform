@@ -130,7 +130,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "minTemp": 16,
     "maxTemp": 30,
     "tempStep": 1,
-    "fahrenHeit": false,
+    "fahrenheit": false,
     "fanOnlyMode": false
 }
 ```
@@ -147,7 +147,7 @@ Providing air conditioner settings is optional and the whole section or individu
   * **minTemp** *(optional)*: The minimum temperature that the unit can be set for.  Default is 16 celsius
   * **maxTemp** *(optional)*: The maximum temperature that the unit can be set for.  Default is 30 celsius
   * **tempStep** *(optional)*: Increment in which the temperature setting can be changed, may be set to either 0.5 or 1 degree celsius.  The default is one degree.
-  * **fahrenHeit** *(optional)*: Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.  Default is false (displays in Celsius).
+  * **fahrenheit** *(optional)*: Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.  Default is false (displays in Celsius).
   * **fanOnlyMode** *(optional)*: Toggles if the fan only mode is created with the accessory. Default is false.
 
 ### Dehumidifier
