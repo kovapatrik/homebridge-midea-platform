@@ -6,6 +6,7 @@
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended" // uses the recommended rules from the @typescript-eslint/eslint-plugin
   ],
+  "ignorePatterns": ["homebridge-ui"],
   "rules": {
     "dot-notation": "off",
     "eqeqeq": "warn",

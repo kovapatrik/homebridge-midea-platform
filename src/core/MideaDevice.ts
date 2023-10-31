@@ -64,8 +64,8 @@ export default abstract class MideaDevice extends EventEmitter {
   constructor(
     protected readonly logger: Logger,
     device_info: DeviceInfo,
-    config: Partial<Config>,
-    configDev: Partial<DeviceConfig>,
+    config: Config,
+    configDev: DeviceConfig,
   ) {
     super();
 
@@ -79,16 +79,14 @@ export default abstract class MideaDevice extends EventEmitter {
     this.type = device_info.type;
     this.version = device_info.version;
 
-    this.verbose = configDev.verbose ?? config.verbose ?? false;
-    this.logRecoverableErrors = configDev.logRecoverableErrors ?? config.logRecoverableErrors ?? true;
-    if (configDev.verbose !== undefined) {
-      this.logger.warn(`[${this.name}] Device specific verbose debug logging is set to ${configDev.verbose}`);
-    }
-    if (configDev.logRecoverableErrors !== undefined) {
-      this.logger.warn(`[${this.name}] Device specific log recoverable errors is set to ${configDev.logRecoverableErrors}`);
-    }
-    this.refresh_interval = (config.refreshInterval ?? 30) * 1000; // convert to miliseconds
-    this.heartbeat_interval = (config.heartbeatInterval ?? 10) * 1000;
+    this.verbose = configDev.advanced_options.verbose;
+    this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
+
+    this.logger.warn(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
+    this.logger.warn(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
+
+    this.refresh_interval = config.refreshInterval * 1000; // convert to miliseconds
+    this.heartbeat_interval = config.heartbeatInterval * 1000;
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);

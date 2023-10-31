@@ -7,8 +7,6 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { Logger } from 'homebridge';
-
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
@@ -17,7 +15,7 @@ import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
 
-export abstract class CloudBase<T extends CloudSecurity> {
+abstract class CloudBase<T extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
   protected readonly FORMAT = 2;
   protected readonly APP_KEY = '4675636b';
@@ -37,7 +35,6 @@ export abstract class CloudBase<T extends CloudSecurity> {
   constructor(
     protected readonly account: string,
     protected readonly password: string,
-    protected readonly logger: Logger,
     protected readonly security: T,
   ) {
     // Required to serialize access to some cloud functions.
@@ -90,10 +87,10 @@ export abstract class CloudBase<T extends CloudSecurity> {
         if (Number.parseInt(response.data['code']) === 0) {
           return response.data['data'];
         } else {
-          this.logger.error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
+          throw new Error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
         }
       } catch (error) {
-        this.logger.error(`Error while sending request to ${url}: ${error}`);
+        throw new Error(`Error while sending request to ${url}: ${error}`);
       }
     }
 
@@ -106,7 +103,7 @@ export abstract class CloudBase<T extends CloudSecurity> {
     });
 
     if (response) {
-      this.logger.info('Logged in to Midea Cloud.');
+      // this.logger.info('Logged in to Midea Cloud.');
       return response['loginId'];
     }
 
@@ -182,16 +179,16 @@ export abstract class CloudBase<T extends CloudSecurity> {
 class MSmartHomeCloud extends CloudBase<CloudSecurity> {
   protected API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
-  constructor(account: string, password: string, logger: Logger) {
-    super(account, password, logger, new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'));
+  constructor(account: string, password: string) {
+    super(account, password, new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'));
   }
 }
 
 class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
   protected API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
-  constructor(account: string, password: string, logger: Logger) {
-    super(account, password, logger, new MeijuCloudSecurity('ad0ee21d48a64bf49f4fb583ab76e799', 'prod_secret123@muc'));
+  constructor(account: string, password: string) {
+    super(account, password, new MeijuCloudSecurity('ad0ee21d48a64bf49f4fb583ab76e799', 'prod_secret123@muc'));
   }
 }
 
@@ -200,8 +197,8 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
 
   protected sessionId?: string;
 
-  constructor(account: string, password: string, logger: Logger, security: T) {
-    super(account, password, logger, security);
+  constructor(account: string, password: string, security: T) {
+    super(account, password, security);
   }
 
   async apiRequest(
@@ -246,7 +243,7 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
           return response.data['result'];
         }
       } catch (error) {
-        this.logger.error(`Error while sending request to ${url}: ${error}`);
+        throw new Error(`Error while sending request to ${url}: ${error}`);
       }
     }
     throw new Error(`Failed to send request to ${url}.`);
@@ -285,8 +282,8 @@ class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
   protected APP_ID = '1017';
   protected SRC = '1017';
 
-  constructor(account: string, password: string, logger: Logger) {
-    super(account, password, logger, new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'));
+  constructor(account: string, password: string) {
+    super(account, password, new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'));
   }
 }
 
@@ -294,22 +291,22 @@ class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
   protected APP_ID = '1117';
   protected SRC = '17';
 
-  constructor(account: string, password: string, logger: Logger) {
-    super(account, password, logger, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'));
+  constructor(account: string, password: string) {
+    super(account, password, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'));
   }
 }
 
 export default class CloudFactory {
-  static createCloud(account: string, password: string, logger: Logger, cloud: string): CloudBase<CloudSecurity> {
+  static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
       case 'Midea SmartHome (MSmartHome)':
-        return new MSmartHomeCloud(account, password, logger);
+        return new MSmartHomeCloud(account, password);
       case 'Meiju':
-        return new MeijuCloud(account, password, logger);
+        return new MeijuCloud(account, password);
       case 'NetHome Plus':
-        return new NetHomePlusCloud(account, password, logger);
+        return new NetHomePlusCloud(account, password);
       case 'Midea Air':
-        return new MideaAirCloud(account, password, logger);
+        return new MideaAirCloud(account, password);
       default:
         throw new Error(`Cloud ${cloud} is not supported.`);
     }

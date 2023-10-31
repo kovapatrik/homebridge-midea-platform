@@ -21,7 +21,6 @@ import {
   MessageSwitchDisplay,
 } from './MideaACMessage';
 import { Config, DeviceConfig } from '../../platformUtils';
-import { makeBoolean } from '../../platform';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -84,8 +83,6 @@ export default class MideaACDevice extends MideaDevice {
   public attributes: ACAttributes;
 
   private fresh_air_version?: number;
-  private readonly DEFAULT_TEMPERATURE_STEP = 0.5;
-  private temperature_step?: number;
   private used_subprotocol = false;
   private bb_sn8_flag = false;
   private bb_timer = false;
@@ -100,7 +97,7 @@ export default class MideaACDevice extends MideaDevice {
    * refresh... and passed back to the Homebridge/HomeKit accessory callback
    * function to set their initial values.
    */
-  constructor(logger: Logger, device_info: DeviceInfo, config: Partial<Config>, deviceConfig: Partial<DeviceConfig>) {
+  constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
     this.attributes = {
       PROMPT_TONE: false,
@@ -137,21 +134,6 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
     };
-
-    // initialize device configuration with default values if necessary
-    deviceConfig.AC_options ??= {};
-    deviceConfig.AC_options.singleAccessory ??= makeBoolean(deviceConfig.AC_options.singleAccessory, true);
-    deviceConfig.AC_options.swingMode ??= undefined;
-    deviceConfig.AC_options.outDoorTemp ??= makeBoolean(deviceConfig.AC_options.outDoorTemp, false);
-    deviceConfig.AC_options.audioFeedback ??= makeBoolean(deviceConfig.AC_options.audioFeedback, false);
-    deviceConfig.AC_options.ecoSwitch ??= makeBoolean(deviceConfig.AC_options.ecoSwitch, true);
-    deviceConfig.AC_options.switchDisplay!.flag ??= makeBoolean(deviceConfig.AC_options.switchDisplay!.flag, true);
-    deviceConfig.AC_options.switchDisplay!.command ??= makeBoolean(deviceConfig.AC_options.switchDisplay!.command, false);
-    deviceConfig.AC_options.minTemp ??= 16;
-    deviceConfig.AC_options.maxTemp ??= 30;
-    deviceConfig.AC_options.tempStep ??= 1;
-    deviceConfig.AC_options.fahrenheit ??= makeBoolean(deviceConfig.AC_options.fahrenheit, false);
-    deviceConfig.AC_options.fanOnlyMode ??= makeBoolean(deviceConfig.AC_options.fanOnlyMode, false);
   }
 
   build_query() {

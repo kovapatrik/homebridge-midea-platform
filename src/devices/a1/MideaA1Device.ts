@@ -74,7 +74,7 @@ export default class MideaA1Device extends MideaDevice {
    * refresh... and passed back to the Homebridge/HomeKit accessory callback
    * function to set their initial values.
    */
-  constructor(logger: Logger, device_info: DeviceInfo, config: Partial<Config>, deviceConfig: Partial<DeviceConfig>) {
+  constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
 
     this.attributes = {
@@ -98,11 +98,9 @@ export default class MideaA1Device extends MideaDevice {
       SLEEP_MODE: false,
     };
 
-    // initialize device configuration with default values if necessary
-    deviceConfig.A1_options ??= {};
-    this.MIN_HUMIDITY = deviceConfig.A1_options.minHumidity ?? 35;
-    this.MAX_HUMIDITY = deviceConfig.A1_options.maxHumidity ?? 85;
-    this.HUMIDITY_STEP = deviceConfig.A1_options.humidityStep ?? 5;
+    this.MIN_HUMIDITY = deviceConfig.A1_options.minHumidity;
+    this.MAX_HUMIDITY = deviceConfig.A1_options.maxHumidity;
+    this.HUMIDITY_STEP = deviceConfig.A1_options.humidityStep;
   }
 
   build_query() {
