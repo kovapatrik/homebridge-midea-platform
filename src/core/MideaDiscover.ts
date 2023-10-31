@@ -194,10 +194,8 @@ export default class Discover extends EventEmitter {
         throw new Error(`Error while decrypting data: ${err}`);
       }
 
-      // eslint-disable-next-line max-len
-      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(
-        1,
-      )}.${decrypted_buffer.readUint8(0)}`;
+      // eslint-disable-next-line max-len, prettier/prettier
+      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
       const port = decrypted_buffer.readUIntLE(4, 2);
 
       if (ip_address !== ip) {
@@ -216,7 +214,7 @@ export default class Discover extends EventEmitter {
       const device_type = Number(`0x${name.split('_')[1]}`);
 
       return {
-        ip: ip_address,
+        ip: ip,
         port: port,
         id: device_id,
         model: model,
