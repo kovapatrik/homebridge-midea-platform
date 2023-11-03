@@ -66,9 +66,9 @@ export default class Discover extends EventEmitter {
    */
   public discoverDeviceByIP(ip: string, retries = 3) {
     let tries = 0;
-    const interval = setInterval(() => {
+
+    function broadcast(this: Discover) {
       if (this.ips.includes(ip) || tries++ > retries) {
-        clearInterval(interval);
         return;
       }
       this.logger?.debug(`Sending discovery message to ${ip}, try ${tries}...`);
@@ -79,7 +79,9 @@ export default class Discover extends EventEmitter {
           }
         });
       }
-    }, 3000);
+      setTimeout(broadcast.bind(this), 3000);
+    }
+    broadcast.bind(this)();
   }
 
   /*********************************************************************
@@ -126,9 +128,9 @@ export default class Discover extends EventEmitter {
     let tries = 0;
     const broadcastAddrs = this.ifBroadcastAddrs();
 
-    const interval = setInterval(() => {
+    function broadcast(this: Discover) {
       if (tries++ > retries) {
-        clearInterval(interval);
+        //clearInterval(interval);
         this.logger?.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
         this.emit('complete');
         return;
@@ -144,7 +146,9 @@ export default class Discover extends EventEmitter {
           });
         }
       }
-    }, 3000);
+      setTimeout(broadcast.bind(this), 3000);
+    }
+    broadcast.bind(this)();
   }
 
   private getDeviceVersion(data: Buffer) {
