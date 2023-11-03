@@ -1,3 +1,12 @@
+/***********************************************************************
+ * Midea Homebridge platform Custom UI server-side script
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/plugin-ui-utils
+ *
+ */
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
@@ -10,9 +19,15 @@ const chalk = require("chalk");
 
 var _ = require('lodash');
 
+/*********************************************************************
+ * Logger
+ * Lightweight log class to mimic the homebridge log capability
+ */
 class Logger {
-  constructor() {
+  _debug;
+  constructor(uiDebug) {
     chalk.level = 1;
+    this._debug = uiDebug;
   }
   info(str) {
     console.log(chalk.white(str));
@@ -24,10 +39,16 @@ class Logger {
     console.log(chalk.red(str));
   }
   debug(str) {
-    console.log(chalk.gray(str));
+    if (this._debug) {
+      console.log(chalk.gray(str));
+    }
   }
 }
 
+/*********************************************************************
+ * UIServer
+ * Main server-side script called when Custom UI client sends requests
+ */
 class UiServer extends HomebridgePluginUiServer {
 
   cloud;
@@ -37,16 +58,21 @@ class UiServer extends HomebridgePluginUiServer {
 
   constructor() {
     super();
-    this.logger = new Logger();
+    // Obtain the plugin configuration from homebridge config JSON file.
+    const config = require(this.homebridgeConfigPath).platforms.find((obj) => obj.platform === 'midea');
+    this.logger = new Logger(config.uiDebug ? true : false);
+    this.logger.info(`Custom UI created.`);
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket();
+    // false below should be determined on whether log recoverable errors or not 
+    this.promiseSocket = new PromiseSocket(this.logger, false);
 
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
       try {
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
         await this.cloud.login();
-      } catch (error) {
-        throw new RequestError(`Login failed: ${error.message}`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        throw new RequestError(`Login failed:\n${msg}`);
       }
     });
 
@@ -66,8 +92,100 @@ class UiServer extends HomebridgePluginUiServer {
     });
 
     this.onRequest('/discover', async () => {
-      const devices = await this.blockingDiscover();
-      const response = await Promise.all(devices.map(async (device) => {
+      try {
+        const devices = await this.blockingDiscover();
+        return devices
+          .filter((a) => Object.keys(a).length > 0)
+          .sort((a, b) => a.ip.localeCompare(b.ip));
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        throw new RequestError(`Device discovery failed:\n${msg}`);
+      }
+    });
+
+    // inform client-side script that we are ready to receive requests.
+    this.ready();
+  }
+
+  /*********************************************************************
+   * getNewCredentials
+   * Obtains token/key credentials and saves them in device object.
+   */
+  async getNewCredentials(device) {
+    let connected = false;
+    let i = 0;
+    this.logger.info(`[${device.name}] Retrieve credentials.`);
+    // Need to make two passes to obtain token/key credentials as they may work or not
+    // depending on byte order (little or big-endian).  Exit the loop as soon as one
+    // works or having tried both.
+    while (i <= 1 && !connected) {
+      // Start with big-endianess as it is more likely to succeed.
+      const endianess = i === 0 ? 'big' : 'little';
+      try {
+        const [token, key] = await this.cloud.getToken(device.id, endianess);
+        device.token = token ? token.toString('hex') : undefined;
+        device.key = key ? key.toString('hex') : undefined;
+        await this.authenticate(device);
+        connected = true;
+      } catch (e) {
+        //const msg = e instanceof Error ? e.stack : e;
+        this.logger.debug(`[${device.name}] Getting token and key with ${endianess}-endian is not successful.`);
+        // if failed then reset token/key
+        device.token = undefined;
+        device.key = undefined;
+      }
+      i++;
+    }
+    if (!device.token || !device.key) {
+      throw new Error(`[${device.name}] Authentication failed, token/key undefined.`);
+    }
+    return;
+  }
+
+  /*********************************************************************
+   * authenticate
+   * authenticate the token/key pair with the device to check that it works.
+   */
+  async authenticate(device) {
+    if (!(device.token && device.key)) {
+      throw new Error(`[${device.name}] Token or key is missing!`);
+    }
+    await this.promiseSocket.connect(device.port, device.ip);
+    // Wrap next block in try/catch/finally so we can destroy the socket if error occurs
+    try {
+      const request = this.security.encode_8370(Buffer.from(device.token, 'hex'), TCPMessageType.HANDSHAKE_REQUEST);
+      await this.promiseSocket.write(request);
+      const response = await this.promiseSocket.read()
+      if (response) {
+        if (response.length < 20) {
+          throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
+        }
+        const resp = response.subarray(8, 72);
+        this.security.tcp_key_from_resp(resp, Buffer.from(device.key, 'hex'));
+      } else {
+        throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}.`);
+      }
+    } catch (e) {
+      // cascade the error up the chain...
+      throw new Error(e);
+    } finally {
+      this.promiseSocket.destroy();
+    }
+  }
+
+  /*********************************************************************
+   * blockingDiscover
+   * broadcast to network(s) to discover new devices, obtain credentials
+   * for each as discovered.
+   */
+  async blockingDiscover() {
+    let devices = [];
+    const discover = new Discover(this.logger);
+    return new Promise((resolve, reject) => {
+      this.logger.info('Start device discovery...');
+      discover.startDiscover();
+      discover.on('device', async (device) => {
+        await this.getNewCredentials(device);
         switch (device.type) {
           case DeviceType.AIR_CONDITIONER:
             device['displayName'] = 'Air Conditioner';
@@ -79,73 +197,6 @@ class UiServer extends HomebridgePluginUiServer {
             device['displayName'] = 'Unknown';
             break;
         }
-        const [token, key] = await this.getNewCredentials(device);
-        device['token'] = token ? token.toString('hex') : undefined;
-        device['key'] = key ? key.toString('hex') : undefined;
-        return device;
-      }));
-      return response
-        .filter((a) => Object.keys(a).length > 0)
-        .sort((a, b) => a.ip.localeCompare(b.ip));
-    });
-
-    this.ready();
-  }
-
-  async getNewCredentials(device) {
-    let connected = false;
-    let i = 0;
-    let token = undefined;
-    let key = undefined;
-    // Need to make two passes to obtain token/key credentials as they may work or not
-    // depending on byte order (little or big-endian).  Exit the loop as soon as one
-    // works or having tried both.
-    while (i <= 1 && !connected) {
-      const endianess = i === 0 ? 'little' : 'big';
-      try {
-        [token, key] = await this.cloud.getToken(device.id, endianess);
-        await this.authenticate(device);
-        connected = true;
-      } catch (e) {
-        const msg = e instanceof Error ? e.stack : e;
-        this.logger.debug(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
-      }
-      i++;
-    }
-    return [token, key];
-  }
-
-  async authenticate(device) {
-    if (!(device.token && device.key)) {
-      throw new Error('Token or key is missing!');
-    }
-
-    await this.promiseSocket.connect(device.ip, device.port);
-    const request = this.security.encode_8370(token, TCPMessageType.HANDSHAKE_REQUEST);
-    await this.promiseSocket.write(request);
-    const response = await this.promiseSocket.read();
-
-    if (response) {
-      if (response.length < 20) {
-        this.promiseSocket.destroy();
-        throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
-      }
-      const resp = response.subarray(8, 72);
-      this.security.tcp_key_from_resp(resp, this.key);
-    } else {
-      this.promiseSocket.destroy();
-      throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
-    }
-    this.promiseSocket.destroy();
-  }
-
-  async blockingDiscover() {
-    let devices = [];
-    const discover = new Discover(this.logger);
-    return new Promise((resolve, reject) => {
-      this.logger.info('Start device discovery...');
-      discover.startDiscover();
-      discover.on('device', (device) => {
         devices.push(device);
       });
       discover.on('complete', () => {

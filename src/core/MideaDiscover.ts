@@ -25,7 +25,7 @@ export default class Discover extends EventEmitter {
   private security: LocalSecurity;
   private ips: string[] = [];
 
-  constructor(private readonly logger: Logger | undefined) {
+  constructor(private readonly logger: Logger) {
     super();
 
     this.security = new LocalSecurity();
@@ -38,7 +38,7 @@ export default class Discover extends EventEmitter {
     });
 
     this.socket.on('error', (err) => {
-      this.logger?.debug(`server error:\n${err.stack}`);
+      this.logger.debug(`server error:\n${err.stack}`);
     });
 
     // Register callback function executed when message received on the socket as
@@ -50,7 +50,7 @@ export default class Discover extends EventEmitter {
 
         const device_version = this.getDeviceVersion(msg);
         const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
-        this.logger?.info(`Discovered device: ${JSON.stringify(device_info)}`);
+        this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
         // Send signal to Homebridge platform with details on the discovered device
         this.emit('device', device_info);
@@ -71,11 +71,11 @@ export default class Discover extends EventEmitter {
       if (this.ips.includes(ip) || tries++ > retries) {
         return;
       }
-      this.logger?.debug(`Sending discovery message to ${ip}, try ${tries}...`);
+      this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
       for (const port of [6445, 20086]) {
         this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, ip, (err) => {
           if (err) {
-            this.logger?.error(`Error while sending message to ${ip}: ${err}`);
+            this.logger.error(`Error while sending message to ${ip}: ${err}`);
           }
         });
       }
@@ -113,9 +113,9 @@ export default class Discover extends EventEmitter {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      this.logger?.error(`Fatal error during plugin initialization:\n${msg}`);
+      this.logger.error(`Fatal error during plugin initialization:\n${msg}`);
     }
-    // this.logger?.info(`Broadcast addresses: ${JSON.stringify(list)}`);
+    // this.logger.info(`Broadcast addresses: ${JSON.stringify(list)}`);
     return list;
   }
 
@@ -131,17 +131,17 @@ export default class Discover extends EventEmitter {
     function broadcast(this: Discover) {
       if (tries++ > retries) {
         //clearInterval(interval);
-        this.logger?.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
+        this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
         this.emit('complete');
         return;
       }
       for (const ip of broadcastAddrs) {
-        this.logger?.debug(`Sending discovery message to ${ip}, try ${tries}...`);
+        this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
         for (const port of [6445, 20086]) {
           this.socket.send(Buffer.from(DISCOVERY_MESSAGE), port, ip, (err) => {
             if (err) {
               const msg = err instanceof Error ? err.stack : err;
-              this.logger?.error(`Error while sending message to ${ip}:${port}:\n${msg}`);
+              this.logger.error(`Error while sending message to ${ip}:${port}:\n${msg}`);
             }
           });
         }
@@ -203,7 +203,7 @@ export default class Discover extends EventEmitter {
       const port = decrypted_buffer.readUIntLE(4, 2);
 
       if (ip_address !== ip) {
-        this.logger?.warn(`IP address mismatch: ${ip_address} != ${ip}`);
+        this.logger.warn(`IP address mismatch: ${ip_address} != ${ip}`);
       }
 
       const model = decrypted_buffer.subarray(17, 25).toString();
@@ -240,7 +240,7 @@ export default class Discover extends EventEmitter {
   //         return new AirConditioner(device_info, this.logger?);
   //     }
   //   } catch (err) {
-  //     this.logger?.error(`Error while getting device info: ${err}`);
+  //     this.logger.error(`Error while getting device info: ${err}`);
   //   }
   // }
 }
