@@ -108,7 +108,7 @@ class UiServer extends HomebridgePluginUiServer {
         connected = true;
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
-        console.warn(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
+        this.logger.debug(`Getting token and key with ${endianess}-endian is not successful:\n${msg}`);
       }
       i++;
     }
