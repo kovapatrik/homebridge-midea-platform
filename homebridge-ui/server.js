@@ -6,17 +6,38 @@ const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
 
+const chalk = require("chalk");
+
 var _ = require('lodash');
+
+class Logger {
+  constructor() {
+    chalk.level = 1;
+  }
+  info(str) {
+    console.log(chalk.white(str));
+  }
+  warn(str) {
+    console.log(chalk.yellow(str));
+  }
+  error(str) {
+    console.log(chalk.red(str));
+  }
+  debug(str) {
+    console.log(chalk.gray(str));
+  }
+}
 
 class UiServer extends HomebridgePluginUiServer {
 
   cloud;
   promiseSocket;
   security;
+  logger;
 
   constructor() {
     super();
-
+    this.logger = new Logger();
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket();
 
@@ -41,7 +62,7 @@ class UiServer extends HomebridgePluginUiServer {
       return {
         defaultConfig,
         defaultDeviceConfig,
-      }
+      };
     });
 
     this.onRequest('/discover', async () => {
@@ -64,14 +85,13 @@ class UiServer extends HomebridgePluginUiServer {
         return device;
       }));
       return response
-              .filter((a) => Object.keys(a).length > 0)
-              .sort((a, b) => a.ip.localeCompare(b.ip));
+        .filter((a) => Object.keys(a).length > 0)
+        .sort((a, b) => a.ip.localeCompare(b.ip));
     });
 
     this.ready();
   }
 
-  
   async getNewCredentials(device) {
     let connected = false;
     let i = 0;
@@ -121,15 +141,16 @@ class UiServer extends HomebridgePluginUiServer {
 
   async blockingDiscover() {
     let devices = [];
-    const discover = new Discover();
+    const discover = new Discover(this.logger);
     return new Promise((resolve, reject) => {
+      this.logger.info('Start device discovery...');
       discover.startDiscover();
       discover.on('device', (device) => {
         devices.push(device);
       });
       discover.on('complete', () => {
         resolve(devices);
-      })
+      });
     });
   }
 }
