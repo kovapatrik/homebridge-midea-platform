@@ -68,7 +68,7 @@ class UiServer extends HomebridgePluginUiServer {
     this.logger.info(`Custom UI created.`);
     this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket(this.logger, false);
+    this.promiseSocket = new PromiseSocket(this.logger, config.logRecoverableErrors ? config.logRecoverableErrors : false);
 
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
       try {

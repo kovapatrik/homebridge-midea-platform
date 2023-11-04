@@ -1,3 +1,12 @@
+<!--*********************************************************************
+ * Midea Homebridge platform Custom UI client-side script
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/plugin-ui-utils
+ *
+ *-->
 <link href="css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
 <script src="js/bootstrap.min.js" crossorigin="anonymous"></script>
 
@@ -65,23 +74,34 @@
 <script>
 
   (async () => {
-
+    /*********************************************************************
+     * Initialize Javascript supporting code
+     */
     homebridge.showSpinner();
 
     const { defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults');
-
     const pluginConfig = await homebridge.getPluginConfig();
     const configSchema = await homebridge.getPluginConfigSchema();
 
     if (!pluginConfig.length) {
       pluginConfig.push({});
     }
-
-    console.log(`defaultConfig:\n${JSON.stringify(defaultConfig, null, 2)}`);
-
     let configuration = pluginConfig[0];
+
+    // Helper funcion to contol debug messages
+    function debugLog(s) {
+      if (configuration.uiDebug) {
+        console.debug(s);
+      }
+    }
+
+    debugLog(`Plugin Config:\n${JSON.stringify(configuration, null, 2)}`);
     configuration = await homebridge.request('/mergeToDefault', { config: configuration });
 
+    /*********************************************************************
+     * filterOutDefaults
+     * returns object for config.json that has default values removed
+     */
     function filterOutDefaults(object, defaults) {
 
       function deleteEmptyObjects(object) {
@@ -105,7 +125,7 @@
           });
         } else if (typeof v === 'object' && v !== null) {
           newObject[k] = filterOutDefaults(v, defaults[k]);
-        } else if (k in defaults && v === defaults[k]) {
+        } else if (typeof defaults === 'object' && k in defaults && v === defaults[k]) {
           continue;
         } else {
           newObject[k] = v;
@@ -114,11 +134,15 @@
       return deleteEmptyObjects(newObject);
     }
 
+    /*********************************************************************
+     * createForm
+     * Update the plugin config GUI. Does not save to config.json
+     */
     function createForm(configSchema, configuration) {
       const configForm = homebridge.createForm(configSchema, configuration);
       configForm.onChange(async (changes) => {
         changes = filterOutDefaults(changes, defaultConfig);
-        console.log(`[createForm] Config changes:\n${JSON.stringify(changes, null, 2)}`);
+        debugLog(`[createForm] Config changes:\n${JSON.stringify(changes, null, 2)}`);
         await homebridge.updatePluginConfig([changes]);
       });
     }
@@ -126,6 +150,9 @@
     createForm(configSchema, configuration);
     homebridge.hideSpinner();
 
+    /*********************************************************************
+     * Discover button clicked....
+     */
     document.getElementById('discoverBtn').addEventListener('click', async (e) => {
       e.preventDefault();
 
@@ -141,7 +168,7 @@
       homebridge.showSpinner();
 
       try {
-        console.log(`Request login...`);
+        console.info(`Request login...`);
         await homebridge.request('/login', { username, password, registeredApp });
       } catch (e) {
         homebridge.toast.error(e.message);
@@ -151,9 +178,10 @@
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
 
-      console.log(`Request device discovery...`);
+      console.info(`Request device discovery...`);
       const devices = await homebridge.request('/discover');
-      console.log(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
+      debugLog(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
+
       let currentConfig = await homebridge.getPluginConfig();
       currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
       currentConfig.devices = currentConfig.devices || [];
@@ -175,8 +203,24 @@
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {
             addCell.appendChild(document.createTextNode('Not supported'));
-          } else if (currentConfig.devices.find((d) => d.id === device.id)) {
-            addCell.appendChild(document.createTextNode('Already added'));
+          } else if (currentDevice = currentConfig.devices.find((d) => d.id === device.id)) {
+            // addCell.appendChild(document.createTextNode('Already added'));
+            debugLog(`Existing device:\n${JSON.stringify(currentDevice, null, 2)}`);
+            const button = document.createElement('button');
+            button.innerText = 'Update';
+            button.className = 'btn btn-secondary';
+            button.addEventListener('click', async () => {
+              const i = configuration.devices.findIndex((o) => o.id === device.id);
+              configuration.devices[i].advanced_options.token = device.token;
+              configuration.devices[i].advanced_options.key = device.key;
+              createForm(configSchema, configuration); // update view
+
+              addCell.removeChild(button);
+              addCell.appendChild(document.createTextNode('Updated'));
+
+              homebridge.toast.success('Device Updated');
+            });
+            addCell.appendChild(button);
           } else {
             const button = document.createElement('button');
             button.innerText = 'Add';
@@ -198,6 +242,7 @@
                 ...defaultDeviceConfig,
                 ...newDevice
               });
+              debugLog(`Adding new device:\n${JSON.stringify({ ...defaultDeviceConfig, ...newDevice }, null, 2)}`);
               createForm(configSchema, configuration); // update view
 
               addCell.removeChild(button);
@@ -216,6 +261,5 @@
       homebridge.hideSpinner();
     });
   })();
-
 
 </script>

@@ -3,6 +3,7 @@ export type Config = {
   heartbeatInterval: number;
   verbose: boolean;
   logRecoverableErrors: boolean;
+  uiDebug: boolean;
   devices: DeviceConfig[];
 };
 
@@ -11,6 +12,7 @@ export const defaultConfig: Config = {
   heartbeatInterval: 10,
   verbose: false,
   logRecoverableErrors: true,
+  uiDebug: false,
   devices: [],
 };
 
