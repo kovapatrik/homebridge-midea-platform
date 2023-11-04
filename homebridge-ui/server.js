@@ -25,23 +25,26 @@ var _ = require('lodash');
  */
 class Logger {
   _debug;
-  constructor(uiDebug) {
+  constructor(uiDebug = false) {
     chalk.level = 1;
     this._debug = uiDebug;
   }
   info(str) {
-    console.log(chalk.white(str));
+    console.info(chalk.white(str));
   }
   warn(str) {
-    console.log(chalk.yellow(str));
+    console.warn(chalk.yellow(str));
   }
   error(str) {
-    console.log(chalk.red(str));
+    console.error(chalk.red(str));
   }
   debug(str) {
     if (this._debug) {
-      console.log(chalk.gray(str));
+      console.debug(chalk.gray(str));
     }
+  }
+  setDebugEnabled(enabled = true) {
+    this._debug = enabled;
   }
 }
 
@@ -55,15 +58,16 @@ class UiServer extends HomebridgePluginUiServer {
   promiseSocket;
   security;
   logger;
+  config;
 
   constructor() {
     super();
     // Obtain the plugin configuration from homebridge config JSON file.
     const config = require(this.homebridgeConfigPath).platforms.find((obj) => obj.platform === 'midea');
-    this.logger = new Logger(config.uiDebug ? true : false);
+    this.logger = new Logger(config.uiDebug ? config.uiDebug : false);
     this.logger.info(`Custom UI created.`);
+    this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
-    // false below should be determined on whether log recoverable errors or not 
     this.promiseSocket = new PromiseSocket(this.logger, false);
 
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
@@ -81,6 +85,9 @@ class UiServer extends HomebridgePluginUiServer {
       config.devices.forEach((device) => {
         _.defaultsDeep(device, defaultDeviceConfig);
       });
+      this.config = config;
+      this.logger.setDebugEnabled(config.uiDebug ? config.uiDebug : false);
+      this.logger.debug(`Merged config: ${JSON.stringify(config, null, 2)}`);
       return config;
     });
 
@@ -94,6 +101,7 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/discover', async () => {
       try {
         const devices = await this.blockingDiscover();
+        this.logger.debug(`All devices:\n${JSON.stringify(devices, null, 2)}`);
         return devices
           .filter((a) => Object.keys(a).length > 0)
           .sort((a, b) => a.ip.localeCompare(b.ip));
@@ -129,7 +137,7 @@ class UiServer extends HomebridgePluginUiServer {
         connected = true;
       } catch (e) {
         //const msg = e instanceof Error ? e.stack : e;
-        this.logger.debug(`[${device.name}] Getting token and key with ${endianess}-endian is not successful.`);
+        this.logger.debug(`[${device.name}] Getting token and key with ${endianess}-endian is not successful.\n${e}`);
         // if failed then reset token/key
         device.token = undefined;
         device.key = undefined;
@@ -139,6 +147,7 @@ class UiServer extends HomebridgePluginUiServer {
     if (!device.token || !device.key) {
       throw new Error(`[${device.name}] Authentication failed, token/key undefined.`);
     }
+    this.logger.debug(`Token: ${device.token}, Key: ${device.key}`);
     return;
   }
 
@@ -151,11 +160,12 @@ class UiServer extends HomebridgePluginUiServer {
       throw new Error(`[${device.name}] Token or key is missing!`);
     }
     await this.promiseSocket.connect(device.port, device.ip);
-    // Wrap next block in try/catch/finally so we can destroy the socket if error occurs
+    // Wrap next block in try/finally so we can destroy the socket if error occurs
+    // let thrown errors cascade up.
     try {
       const request = this.security.encode_8370(Buffer.from(device.token, 'hex'), TCPMessageType.HANDSHAKE_REQUEST);
       await this.promiseSocket.write(request);
-      const response = await this.promiseSocket.read()
+      const response = await this.promiseSocket.read();
       if (response) {
         if (response.length < 20) {
           throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
@@ -165,9 +175,6 @@ class UiServer extends HomebridgePluginUiServer {
       } else {
         throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}.`);
       }
-    } catch (e) {
-      // cascade the error up the chain...
-      throw new Error(e);
     } finally {
       this.promiseSocket.destroy();
     }

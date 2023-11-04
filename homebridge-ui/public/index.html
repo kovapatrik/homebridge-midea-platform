@@ -44,8 +44,7 @@
                 <th scope="col">Type</th>
                 <th scope="col">Model</th>
                 <th scope="col">Id</th>
-                <th scope="col">Token</th>
-                <th scope="col">Key</th>
+                <th scope="col">Token / Key</th>
                 <th scope="col">Local Ip</th>
                 <th scope="col">Add</th>
               </tr>
@@ -77,6 +76,8 @@
     if (!pluginConfig.length) {
       pluginConfig.push({});
     }
+
+    console.log(`defaultConfig:\n${JSON.stringify(defaultConfig, null, 2)}`);
 
     let configuration = pluginConfig[0];
     configuration = await homebridge.request('/mergeToDefault', { config: configuration });
@@ -117,8 +118,9 @@
       const configForm = homebridge.createForm(configSchema, configuration);
       configForm.onChange(async (changes) => {
         changes = filterOutDefaults(changes, defaultConfig);
+        console.log(`[createForm] Config changes:\n${JSON.stringify(changes, null, 2)}`);
         await homebridge.updatePluginConfig([changes]);
-      })
+      });
     }
 
     createForm(configSchema, configuration);
@@ -139,6 +141,7 @@
       homebridge.showSpinner();
 
       try {
+        console.log(`Request login...`);
         await homebridge.request('/login', { username, password, registeredApp });
       } catch (e) {
         homebridge.toast.error(e.message);
@@ -148,29 +151,32 @@
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
 
+      console.log(`Request device discovery...`);
       const devices = await homebridge.request('/discover');
+      console.log(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
       let currentConfig = await homebridge.getPluginConfig();
       currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
       currentConfig.devices = currentConfig.devices || [];
       if (devices) {
         devices.forEach((device) => {
-          const tr = table.insertRow()
-          const td = tr.insertCell()
-          td.appendChild(document.createTextNode(device.name))
-          td.setAttribute('scope', 'row')
+          const tr = table.insertRow();
+          const td = tr.insertCell();
+          td.appendChild(document.createTextNode(device.name));
+          td.setAttribute('scope', 'row');
 
-          tr.insertCell().appendChild(document.createTextNode(device.displayName))
-          tr.insertCell().appendChild(document.createTextNode(device.model))
-          tr.insertCell().appendChild(document.createTextNode(device.id))
-          tr.insertCell().appendChild(document.createTextNode(device.token))
-          tr.insertCell().appendChild(document.createTextNode(device.key))
-          tr.insertCell().appendChild(document.createTextNode(device.ip))
+          tr.insertCell().appendChild(document.createTextNode(device.displayName));
+          tr.insertCell().appendChild(document.createTextNode(device.model));
+          tr.insertCell().appendChild(document.createTextNode(device.id));
+          tr.insertCell().appendChild(document.createTextNode(device.token.slice(0, 6) + '...' + device.token.slice(-4) +
+            '\n' + device.key.slice(0, 6) + '...' + device.key.slice(-4)
+          ));
+          tr.insertCell().appendChild(document.createTextNode(device.ip));
 
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {
-            addCell.appendChild(document.createTextNode('Not supported'))
+            addCell.appendChild(document.createTextNode('Not supported'));
           } else if (currentConfig.devices.find((d) => d.id === device.id)) {
-            addCell.appendChild(document.createTextNode('Already added'))
+            addCell.appendChild(document.createTextNode('Already added'));
           } else {
             const button = document.createElement('button');
             button.innerText = 'Add';
@@ -199,7 +205,7 @@
 
               homebridge.toast.success('Device added');
             });
-            addCell.appendChild(button)
+            addCell.appendChild(button);
           }
         });
       } else {
