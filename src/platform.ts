@@ -33,6 +33,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
   public readonly accessories: MideaAccessory[] = [];
 
+  // Keep track of all devices discovered by broadcast
+  private discoveredDevices = {};
+  private discoveryInterval = 60; // seconds
+
   private readonly discover: Discover;
   // Need seperate variable because the DynamicPlatformPlugin constructor won't accept anything but the PlatformConfig type
   private readonly platformConfig: Config;
@@ -46,12 +50,21 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     // Add default config values
     this.platformConfig = defaultsDeep(config, defaultConfig);
+    // Enforce min/max values
+    this.platformConfig.refreshInterval = Math.max(0, Math.min(this.platformConfig.refreshInterval ?? 30, 86400));
+    this.platformConfig.heartbeatInterval = Math.max(10, Math.min(this.platformConfig.heartbeatInterval ?? 10, 120));
+    // debug log configuration
+    this.log.debug(`Configuration:\n${JSON.stringify(this.platformConfig, null, 2)}`);
 
     this.discover = new Discover(log);
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
     this.discover.on('device', this.deviceDiscovered.bind(this));
+
+    // Register callback with Discover class that is called when we have exhausted
+    // all retries to discover devices.  We can now check what was found.
+    this.discover.on('complete', this.discoveryComplete.bind(this));
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -79,10 +92,46 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // If we have configuration indexed by ID use that, if not use IP address.
     const deviceConfig = this.platformConfig.devices.find((device: DeviceConfig) => device.id === device_info.id);
     if (deviceConfig) {
+      // keep track of discovered devices
+      this.discoveredDevices[device_info.id] = true;
+      // Override name with that provided in the config.json settings
       device_info.name = deviceConfig.name ?? device_info.name;
       this.addDevice(device_info, deviceConfig);
     } else {
-      this.log.info(`[${device_info.name} | ${device_info.ip}}] Device is not added to config.`);
+      this.log.warn(`[${device_info.name} | ${device_info.ip}}] New device discovered, you must add it to the config.json settings.`);
+    }
+  }
+
+  /*********************************************************************
+   * discoveryComplete
+   * Function called by the 'complete' on handler.
+   */
+  private discoveryComplete() {
+    this.log.debug(`Discovery complete, check for missing devices`);
+    // Check if network broadcasting found all devices that user configured.  If not then
+    // we have to handle those.
+    let missingDevices = 0;
+    Object.values(this.platformConfig.devices).forEach((device) => {
+      if (!this.discoveredDevices[device.id]) {
+        // This device was not found by network discovery.
+        missingDevices++;
+        if (this.discoveredDevices[device.id] === undefined) {
+          this.discoveredDevices[device.id] = false;
+          this.log.warn(`[${device.name}] Device not found (id: ${device.id}), will retry every ${this.discoveryInterval} seconds`);
+        } else {
+          this.log.debug(`[${device.name}] Device not found (id: ${device.id}), will retry in ${this.discoveryInterval} seconds`);
+        }
+      }
+    });
+    if (missingDevices > 0) {
+      // Some devices not found. Keep retrying periodically until all are found.
+      setTimeout(() => {
+        missingDevices = 0;
+        // on repeat attempts only retry once (so two broadcasts sent), 3000 miliseconds apart.
+        this.discover.startDiscover(1, 3000);
+      }, this.discoveryInterval * 1000);
+    } else {
+      this.log.info(`All configured devices added to Homebridge`);
     }
   }
 
@@ -134,9 +183,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
         const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
         if (device) {
-          // We only need to login to Midea cloud if we are setting up a new accessory.  This is to
-          // retrieve token/key credentials.  If device was cached then we already have credentials.
           if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
+            // token/key provided in config file, use those... set values in cached context
             this.log.info(`[${device_info.name}] New device at ${device_info.ip}:${device_info.port}, using token/key from config file`);
             accessory.context.token = deviceConfig.advanced_options.token;
             accessory.context.key = deviceConfig.advanced_options.key;

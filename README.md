@@ -99,18 +99,16 @@ Midea cloud credentals (Username / Password) are not saved as these are only req
   * **id** *(required)*: ID to identify specific device.  This will be filled in by the device discovery process in the Settings window but uou can also find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
   * **advanced_options** *(required)*: Object with settings specific for this device:
     * **token** *(required)*: Device login token.
-    * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin. <!-- In addition it will also allow a device to be registered even if it is offline during plugin initialization.-->
+    * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin.
     * **verbose** *(optional)*: Override global setting for this one device.
     * **logRecoverableErrors** *(optional)*: Override global setting for this one device.
   * **<device_options>** *(optional)*: Object with name and options that are device type specific.  See *device notes* below.
 
 ## Plugin Initialization
 
-When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN) by sending a message to the broadcast address of the subnet for each network interface attached to the Homebridge server.  Midea devices attached to the network will respond and are checked against devices configured in the plugin platform config.json file. Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).
+When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN) by sending a message to the broadcast address of the subnet for each network interface attached to the Homebridge server.  Midea devices attached to the network will respond and are checked against devices configured in the plugin platform config.json file. Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).
 
-At the end of the discovery process, if there are devices configured in the *devices* array with deviceID that was not discovered, then a warning is noted in the log.
-<!--If the device configiration includes *name, type, ip, deviceId, token* and *key* then the plugin will register an accessory for the device even if it is offline. When the device comes back online then it will function normally without requiring a restart.
--->
+At the end of the discovery process, if there are devices configured in the *devices* array with deviceID that was not discovered, then a warning is noted in the log and the plugin will retry every 60 seconds until the missine device comes online.
 
 ## Device Notes
 

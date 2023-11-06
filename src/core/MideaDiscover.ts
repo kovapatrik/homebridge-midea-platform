@@ -124,14 +124,15 @@ export default class Discover extends EventEmitter {
    * Sends broadcast to network discover Midea devices. Will continue sending
    * up to an additional "retries" times each spaced by 3 seconds.
    */
-  public startDiscover(retries = 3) {
+  public startDiscover(retries = 3, timeout = 2000) {
     let tries = 0;
+    // force timeout to be between 500ms and 5 seconds
+    timeout = Math.max(500, Math.min(timeout, 5000));
     const broadcastAddrs = this.ifBroadcastAddrs();
 
     function broadcast(this: Discover) {
       if (tries++ > retries) {
-        //clearInterval(interval);
-        this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
+        this.logger.debug(`Device discovery complete after ${retries + 1} network broadcasts.`);
         this.emit('complete');
         return;
       }
@@ -146,7 +147,7 @@ export default class Discover extends EventEmitter {
           });
         }
       }
-      setTimeout(broadcast.bind(this), 3000);
+      setTimeout(broadcast.bind(this), timeout);
     }
     broadcast.bind(this)();
   }

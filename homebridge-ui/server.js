@@ -207,6 +207,7 @@ class UiServer extends HomebridgePluginUiServer {
         devices.push(device);
       });
       discover.on('complete', () => {
+        this.logger.info('Device discovery complete.');
         resolve(devices);
       });
     });
