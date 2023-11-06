@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "midea",
+  "pluginAlias": "midea-platform",
   "pluginType": "platform",
   "customUi": true,
   "headerDisplay": "This plugin is currently experimental and under development.  Please report [bugs](https://github.com/kovapatrik/homebridge-midea-platform/issues)",

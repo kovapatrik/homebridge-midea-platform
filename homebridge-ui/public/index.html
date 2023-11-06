@@ -208,7 +208,7 @@
             debugLog(`Existing device:\n${JSON.stringify(currentDevice, null, 2)}`);
             const button = document.createElement('button');
             button.innerText = 'Update';
-            button.className = 'btn btn-secondary';
+            button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
               const i = configuration.devices.findIndex((o) => o.id === device.id);
               configuration.devices[i].advanced_options.token = device.token;
@@ -224,7 +224,7 @@
           } else {
             const button = document.createElement('button');
             button.innerText = 'Add';
-            button.className = 'btn btn-secondary';
+            button.className = 'btn btn-secondary btn-sm';
             button.addEventListener('click', async () => {
 
               const newDevice = {
