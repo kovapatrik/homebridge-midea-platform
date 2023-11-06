@@ -40,7 +40,7 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 ## Device Discovery
 
-Credentials for each Midea device on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface.  On opening the settings window click on *Discover Devices* and enter the requested information.
+Credentials for each Midea device on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface.  On opening the settings window, click on *Discover Devices* and enter the requested information.
 
 * **Registered app** *(required)*: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
 * **Username** *(required)*: Email address / userid that you use to login to the Midea cloud service.
@@ -84,29 +84,29 @@ Midea cloud credentals (Username / Password) are not saved as these are only req
     ]
 ```
 * **Platform Properties**
-  * **name** *(required)*: Platform name, set to 'Midea'.
-  * **platform** *(required)*: Platform identifier, set to 'midea'.
+  * **name** *(required)*: Platform name, set to 'Midea Platform'.
+  * **platform** *(required)*: Platform identifier, set to 'midea-platform'.
   * **refreshInterval** *(optional)*: Frequency in seconds that the plugin will query a device for status. The plugin maintains a cache of device status so that it can respond quickly to state requests from HomeKit without having to send a request to the Midea device.  Many Midea devices will automatically notify the plugin of any status change (e.g. temperature or humidity) but the plugin will also regularly request status from each device at the interval specified. The default is 30 seconds, the maximum is 86400 (24 hours). Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically.
   * **heartbeatInterval** *(optional)*: Frequency in seconds that the plugin will send a heartbeat message to a device to keep the network socket open. The default and minimum is 10 seconds, you can increase this up to a maximum of 120 (2 minutes). If you see socket closed error messages in the log reduce this value.
   * **verbose** *(optional)*: Enables more verbose debug logging.  This requires that Homebridge is run with debug mode enabled and will add additional network traffic details to the log. Default is false. See *logging* section below.
   * **logRecoverableErrors** *(optional)*: Enables logging of recoverable warning or error messages.  Default is true.  See *logging* and *network resiliency* sections below.
   * **uiDebug** *(optional)*: Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console.  Default is false.
-  * **devices** *(required)*: Optional array of device settings, see below.
+  * **devices** *(required)*: Array of device settings, see below.
 
 * **devices** is an array of objects that allow settings or overrides for each device and contains the following fields:
   * **type** *(required)*: Must be set to one of the supported devices.
   * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebridge accessories page. Entries in the log are prefixed with this name to assist in identifying the source of information being logged.
-  * **id** *(required)*: ID to identify specific device. You can find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
+  * **id** *(required)*: ID to identify specific device.  This will be filled in by the device discovery process in the Settings window but uou can also find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
   * **advanced_options** *(required)*: Object with settings specific for this device:
     * **token** *(required)*: Device login token.
-    * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin and avoid the need to login to the Midea cloud servers to retrieve device credentials. In addition it will also allow a device to be registered even if it is offline during plugin initialization.
+    * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin. <!-- In addition it will also allow a device to be registered even if it is offline during plugin initialization.-->
     * **verbose** *(optional)*: Override global setting for this one device.
     * **logRecoverableErrors** *(optional)*: Override global setting for this one device.
   * **<device_options>** *(optional)*: Object with name and options that are device type specific.  See *device notes* below.
 
-## Device Discovery
+## Plugin Initialization
 
-When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN) by sending a message to the broadcast address of each network interface's IP subnet attached to the Homebridge server.  Midea devices attached to the network will respond and are checked against devices configured in the plugin platform config.json file.  Devices with *token/key* credentials are registered as Homebride accessories. Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).
+When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN) by sending a message to the broadcast address of the subnet for each network interface attached to the Homebridge server.  Midea devices attached to the network will respond and are checked against devices configured in the plugin platform config.json file. Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).
 
 At the end of the discovery process, if there are devices configured in the *devices* array with deviceID that was not discovered, then a warning is noted in the log.
 <!--If the device configiration includes *name, type, ip, deviceId, token* and *key* then the plugin will register an accessory for the device even if it is offline. When the device comes back online then it will function normally without requiring a restart.
