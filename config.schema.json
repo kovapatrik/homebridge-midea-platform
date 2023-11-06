@@ -31,10 +31,11 @@
         "title": "Log recoverable errors",
         "type": "boolean",
         "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
-      },"uiDebug": {
+      },
+      "uiDebug": {
         "title": "Enable debug for custom UI",
         "type": "boolean",
-        "description": "Debug data will be logged to the Homebridge log and Javascript console."
+        "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
       "devices": {
         "type": "array",
