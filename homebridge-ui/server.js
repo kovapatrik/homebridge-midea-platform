@@ -15,8 +15,6 @@ const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
 
-const chalk = require("chalk");
-
 var _ = require('lodash');
 
 /*********************************************************************
@@ -25,22 +23,35 @@ var _ = require('lodash');
  */
 class Logger {
   _debug;
+  _Reset = "\x1b[0m";
+  _Bright = "\x1b[1m";
+  _Dim = "\x1b[2m";
+
+  _FgBlack = "\x1b[30m";
+  _FgRed = "\x1b[31m";
+  _FgGreen = "\x1b[32m";
+  _FgYellow = "\x1b[33m";
+  _FgBlue = "\x1b[34m";
+  _FgMagenta = "\x1b[35m";
+  _FgCyan = "\x1b[36m";
+  _FgWhite = "\x1b[37m";
+  _FgGray = "\x1b[90m";
+
   constructor(uiDebug = false) {
-    chalk.level = 1;
     this._debug = uiDebug;
   }
   info(str) {
-    console.info(chalk.white(str));
+    console.info(this._FgWhite + str + this._Reset);
   }
   warn(str) {
-    console.warn(chalk.yellow(str));
+    console.warn(this._FgYellow + str + this._Reset);
   }
   error(str) {
-    console.error(chalk.red(str));
+    console.error(this._FgRed + str + this._Reset);
   }
   debug(str) {
     if (this._debug) {
-      console.debug(chalk.gray(str));
+      console.debug(this._FgGray + str + this._Reset);
     }
   }
   setDebugEnabled(enabled = true) {
