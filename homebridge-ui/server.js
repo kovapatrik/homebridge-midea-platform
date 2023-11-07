@@ -75,11 +75,11 @@ class UiServer extends HomebridgePluginUiServer {
     super();
     // Obtain the plugin configuration from homebridge config JSON file.
     const config = require(this.homebridgeConfigPath).platforms.find((obj) => obj.platform === 'midea-platform');
-    this.logger = new Logger(config.uiDebug ? config.uiDebug : false);
+    this.logger = new Logger(config?.uiDebug ? config.uiDebug : false);
     this.logger.info(`Custom UI created.`);
     this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket(this.logger, config.logRecoverableErrors ? config.logRecoverableErrors : false);
+    this.promiseSocket = new PromiseSocket(this.logger, config?.logRecoverableErrors ? config.logRecoverableErrors : false);
 
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
       try {
