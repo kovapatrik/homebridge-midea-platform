@@ -95,14 +95,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Outdoor temperature sensor
     if (this.configDev.AC_options.outDoorTemp) {
-      this.outDoorTemperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Outdoor');
-      if (!this.outDoorTemperatureService) {
-        this.outDoorTemperatureService = this.accessory.addService(
-          this.platform.Service.TemperatureSensor,
-          `${this.device.name} Outdoor`,
-          'Outdoor',
-        );
-      }
+      this.outDoorTemperatureService =
+        this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Outdoor') ||
+        this.accessory.addService(this.platform.Service.TemperatureSensor, `${this.device.name} Outdoor`, 'Outdoor');
+
       this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Outdoor`);
 
       this.outDoorTemperatureService
@@ -122,15 +118,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Switches
     if (this.configDev.AC_options.ecoSwitch || this.configDev.AC_options.switchDisplay.flag) {
-      const switchAccessory = this.accessory;
-
       // Display
       if (this.configDev.AC_options.switchDisplay.flag) {
         this.device.set_alternate_switch_display(this.configDev.AC_options.switchDisplay.command);
-        this.displayService = switchAccessory.getServiceById(this.platform.Service.Switch, 'Display');
-        if (!this.displayService) {
-          this.displayService = switchAccessory.addService(this.platform.Service.Switch, `${this.device.name} Display`, 'Display');
-        }
+        this.displayService =
+          this.accessory.getServiceById(this.platform.Service.Switch, 'Display') ||
+          this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Display`, 'Display');
         this.displayService
           .getCharacteristic(this.platform.Characteristic.On)
           .onGet(this.getDisplayActive.bind(this))
@@ -138,10 +131,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       }
 
       if (this.configDev.AC_options.ecoSwitch) {
-        this.ecoModeService = switchAccessory.getServiceById(this.platform.Service.Switch, 'EcoMode');
-        if (!this.ecoModeService) {
-          this.ecoModeService = switchAccessory.addService(this.platform.Service.Switch, `${this.device.name} Eco`, 'EcoMode');
-        }
+        this.ecoModeService =
+          this.accessory.getServiceById(this.platform.Service.Switch, 'EcoMode') ||
+          this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Eco`, 'EcoMode');
         this.ecoModeService
           .getCharacteristic(this.platform.Characteristic.On)
           .onGet(this.getEcoMode.bind(this))
