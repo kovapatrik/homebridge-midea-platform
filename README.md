@@ -124,7 +124,6 @@ Providing air conditioner settings is optional and the whole section or individu
 
 ```json
 "AC_options": {
-    "singleAccessory": true,
     "swingMode": "Both",
     "outDoorTemp": false,
     "audioFeedback": false,
@@ -142,7 +141,6 @@ Providing air conditioner settings is optional and the whole section or individu
 ```
 
 * **Air Conditioner options**
-  * **singleAccessory** *(optional)*: Toggles if the AC and the optional sub accessories (e.g.: outdoor temperature sensor, display switch) are combined into one accessory or not. Default is true.
   * **swingMode** *(optional)*: Set swing mode of the unit. If you AC does not support this feature then leave it on None.
   * **outDoorTemp** *(optional)*: Toggles if the outdoor temperature is created with the accessory, default is false.
   * **audioFeedback** *(optional)*: Toggles if the unit beeps when a command is sent, default is false.

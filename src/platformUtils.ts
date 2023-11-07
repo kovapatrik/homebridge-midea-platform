@@ -25,7 +25,6 @@ export type DeviceConfig = {
     key: string;
     verbose: boolean; // override global setting
     logRecoverableErrors: boolean; // override global setting
-    singleAccessory: boolean;
     registerIfOffline: boolean;
   };
   AC_options: ACOptions;
@@ -70,7 +69,6 @@ export const defaultDeviceConfig: DeviceConfig = {
     verbose: false,
     logRecoverableErrors: true,
     registerIfOffline: false,
-    singleAccessory: true,
   },
   AC_options: {
     swingMode: SwingMode.NONE,

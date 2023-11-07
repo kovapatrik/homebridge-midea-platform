@@ -122,7 +122,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Switches
     if (this.configDev.AC_options.ecoSwitch || this.configDev.AC_options.switchDisplay.flag) {
-      const switchAccessory = this.getOrCreateSubAccessory('Switch');
+      const switchAccessory = this.accessory;
 
       // Display
       if (this.configDev.AC_options.switchDisplay.flag) {
@@ -342,33 +342,5 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setEcoMode(value: CharacteristicValue) {
     await this.device.set_attribute({ ECO_MODE: !!value });
-  }
-
-  getOrCreateSubAccessory(type: string): MideaAccessory {
-    let accessory: MideaAccessory;
-    if (this.configDev.advanced_options.singleAccessory) {
-      accessory = this.accessory;
-    } else {
-      const tempFind = this.accessories.findIndex((acc) => acc.context.type === type);
-      if (tempFind !== -1) {
-        accessory = this.accessories[tempFind];
-        this.accessories.splice(tempFind, 1);
-      } else {
-        accessory = new this.platform.api.platformAccessory(
-          `${this.device.name} ${type}`,
-          this.platform.api.hap.uuid.generate(`${this.device.id}:${type}`),
-        );
-        accessory.context.type = type;
-        accessory.context.id = this.accessory.UUID;
-
-        this.platform.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      }
-      accessory
-        .getService(this.platform.Service.AccessoryInformation)!
-        .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')
-        .setCharacteristic(this.platform.Characteristic.Model, this.device.model)
-        .setCharacteristic(this.platform.Characteristic.SerialNumber, this.device.sn);
-    }
-    return accessory;
   }
 }

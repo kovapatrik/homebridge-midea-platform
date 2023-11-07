@@ -90,11 +90,6 @@
                   "title": "Log recoverable errors",
                   "type": "boolean",
                   "description": "Override global setting for this one device."
-                },
-                "singleAccessory": {
-                  "title": "Single Accessory",
-                  "description": "Toggles if the device and the optional sub accessories (e.g.: outdoor temperature sensor, display switch) are combined into one accessory or not.",
-                  "type": "boolean"
                 }
               }
             },
@@ -243,8 +238,7 @@
                 "devices[].advanced_options.token",
                 "devices[].advanced_options.key",
                 "devices[].advanced_options.verbose",
-                "devices[].advanced_options.logRecoverableErrors",
-                "devices[].advanced_options.singleAccessory"
+                "devices[].advanced_options.logRecoverableErrors"
               ]
             },
             {
