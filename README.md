@@ -52,6 +52,10 @@ On clicking *Discover All Devices* the plugin sends a message to the broadcast a
 
 Midea cloud credentals (Username / Password) are not saved as these are only required for retrieval of each device token/key pair. Once those are known and saved this plugin no longer accesses Midea cloud servers over the internet.
 
+### Deleting a device
+
+If you delete a device in the plugin settings window, or the Homebridge config.json file, then note that this does *not* delete the cached accessory from Homebridge... the device will still be visible in Homebridge and Apple Home, but it will not respond to any requests or update any data.  To remove the device from Apple Home you must use Homebridge Settings and select *Remove Single Cached Accessory* to complete the deletion. **Caution:** removing an accessory from Apple Home may impact any automations that are dependent on the accessory, possibly deleting the automations.
+
 ### Configuration File
 
 ```json
@@ -108,7 +112,7 @@ Midea cloud credentals (Username / Password) are not saved as these are only req
 
 When the plugin initializes it attempts to find all devices attached to the Local Area Network (LAN) by sending a message to the broadcast address of the subnet for each network interface attached to the Homebridge server.  Midea devices attached to the network will respond and are checked against devices configured in the plugin platform config.json file. Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).
 
-At the end of the discovery process, if there are devices configured in the *devices* array with deviceID that was not discovered, then a warning is noted in the log and the plugin will retry every 60 seconds until the missine device comes online.
+At the end of the discovery process, if there are devices configured in the *devices* array with deviceID that was not discovered, then a warning is noted in the log and the plugin will retry every 60 seconds until the missing device comes online.
 
 ## Device Notes
 

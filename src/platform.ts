@@ -51,8 +51,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // Add default config values
     this.platformConfig = defaultsDeep(config, defaultConfig);
     // Enforce min/max values
-    this.platformConfig.refreshInterval = Math.max(0, Math.min(this.platformConfig.refreshInterval ?? 30, 86400));
-    this.platformConfig.heartbeatInterval = Math.max(10, Math.min(this.platformConfig.heartbeatInterval ?? 10, 120));
+    this.platformConfig.refreshInterval = Math.max(0, Math.min(this.platformConfig.refreshInterval, 86400));
+    this.platformConfig.heartbeatInterval = Math.max(10, Math.min(this.platformConfig.heartbeatInterval, 120));
     // debug log configuration
     this.log.debug(`Configuration:\n${JSON.stringify(this.platformConfig, null, 2)}`);
 
@@ -166,9 +166,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             await device.connect(false);
           }
-          // Set serial number and model into the context if they are provided.
-          existingAccessory.context.sn = device_info.sn ?? 'unknown';
-          existingAccessory.context.model = device_info.model ?? 'unknown';
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
@@ -194,6 +191,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           } else {
             throw new Error(`Token/key not provided in config file, cannot add new device`);
           }
+          // Set serial number and model into the context if they are provided.
+          accessory.context.sn = device_info.sn ?? 'unknown';
+          accessory.context.model = device_info.model ?? 'unknown';
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
           AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
