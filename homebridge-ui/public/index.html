@@ -1,0 +1,265 @@
+<!--*********************************************************************
+ * Midea Homebridge platform Custom UI client-side script
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/plugin-ui-utils
+ *
+ *-->
+<link href="css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+<script src="js/bootstrap.min.js" crossorigin="anonymous"></script>
+
+<div id="main" data-bs-theme="dark">
+  <div class="card">
+
+    <div class="card-header" id="uiButtons">
+      <h5 class="mb-0 text-center">
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#discoverDevices"
+          aria-expanded="false" aria-controls="discoverDevices" style="border: 0;">
+          Discover devices
+        </button>
+      </h5>
+    </div>
+
+    <div class="collapse" id="discoverDevices">
+      <div class="card-body">
+        <form>
+          <div class="mb-3">
+            <label for="registeredApp" class="form-label">Registered app</label>
+            <select id="registeredApp" class="form-select">
+              <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
+              <option value="NetHome Plus">NetHome Plus</option>
+              <option value="Meiju">Meiju</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username">
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password">
+          </div>
+          <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
+            Discover All Devices
+          </button>
+        </form>
+        <div class="text-center device-table" style="display: none" id="discoverTableWrapper">
+          <table class="table table-sm" id="discoverTable">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Model</th>
+                <th scope="col">Id</th>
+                <th scope="col">Token&nbsp;/&nbsp;Key</th>
+                <th scope="col">Local&nbsp;Ip</th>
+                <th scope="col">Add&nbsp;/&nbsp;Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No devices found!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+  (async () => {
+    /*********************************************************************
+     * Initialize Javascript supporting code
+     */
+    homebridge.showSpinner();
+
+    const { defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults');
+    const pluginConfig = await homebridge.getPluginConfig();
+    const configSchema = await homebridge.getPluginConfigSchema();
+
+    if (!pluginConfig.length) {
+      pluginConfig.push({});
+    }
+    let configuration = pluginConfig[0];
+
+    // Helper funcion to contol debug messages
+    function debugLog(s) {
+      if (configuration.uiDebug) {
+        console.debug(s);
+      }
+    }
+
+    debugLog(`Plugin Config:\n${JSON.stringify(configuration, null, 2)}`);
+    configuration = await homebridge.request('/mergeToDefault', { config: configuration });
+
+    /*********************************************************************
+     * filterOutDefaults
+     * returns object for config.json that has default values removed
+     */
+    function filterOutDefaults(object, defaults) {
+
+      function deleteEmptyObjects(object) {
+        for (const [k, v] of Object.entries(object)) {
+          if (!v || typeof v !== 'object' || v === null) {
+            continue;
+          }
+          deleteEmptyObjects(v);
+          if (Object.keys(v).length === 0) {
+            delete object[k];
+          }
+        }
+        return object;
+      }
+
+      let newObject = {};
+      for (const [k, v] of Object.entries(object)) {
+        if (k === 'devices') {
+          newObject[k] = v.map((device) => {
+            return filterOutDefaults(device, defaultDeviceConfig);
+          });
+        } else if (typeof v === 'object' && v !== null) {
+          newObject[k] = filterOutDefaults(v, defaults[k]);
+        } else if (typeof defaults === 'object' && k in defaults && v === defaults[k]) {
+          continue;
+        } else {
+          newObject[k] = v;
+        }
+      }
+      return deleteEmptyObjects(newObject);
+    }
+
+    /*********************************************************************
+     * createForm
+     * Update the plugin config GUI. Does not save to config.json
+     */
+    function createForm(configSchema, configuration) {
+      const configForm = homebridge.createForm(configSchema, configuration);
+      configForm.onChange(async (changes) => {
+        changes = filterOutDefaults(changes, defaultConfig);
+        debugLog(`[createForm] Config changes:\n${JSON.stringify(changes, null, 2)}`);
+        await homebridge.updatePluginConfig([changes]);
+      });
+    }
+
+    createForm(configSchema, configuration);
+    homebridge.hideSpinner();
+
+    /*********************************************************************
+     * Discover button clicked....
+     */
+    document.getElementById('discoverBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const registeredApp = document.getElementById('registeredApp').value;
+
+      if (!username || !password || !registeredApp) {
+        homebridge.toast.error('Please enter username, password and registered app');
+        return;
+      }
+
+      homebridge.showSpinner();
+
+      try {
+        console.info(`Request login...`);
+        await homebridge.request('/login', { username, password, registeredApp });
+      } catch (e) {
+        homebridge.toast.error(e.message);
+        homebridge.hideSpinner();
+      }
+
+      const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
+      table.innerHTML = '';
+
+      console.info(`Request device discovery...`);
+      const devices = await homebridge.request('/discover');
+      debugLog(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
+
+      let currentConfig = await homebridge.getPluginConfig();
+      currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
+      currentConfig.devices = currentConfig.devices || [];
+      if (devices) {
+        devices.forEach((device) => {
+          const tr = table.insertRow();
+          const td = tr.insertCell();
+          td.appendChild(document.createTextNode(device.name));
+          td.setAttribute('scope', 'row');
+
+          tr.insertCell().appendChild(document.createTextNode(device.displayName));
+          tr.insertCell().appendChild(document.createTextNode(device.model));
+          tr.insertCell().appendChild(document.createTextNode(device.id));
+          tr.insertCell().appendChild(document.createTextNode(device.token.slice(0, 6) + '...' + device.token.slice(-4) +
+            '\n' + device.key.slice(0, 6) + '...' + device.key.slice(-4)
+          ));
+          tr.insertCell().appendChild(document.createTextNode(device.ip));
+
+          const addCell = tr.insertCell();
+          if (device.displayName === 'Unknown') {
+            addCell.appendChild(document.createTextNode('Not supported'));
+          } else if (currentDevice = currentConfig.devices.find((d) => d.id === device.id)) {
+            // addCell.appendChild(document.createTextNode('Already added'));
+            debugLog(`Existing device:\n${JSON.stringify(currentDevice, null, 2)}`);
+            const button = document.createElement('button');
+            button.innerText = 'Update';
+            button.className = 'btn btn-outline-secondary btn-sm';
+            button.addEventListener('click', async () => {
+              const i = configuration.devices.findIndex((o) => o.id === device.id);
+              configuration.devices[i].advanced_options.token = device.token;
+              configuration.devices[i].advanced_options.key = device.key;
+              createForm(configSchema, configuration); // update view
+
+              addCell.removeChild(button);
+              addCell.appendChild(document.createTextNode('Updated'));
+
+              homebridge.toast.success('Device Updated');
+            });
+            addCell.appendChild(button);
+          } else {
+            const button = document.createElement('button');
+            button.innerText = 'Add';
+            button.className = 'btn btn-secondary btn-sm';
+            button.addEventListener('click', async () => {
+
+              const newDevice = {
+                id: device.id,
+                name: device.name,
+                type: device.displayName,
+                advanced_options: {
+                  ...defaultDeviceConfig.advanced_options,
+                  token: device.token,
+                  key: device.key,
+                }
+              };
+
+              configuration.devices.push({
+                ...defaultDeviceConfig,
+                ...newDevice
+              });
+              debugLog(`Adding new device:\n${JSON.stringify({ ...defaultDeviceConfig, ...newDevice }, null, 2)}`);
+              createForm(configSchema, configuration); // update view
+
+              addCell.removeChild(button);
+              addCell.appendChild(document.createTextNode('Added'));
+
+              homebridge.toast.success('Device added');
+            });
+            addCell.appendChild(button);
+          }
+        });
+      } else {
+        table.innerHTML += `<tr><td>No devices found!</td></tr>`;
+      }
+      document.getElementById('discoverTableWrapper').style.display = 'block';
+
+      homebridge.hideSpinner();
+    });
+  })();
+
+</script>

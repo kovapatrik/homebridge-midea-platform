@@ -13,7 +13,7 @@ import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageRe
 import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
 import PacketBuilder from './MideaPacketBuilder';
 import { PromiseSocket } from './MideaUtils';
-import { Config } from '../platformUtils';
+import { Config, DeviceConfig } from '../platformUtils';
 import EventEmitter from 'events';
 
 export type DeviceAttributeBase = {
@@ -42,6 +42,7 @@ export default abstract class MideaDevice extends EventEmitter {
   protected refresh_interval: number;
   protected heartbeat_interval: number;
   protected verbose: boolean;
+  protected logRecoverableErrors: boolean;
 
   private _sub_type?: number;
 
@@ -63,7 +64,8 @@ export default abstract class MideaDevice extends EventEmitter {
   constructor(
     protected readonly logger: Logger,
     device_info: DeviceInfo,
-    config: Partial<Config>,
+    config: Config,
+    configDev: DeviceConfig,
   ) {
     super();
 
@@ -71,20 +73,25 @@ export default abstract class MideaDevice extends EventEmitter {
     this.port = device_info.port;
 
     this.id = device_info.id;
-    this.model = device_info.model;
-    this.sn = device_info.sn;
+    this.model = device_info.model ?? 'unknown';
+    this.sn = device_info.sn ?? 'unknown';
     this.name = device_info.name;
     this.type = device_info.type;
     this.version = device_info.version;
 
-    this.verbose = config.verbose ?? false;
-    this.refresh_interval = (config.refreshInterval ?? 30) * 1000; // convert to miliseconds
-    this.heartbeat_interval = (config.heartbeatInterval ?? 10) * 1000;
+    this.verbose = configDev.advanced_options.verbose;
+    this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
+
+    this.logger.debug(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
+    this.logger.debug(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
+
+    this.refresh_interval = config.refreshInterval * 1000; // convert to miliseconds
+    this.heartbeat_interval = config.heartbeatInterval * 1000;
 
     this.security = new LocalSecurity();
     this.buffer = Buffer.alloc(0);
 
-    this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+    this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
   }
 
   get sub_type(): number {
@@ -137,8 +144,11 @@ export default abstract class MideaDevice extends EventEmitter {
       this.open();
       return true;
     } catch (err) {
-      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): ${err}`);
-      return false;
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}):\n${msg}`);
+      // Even though error thrown, it is probably because device is offline.  Start listening anyway.
+      this.open();
+      return true;
     }
   }
 
@@ -179,7 +189,7 @@ export default abstract class MideaDevice extends EventEmitter {
       throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
     }
     if (force_reinit || !this.promiseSocket || this.promiseSocket.destroyed) {
-      this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+      this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
       let connected = await this.connect(false);
       while (!connected) {
         connected = await this.connect(false);
@@ -210,44 +220,55 @@ export default abstract class MideaDevice extends EventEmitter {
     if (this._sub_type === undefined) {
       commands.unshift(new MessageQuerySubtype(this.type));
     }
-    let error_cnt = 0;
-    for (const cmd of commands) {
-      if (ignore_unsupported || !this.unsupported_protocol.includes(cmd.constructor.name)) {
-        await this.build_send(cmd);
-        if (wait_response) {
-          try {
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-              const message = await this.promiseSocket.read();
-              if (message.length === 0) {
-                throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
-              }
-              const result = this.parse_message(message);
-              if (result === ParseMessageResult.SUCCESS) {
-                const cmd_idx = this.unsupported_protocol.indexOf(cmd.constructor.name);
-                if (cmd_idx !== -1) {
-                  this.unsupported_protocol.splice(cmd_idx, 1);
+    try {
+      let error_cnt = 0;
+      for (const cmd of commands) {
+        if (ignore_unsupported || !this.unsupported_protocol.includes(cmd.constructor.name)) {
+          await this.build_send(cmd);
+          if (wait_response) {
+            try {
+              // eslint-disable-next-line no-constant-condition
+              while (true) {
+                const message = await this.promiseSocket.read();
+                if (message.length === 0) {
+                  throw new Error(`[${this.name} | refresh_status] Error when receiving data from device.`);
                 }
-                break;
-              } else if (result === ParseMessageResult.PADDING) {
-                continue;
-              } else {
-                throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
+                const result = this.parse_message(message);
+                if (result === ParseMessageResult.SUCCESS) {
+                  const cmd_idx = this.unsupported_protocol.indexOf(cmd.constructor.name);
+                  if (cmd_idx !== -1) {
+                    this.unsupported_protocol.splice(cmd_idx, 1);
+                  }
+                  break;
+                } else if (result === ParseMessageResult.PADDING) {
+                  continue;
+                } else {
+                  throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
+                }
               }
+            } catch (err) {
+              error_cnt++;
+              // TODO: handle connection error
+              // this.unsupported_protocol.push(cmd.constructor.name);
+              this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
             }
-          } catch (err) {
-            error_cnt++;
-            // TODO: handle connection error
-            // this.unsupported_protocol.push(cmd.constructor.name);
-            this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
           }
+        } else {
+          error_cnt++;
         }
-      } else {
-        error_cnt++;
       }
-    }
-    if (error_cnt === commands.length) {
-      this.logger.error(`[${this.name}] Refresh failed.`);
+
+      if (error_cnt === commands.length) {
+        this.logger.error(`[${this.name}] Refresh failed.`);
+        return false;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      if (this.logRecoverableErrors) {
+        this.logger.warn(`[${this.name} | refresh_status] Recoverable error:\n${msg}`);
+      } else {
+        this.logger.debug(`[${this.name} | refresh_status] Recoverable error:\n${msg}`);
+      }
       return false;
     }
     return true;
@@ -308,8 +329,10 @@ export default abstract class MideaDevice extends EventEmitter {
             this.process_message(decrypted);
           }
         } else {
-          if (this.verbose) {
+          if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
+          } else {
+            this.logger.debug(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
           }
         }
       } else {
@@ -374,8 +397,12 @@ export default abstract class MideaDevice extends EventEmitter {
     this.logger.info(`[${this.name}] Starting network listener.`);
     while (this.is_running) {
       while (this.promiseSocket.destroyed) {
-        this.logger.info(`[${this.name}] Create new socket, reconnect`);
-        this.promiseSocket = new PromiseSocket(this.logger, this.verbose);
+        if (this.logRecoverableErrors) {
+          this.logger.info(`[${this.name}] Create new socket, reconnect`);
+        } else {
+          this.logger.debug(`[${this.name}] Create new socket, reconnect`);
+        }
+        this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
         await this.connect(true); // need to refresh_status on connect as we reset start time below.
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
@@ -412,7 +439,11 @@ export default abstract class MideaDevice extends EventEmitter {
             if (timeout_counter > 120 / (this.SOCKET_TIMEOUT / 1000)) {
               // we've looped for ~two minutes and not received a successful response
               // to heartbeat or status refresh.  Therefore something must be broken.
-              this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              if (this.logRecoverableErrors) {
+                this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+              } else {
+                this.logger.debug(`[${this.name} | run] Heartbeat timeout, closing.`);
+              }
               this.close_socket();
               // We break out of inner loop, but within outer loop we will attempt to
               // reopen the socket and continue.
@@ -421,8 +452,10 @@ export default abstract class MideaDevice extends EventEmitter {
           }
         } catch (e) {
           const msg = e instanceof Error ? e.stack : e;
-          if (this.verbose) {
+          if (this.logRecoverableErrors) {
             this.logger.warn(`[${this.name} | run] Error reading from socket:\n${msg}`);
+          } else {
+            this.logger.debug(`[${this.name} | run] Error reading from socket:\n${msg}`);
           }
         }
       }

@@ -1,120 +1,160 @@
 {
-  "pluginAlias": "midea",
+  "pluginAlias": "midea-platform",
   "pluginType": "platform",
+  "customUi": true,
+  "headerDisplay": "This plugin is currently experimental and under development.  Please report [bugs](https://github.com/kovapatrik/homebridge-midea-platform/issues)",
+  "footerDisplay": "For help please see the [homepage](https://github.com/kovapatrik/homebridge-midea-platform)",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "user": {
-        "title": "Midea Account Email",
-        "type": "string",
-        "required": true
-      },
-      "password": {
-        "title": "Midea Account Password",
-        "type": "string",
-        "required": true
-      },
-      "registeredApp": {
-        "title": "Registered App",
-        "type": "string",
-        "description": "Select the app where your devices are registered in.",
-        "enum": ["Midea SmartHome (MSmartHome)", "NetHome Plus", "Meiju"],
-        "default": "Midea SmartHome (MSmartHome)",
-        "required": true
-      },
       "refreshInterval": {
         "title": "Interval, in seconds, to query Midea devices for state",
         "type": "number",
-        "required": false,
-        "default": 30,
         "minimum": 0,
         "maximum": 86400,
-        "description": "The plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried.  You can observe in the log whenever a state changes.  The default is 30 seconds, the maximum is 86400 (24 hours).  Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically."
+        "description": "Frequency that the plugin will query devices for their current state (temperature, humidity, etc.). Some Midea devices update the plugin automatically on any change, others require that the device is queried. The default is 30 seconds, the maximum is 86400 (24 hours). Setting value to 0 (zero) disables polling and updates will only be noted if devices sends it automatically."
       },
       "heartbeatInterval": {
         "title": "Interval, in seconds, to send keep-alive message to Midea devices",
         "type": "number",
-        "required": false,
-        "default": 10,
         "minimum": 10,
         "maximum": 120,
-        "description": "The plugin sends a message to Midea devices every 10 seconds to keep the network socket open.  You can increase this up to a maximum of 120 (2 minutes).  If you see socket closed messages in the log reduce this value."
-      },
-      "forceLogin": {
-        "title": "Login to Midea Cloud every restart",
-        "type": "boolean",
-        "required": false,
-        "default": false,
-        "description": "Force the plugin to login and retrieve new device token/key pair every time the plugin starts. By default login and token/key retrieval occurs only if a new Midea device is discovered on the network."
+        "description": "Frequency that the plugin sends a message to Midea devices to keep the network socket open. The default and minimum is 10 seconds, you can increase this up to a maximum of 120 (2 minutes). If you see socket closed messages in the log reduce this value."
       },
       "verbose": {
         "title": "Enable verbose logging",
         "type": "boolean",
-        "required": false,
-        "default": false,
-        "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support.  Homebridge must be running with debug enabled for any debug logging to be visible."
+        "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support. Homebridge must be running with debug enabled for any debug logging to be visible."
+      },
+      "logRecoverableErrors": {
+        "title": "Log recoverable errors",
+        "type": "boolean",
+        "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
+      },
+      "uiDebug": {
+        "title": "Enable debug for custom UI",
+        "type": "boolean",
+        "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
       "devices": {
-        "title": "Devices",
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "ip": {
-              "title": "Device IP Address",
-              "description": "The IP address of the device you want to add.",
+            "type": {
+              "title": "Device Type",
               "type": "string",
-              "required": true
+              "required": true,
+              "enum": [
+                "Air Conditioner",
+                "Dehumidifier"
+              ],
+              "description": "Select the type of device you are adding."
             },
             "name": {
               "title": "Device Name",
-              "description": "This is the name that will be used in HomeKit.",
+              "description": "This replaces the name provided by the Midea device.",
               "type": "string"
             },
-            "deviceType": {
-              "title": "Device Type",
-              "description": "Select the type of device you are adding.",
-              "type": "string",
-              "enum": ["Air Conditioner"],
-              "required": true
+            "id": {
+              "title": "Device Identifier",
+              "type": "number",
+              "required": true,
+              "description": "The ID of the device. This shouldn't be changed if it was added by discovery."
             },
-            "singleAccessory": {
-              "title": "Single Accessory",
-              "description": "Toggles if the AC and the optional sub accessories (e.g.: outdoor temperature sensor, display switch) are combined into one accessory or not.",
-              "type": "boolean",
-              "default": true
+            "advanced_options": {
+              "type": "object",
+              "title": "Advanced Settings",
+              "expandable": true,
+              "expanded": false,
+              "properties": {
+                "token": {
+                  "title": "Device login token",
+                  "type": "string",
+                  "required": true,
+                  "description": "Token of the device obtained from cloud. This shouldn't be changed if it was added by discovery."
+                },
+                "key": {
+                  "title": "Device login key",
+                  "type": "string",
+                  "required": true,
+                  "description": "Key of the device obtained from cloud. This shouldn't be changed if it was added by discovery."
+                },
+                "verbose": {
+                  "title": "Enable verbose logging",
+                  "type": "boolean",
+                  "description": "Override global setting for this one device."
+                },
+                "logRecoverableErrors": {
+                  "title": "Log recoverable errors",
+                  "type": "boolean",
+                  "description": "Override global setting for this one device."
+                }
+              }
             },
-            "AC_options": {
-              "title": "Options",
+            "A1_options": {
+              "title": "Dehumidifier Options",
               "type": "object",
               "condition": {
-                "functionBody": "return model.devices[arrayIndices].deviceType === 'Air Conditioner';"
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dehumidifier';"
+              },
+              "properties": {
+                "minHumidity": {
+                  "title": "Minimum Relative Humidity",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maxHumidity": {
+                  "title": "Maximum Relative Humidity",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "humidityStep": {
+                  "title": "Humidity Step",
+                  "type": "number",
+                  "enum": [
+                    5,
+                    10
+                  ]
+                }
+              }
+            },
+            "AC_options": {
+              "title": "Air Conditioner Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Air Conditioner';"
               },
               "properties": {
                 "swingMode": {
                   "title": "Swing Mode",
                   "description": "Set swing mode of the unit. If you AC does not support this feature then leave it on None.",
                   "type": "string",
-                  "enum": ["Vertical", "Horizontal", "Both"]
+                  "required": true,
+                  "enum": [
+                    "None",
+                    "Vertical",
+                    "Horizontal",
+                    "Both"
+                  ]
                 },
                 "outDoorTemp": {
                   "title": "Outdoor Temperature",
                   "description": "Toggles if the outdoor temperature is created with the accessory.",
-                  "type": "boolean",
-                  "default": false
+                  "type": "boolean"
                 },
                 "audioFeedback": {
                   "title": "Audio Feedback",
                   "description": "Toggles if the unit beeps when a command is sent.",
-                  "type": "boolean",
-                  "default": false
+                  "type": "boolean"
                 },
                 "ecoSwitch": {
                   "title": "Eco Mode Switch",
                   "description": "Toggles if the ECO mode switch is created with the accessory.",
-                  "type": "boolean",
-                  "default": true
+                  "type": "boolean"
                 },
                 "switchDisplay": {
                   "type": "object",
@@ -122,44 +162,40 @@
                     "flag": {
                       "title": "Switch Display",
                       "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
-                      "type": "boolean",
-                      "default": true
+                      "type": "boolean"
                     },
                     "command": {
                       "title": "Switch Display Alternate Command",
                       "description": "Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature.",
-                      "type": "boolean",
-                      "default": false
+                      "type": "boolean"
                     }
                   }
                 },
                 "minTemp": {
                   "title": "Minimum Temperature",
-                  "type": "number",
-                  "default": 16
+                  "type": "number"
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature",
-                  "type": "number",
-                  "default": 30
+                  "type": "number"
                 },
                 "tempStep": {
                   "title": "Temperature Step",
                   "type": "number",
-                  "default": 1,
-                  "enum": [0.5, 1]
+                  "enum": [
+                    0.5,
+                    1
+                  ]
                 },
-                "fahrenHeit": {
+                "fahrenheit": {
                   "title": "Fahrenheit",
                   "description": "Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.",
-                  "type": "boolean",
-                  "default": false
+                  "type": "boolean"
                 },
                 "fanOnlyMode": {
                   "title": "Fan Only Mode",
                   "description": "Toggles if the fan only mode is created with the accessory.",
-                  "type": "boolean",
-                  "default": false
+                  "type": "boolean"
                 }
               }
             }
@@ -170,62 +206,74 @@
   },
   "layout": [
     {
-      "key": "user",
-      "type": "string"
-    },
-    {
-      "key": "password",
-      "type": "string"
-    },
-    {
-      "key": "registeredApp",
-      "type": "string"
-    },
-    {
-      "key": "refreshInterval",
-      "type": "number"
-    },
-    {
-      "key": "heartbeatInterval",
-      "type": "number"
-    },
-    {
-      "key": "forceLogin",
-      "type": "boolean"
-    },
-    {
-      "key": "verbose",
-      "type": "boolean"
-    },
-    {
-      "key": "devices",
-      "type": "array",
-      "orderable": true,
-      "buttonText": "Add Device",
       "items": [
-        "devices[].ip",
-        "devices[].name",
-        "devices[].deviceType",
-        "devices[].singleAccessory",
         {
-          "key": "devices[].AC_options",
+          "ref": "optional",
+          "type": "fieldset",
           "expandable": true,
           "expanded": false,
-          "title": "Air Conditioner Options",
+          "title": "Optional Settings",
           "items": [
-            "devices[].AC_options.swingMode",
-            "devices[].AC_options.outDoorTemp",
-            "devices[].AC_options.audioFeedback",
-            "devices[].AC_options.ecoSwitch",
+            "refreshInterval",
+            "heartbeatInterval",
+            "verbose",
+            "logRecoverableErrors",
+            "uiDebug"
+          ]
+        },
+        {
+          "key": "devices",
+          "type": "tabarray",
+          "title": "{{ value.name || 'new device' }}",
+          "items": [
+            "devices[].type",
+            "devices[].id",
+            "devices[].name",
             {
-              "key": "devices[].AC_options.switchDisplay",
-              "items": ["devices[].AC_options.switchDisplay.flag", "devices[].AC_options.switchDisplay.command"]
+              "key": "devices[].advanced_options",
+              "title": "Advanced Settings",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].advanced_options.token",
+                "devices[].advanced_options.key",
+                "devices[].advanced_options.verbose",
+                "devices[].advanced_options.logRecoverableErrors"
+              ]
             },
-            "devices[].AC_options.minTemp",
-            "devices[].AC_options.maxTemp",
-            "devices[].AC_options.tempStep",
-            "devices[].AC_options.fahrenHeit",
-            "devices[].AC_options.fanOnlyMode"
+            {
+              "key": "devices[].A1_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].A1_options.minHumidity",
+                "devices[].A1_options.maxHumidity",
+                "devices[].A1_options.humidityStep"
+              ]
+            },
+            {
+              "key": "devices[].AC_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].AC_options.swingMode",
+                "devices[].AC_options.outDoorTemp",
+                "devices[].AC_options.audioFeedback",
+                "devices[].AC_options.ecoSwitch",
+                {
+                  "key": "devices[].AC_options.switchDisplay",
+                  "items": [
+                    "devices[].AC_options.switchDisplay.flag",
+                    "devices[].AC_options.switchDisplay.command"
+                  ]
+                },
+                "devices[].AC_options.minTemp",
+                "devices[].AC_options.maxTemp",
+                "devices[].AC_options.tempStep",
+                "devices[].AC_options.fahrenheit",
+                "devices[].AC_options.fanOnlyMode"
+              ]
+            }
           ]
         }
       ]

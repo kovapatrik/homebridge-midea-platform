@@ -19,7 +19,6 @@ import { LocalSecurity } from './MideaSecurity';
 import os from 'os';
 
 export default class Discover extends EventEmitter {
-  private readonly IPV4_BROADCAST = '255.255.255.255';
   private socket: dgram.Socket;
 
   private readonly xml_parser: XMLParser;
@@ -67,9 +66,9 @@ export default class Discover extends EventEmitter {
    */
   public discoverDeviceByIP(ip: string, retries = 3) {
     let tries = 0;
-    const interval = setInterval(() => {
+
+    function broadcast(this: Discover) {
       if (this.ips.includes(ip) || tries++ > retries) {
-        clearInterval(interval);
         return;
       }
       this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
@@ -80,7 +79,9 @@ export default class Discover extends EventEmitter {
           }
         });
       }
-    }, 3000);
+      setTimeout(broadcast.bind(this), 3000);
+    }
+    broadcast.bind(this)();
   }
 
   /*********************************************************************
@@ -123,14 +124,16 @@ export default class Discover extends EventEmitter {
    * Sends broadcast to network discover Midea devices. Will continue sending
    * up to an additional "retries" times each spaced by 3 seconds.
    */
-  public startDiscover(retries = 3) {
+  public startDiscover(retries = 3, timeout = 2000) {
     let tries = 0;
+    // force timeout to be between 500ms and 5 seconds
+    timeout = Math.max(500, Math.min(timeout, 5000));
     const broadcastAddrs = this.ifBroadcastAddrs();
 
-    const interval = setInterval(() => {
+    function broadcast(this: Discover) {
       if (tries++ > retries) {
-        clearInterval(interval);
-        this.logger.info(`Device discovery complete after ${retries + 1} network broadcasts.`);
+        this.logger.debug(`Device discovery complete after ${retries + 1} network broadcasts.`);
+        this.emit('complete');
         return;
       }
       for (const ip of broadcastAddrs) {
@@ -144,7 +147,9 @@ export default class Discover extends EventEmitter {
           });
         }
       }
-    }, 3000);
+      setTimeout(broadcast.bind(this), timeout);
+    }
+    broadcast.bind(this)();
   }
 
   private getDeviceVersion(data: Buffer) {
@@ -193,10 +198,9 @@ export default class Discover extends EventEmitter {
         throw new Error(`Error while decrypting data: ${err}`);
       }
 
+      // prettier-ignore
       // eslint-disable-next-line max-len
-      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(
-        1,
-      )}.${decrypted_buffer.readUint8(0)}`;
+      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
       const port = decrypted_buffer.readUIntLE(4, 2);
 
       if (ip_address !== ip) {
@@ -215,7 +219,7 @@ export default class Discover extends EventEmitter {
       const device_type = Number(`0x${name.split('_')[1]}`);
 
       return {
-        ip: ip_address,
+        ip: ip,
         port: port,
         id: device_id,
         model: model,
@@ -234,7 +238,7 @@ export default class Discover extends EventEmitter {
 
   //     switch (device_info.type) {
   //       case DeviceType.AIR_CONDITIONER:
-  //         return new AirConditioner(device_info, this.logger);
+  //         return new AirConditioner(device_info, this.logger?);
   //     }
   //   } catch (err) {
   //     this.logger.error(`Error while getting device info: ${err}`);
