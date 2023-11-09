@@ -158,7 +158,7 @@ class UiServer extends HomebridgePluginUiServer {
       }
       i++;
     }
-    this.logger.debug(`Token: ${device.token}, Key: ${device.key}`);
+    this.logger.debug(`[${device.name}] Token: ${device.token}, Key: ${device.key}`);
     return;
   }
 
