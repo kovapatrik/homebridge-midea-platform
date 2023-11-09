@@ -112,6 +112,9 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/discover', async () => {
       try {
         const devices = await this.blockingDiscover();
+        for (const device of devices) {
+          await this.getNewCredentials(device);
+        }
         this.logger.debug(`All devices:\n${JSON.stringify(devices, null, 2)}`);
         return devices
           .filter((a) => Object.keys(a).length > 0)
@@ -200,7 +203,6 @@ class UiServer extends HomebridgePluginUiServer {
       this.logger.info('Start device discovery...');
       discover.startDiscover();
       discover.on('device', async (device) => {
-        await this.getNewCredentials(device);
         switch (device.type) {
           case DeviceType.AIR_CONDITIONER:
             device['displayName'] = 'Air Conditioner';
