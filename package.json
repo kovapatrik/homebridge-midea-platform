@@ -1,5 +1,5 @@
 {
-  "displayName": "Homebridge Midea",
+  "displayName": "Homebridge Midea Platform",
   "name": "homebridge-midea-platform",
   "version": "0.4.4",
   "description": "Homebridge plugin for Midea devices",
