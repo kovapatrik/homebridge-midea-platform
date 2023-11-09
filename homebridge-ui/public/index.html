@@ -173,17 +173,22 @@
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
+        // Abort if we did not login successfully.
+        return;
       }
 
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
 
+      // Merge current config over to the server so discover has latest device config...
+      let currentConfig = await homebridge.getPluginConfig();
+      currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
+      configuration = await homebridge.request('/mergeToDefault', { config: currentConfig });
+      // Ask server to discover all devices...
       console.info(`Request device discovery...`);
       const devices = await homebridge.request('/discover');
       debugLog(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
 
-      let currentConfig = await homebridge.getPluginConfig();
-      currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
       currentConfig.devices = currentConfig.devices || [];
       if (devices) {
         devices.forEach((device) => {
@@ -197,12 +202,12 @@
           tr.insertCell().appendChild(document.createTextNode(device.model));
           tr.insertCell().appendChild(document.createTextNode(device.id));
           tr.insertCell().appendChild(document.createTextNode(
-            device.token ? 
+            device.token ?
               device.token.slice(0, 6) + '...' + device.token.slice(-4) :
-              'token missing' + '\n' + 
-            device.key ? 
-              device.key.slice(0, 6) + '...' + device.key.slice(-4) :
-              'key missing'
+              'token missing' + '\n' +
+                device.key ?
+                device.key.slice(0, 6) + '...' + device.key.slice(-4) :
+                'key missing'
           ));
           tr.insertCell().appendChild(document.createTextNode(device.ip));
 
@@ -211,36 +216,53 @@
             addCell.appendChild(document.createTextNode('Not supported'));
           } else if (!validAuth) {
             addCell.appendChild(document.createTextNode('Invalid credentials'));
-          } else if (currentDevice = currentConfig.devices.find((d) => d.id === device.id)) {
-            // addCell.appendChild(document.createTextNode('Already added'));
-            debugLog(`Existing device:\n${JSON.stringify(currentDevice, null, 2)}`);
+          } else if (currentConfig.devices.find((d) => d.id === device.id) || currentConfig.devices.find((d) => d.advanced_options.ip === device.ip)) {
+            // We already have a record for this device, either with device ID or IP address, add button to update it.
             const button = document.createElement('button');
             button.innerText = 'Update';
             button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
-              const i = configuration.devices.findIndex((o) => o.id === device.id);
-              configuration.devices[i].advanced_options.token = device.token;
-              configuration.devices[i].advanced_options.key = device.key;
-              createForm(configSchema, configuration); // update view
+              // Update button clicked...
+              const viewDevById = configuration.devices.find((d) => d.id === device.id);
+              const viewDev = viewDevById || configuration.devices.find((d) => d.advanced_options.ip === device.ip);
+              if (viewDev) {
+                viewDev.id = device.id;
+                viewDev.type = device.displayName;
+                // update name if blank/undefined
+                viewDev.name = viewDev.name ? viewDev.name : device.name;
+                // update token / key
+                viewDev.advanced_options = viewDev.advanced_options || {};
+                viewDev.advanced_options.token = device.token;
+                viewDev.advanced_options.key = device.key;
+                // update IP address only if we are already storing an IP address
+                viewDev.advanced_options.ip = viewDev.advanced_options.ip ? device.ip : undefined;
+                // refresh view
+                createForm(configSchema, configuration);
 
-              addCell.removeChild(button);
-              addCell.appendChild(document.createTextNode('Updated'));
+                addCell.removeChild(button);
+                addCell.appendChild(document.createTextNode('Updated'));
 
-              homebridge.toast.success('Device Updated');
+                homebridge.toast.success('Device Updated');
+              } else {
+                console.error(`Unable to find existing device record by ID or IP. Save configuration and retry.`);
+                homebridge.toast.error('Update failed. Save configuration and retry discovery.');
+              }
             });
             addCell.appendChild(button);
           } else {
+            // No record for this device, add button to add it.
             const button = document.createElement('button');
             button.innerText = 'Add';
             button.className = 'btn btn-secondary btn-sm';
             button.addEventListener('click', async () => {
-
+              // Add button clicked...
               const newDevice = {
                 id: device.id,
                 name: device.name,
                 type: device.displayName,
                 advanced_options: {
                   ...defaultDeviceConfig.advanced_options,
+                  // ip: device.ip, // do not save IP address. Not required as device discovered on local subnet. 
                   token: device.token,
                   key: device.key,
                 }
@@ -251,7 +273,8 @@
                 ...newDevice
               });
               debugLog(`Adding new device:\n${JSON.stringify({ ...defaultDeviceConfig, ...newDevice }, null, 2)}`);
-              createForm(configSchema, configuration); // update view
+              // refresh view
+              createForm(configSchema, configuration);
 
               addCell.removeChild(button);
               addCell.appendChild(document.createTextNode('Added'));
