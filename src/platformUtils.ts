@@ -21,6 +21,7 @@ export type DeviceConfig = {
   id: number;
   type: string;
   advanced_options: {
+    ip: string;
     token: string;
     key: string;
     verbose: boolean; // override global setting
@@ -64,6 +65,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   id: -1,
   type: '',
   advanced_options: {
+    ip: '',
     token: '',
     key: '',
     verbose: false,
