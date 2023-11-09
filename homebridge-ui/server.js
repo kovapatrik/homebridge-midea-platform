@@ -155,9 +155,6 @@ class UiServer extends HomebridgePluginUiServer {
       }
       i++;
     }
-    if (!device.token || !device.key) {
-      throw new Error(`[${device.name}] Authentication failed, token/key undefined.`);
-    }
     this.logger.debug(`Token: ${device.token}, Key: ${device.key}`);
     return;
   }

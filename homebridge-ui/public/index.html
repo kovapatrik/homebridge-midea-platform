@@ -187,6 +187,7 @@
       currentConfig.devices = currentConfig.devices || [];
       if (devices) {
         devices.forEach((device) => {
+          const validAuth = device.token && device.key;
           const tr = table.insertRow();
           const td = tr.insertCell();
           td.appendChild(document.createTextNode(device.name));
@@ -195,14 +196,21 @@
           tr.insertCell().appendChild(document.createTextNode(device.displayName));
           tr.insertCell().appendChild(document.createTextNode(device.model));
           tr.insertCell().appendChild(document.createTextNode(device.id));
-          tr.insertCell().appendChild(document.createTextNode(device.token.slice(0, 6) + '...' + device.token.slice(-4) +
-            '\n' + device.key.slice(0, 6) + '...' + device.key.slice(-4)
+          tr.insertCell().appendChild(document.createTextNode(
+            device.token ? 
+              device.token.slice(0, 6) + '...' + device.token.slice(-4) :
+              'token missing' + '\n' + 
+            device.key ? 
+              device.key.slice(0, 6) + '...' + device.key.slice(-4) :
+              'key missing'
           ));
           tr.insertCell().appendChild(document.createTextNode(device.ip));
 
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {
             addCell.appendChild(document.createTextNode('Not supported'));
+          } else if (!validAuth) {
+            addCell.appendChild(document.createTextNode('Invalid credentials'));
           } else if (currentDevice = currentConfig.devices.find((d) => d.id === device.id)) {
             // addCell.appendChild(document.createTextNode('Already added'));
             debugLog(`Existing device:\n${JSON.stringify(currentDevice, null, 2)}`);
