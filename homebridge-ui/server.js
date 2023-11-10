@@ -204,7 +204,7 @@ class UiServer extends HomebridgePluginUiServer {
     return new Promise((resolve, reject) => {
       this.logger.info('Start device discovery...');
       // If IP address is in config then probe them directly
-      Object.values(this.config.devices).forEach((device) => {
+      this.config.devices.forEach((device) => {
         // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
         const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
         const ip = device.advanced_options?.ip?.toString().trim();

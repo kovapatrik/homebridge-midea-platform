@@ -223,8 +223,7 @@
             button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
               // Update button clicked...
-              const viewDevById = configuration.devices.find((d) => d.id === device.id);
-              const viewDev = viewDevById || configuration.devices.find((d) => d.advanced_options.ip === device.ip);
+              const viewDev = configuration.devices.find((d) => d.id === device.id) || configuration.devices.find((d) => d.advanced_options.ip === device.ip);
               if (viewDev) {
                 viewDev.id = device.id;
                 viewDev.type = device.displayName;
