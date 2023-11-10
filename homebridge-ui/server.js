@@ -180,12 +180,13 @@ class UiServer extends HomebridgePluginUiServer {
       const response = await this.promiseSocket.read();
       if (response) {
         if (response.length < 20) {
-          throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
+          this.logger.debug(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length: ${response.length})\n${JSON.stringify(response)}`);
+          throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length mismatch)`);
         }
         const resp = response.subarray(8, 72);
         this.security.tcp_key_from_resp(resp, Buffer.from(device.key, 'hex'));
       } else {
-        throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}.`);
+        throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}.`);
       }
     } finally {
       this.promiseSocket.destroy();
