@@ -30,7 +30,7 @@ abstract class CloudBase<T extends CloudSecurity> {
   protected key?: string;
 
   protected semaphore: Semaphore;
-  protected loggedIn = false;
+  public loggedIn = false;
 
   constructor(
     protected readonly account: string,
@@ -266,7 +266,9 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
       if (response) {
         this.access_token = response['accessToken'];
         this.sessionId = response['sessionId'];
+        this.loggedIn = true;
       } else {
+        this.loggedIn = false;
         throw new Error('Failed to login.');
       }
     } catch (e) {
