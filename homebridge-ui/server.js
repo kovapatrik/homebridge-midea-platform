@@ -87,7 +87,8 @@ class UiServer extends HomebridgePluginUiServer {
         await this.cloud.login();
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
-        throw new RequestError(`Login failed:\n${msg}`);
+        this.logger.warn(`Login failed:\n${msg}`);
+        throw new RequestError('Login failed, check credentials.');
       }
     });
 
@@ -98,7 +99,7 @@ class UiServer extends HomebridgePluginUiServer {
       });
       this.config = config;
       this.logger.setDebugEnabled(config.uiDebug ? config.uiDebug : false);
-      this.logger.debug(`Merged config: ${JSON.stringify(config, null, 2)}`);
+      this.logger.debug(`Merged config:\n${JSON.stringify(config, null, 2)}`);
       return config;
     });
 
@@ -179,7 +180,8 @@ class UiServer extends HomebridgePluginUiServer {
       const response = await this.promiseSocket.read();
       if (response) {
         if (response.length < 20) {
-          throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
+          this.logger.debug(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length: ${response.length})\n${JSON.stringify(response)}`);
+          throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length mismatch)`);
         }
         const resp = response.subarray(8, 72);
         this.security.tcp_key_from_resp(resp, Buffer.from(device.key, 'hex'));
