@@ -186,7 +186,7 @@ class UiServer extends HomebridgePluginUiServer {
         const resp = response.subarray(8, 72);
         this.security.tcp_key_from_resp(resp, Buffer.from(device.key, 'hex'));
       } else {
-        throw Error(`[${device.name}] Authenticate error when receiving data from ${this.ip}:${this.port}.`);
+        throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}.`);
       }
     } finally {
       this.promiseSocket.destroy();
