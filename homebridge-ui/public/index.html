@@ -41,6 +41,10 @@
             <label for="password" class="form-label">Password</label>
             <input type="password" class="form-control" id="password">
           </div>
+          <div class="mb-3">
+            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on another LAN subnet)</label>
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses">
+          </div>
           <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
             Discover All Devices
           </button>
@@ -159,6 +163,7 @@
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       const registeredApp = document.getElementById('registeredApp').value;
+      let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
 
       if (!username || !password || !registeredApp) {
         homebridge.toast.error('Please enter username, password and registered app');
@@ -184,9 +189,29 @@
       let currentConfig = await homebridge.getPluginConfig();
       currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
       configuration = await homebridge.request('/mergeToDefault', { config: currentConfig });
+
+      // Add any existing IP addresses to list user provided
+      Object.values(configuration.devices).forEach((d) => {
+        if (d.advanced_options?.ip) ipAddrs.push(d.advanced_options.ip);
+      });
+      // Remove duplicates from the array
+      ipAddrs = [...new Set(ipAddrs)];
+      // Check that all are valid IPv4 addresses
+      const validIPs = ipAddrs.every(ip => {
+        const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+        return (regexIPv4.test(ip));
+      });
+      if (!validIPs) {
+        homebride.toast.error(`Invalid IP address provided`);
+        homebridge.hideSpinner();
+        // Abort if we have invalid IP address
+        return;
+      }
+
       // Ask server to discover all devices...
       console.info(`Request device discovery...`);
-      const devices = await homebridge.request('/discover');
+      debugLog(`Specific IP addresses: ${JSON.stringify(ipAddrs)}`);
+      const devices = await homebridge.request('/discover', { ip: ipAddrs.length ? ipAddrs : undefined });
       debugLog(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
 
       currentConfig.devices = currentConfig.devices || [];
@@ -216,24 +241,18 @@
             addCell.appendChild(document.createTextNode('Not supported'));
           } else if (!validAuth) {
             addCell.appendChild(document.createTextNode('Invalid credentials'));
-          } else if (currentConfig.devices.find((d) => d.id === device.id) || currentConfig.devices.find((d) => d.advanced_options.ip === device.ip)) {
-            // We already have a record for this device, either with device ID or IP address, add button to update it.
+          } else if (currentConfig.devices.find((d) => d.id === device.id)) {
+            // We already have a record for this device, either with device ID, add button to update it.
             const button = document.createElement('button');
             button.innerText = 'Update';
             button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
               // Update button clicked...
-              const viewDev = configuration.devices.find((d) => d.id === device.id) || configuration.devices.find((d) => d.advanced_options.ip === device.ip);
+              const viewDev = configuration.devices.find((d) => d.id === device.id);
               if (viewDev) {
-                viewDev.id = device.id;
-                viewDev.type = device.displayName;
-                // update name if blank/undefined
-                viewDev.name = viewDev.name ? viewDev.name : device.name;
-                // update token / key
-                viewDev.advanced_options = viewDev.advanced_options || {};
                 viewDev.advanced_options.token = device.token;
                 viewDev.advanced_options.key = device.key;
-                // update IP address only if we are already storing an IP address
+                // update IP address only if we are already storing an IP address (it might have changed)
                 viewDev.advanced_options.ip = viewDev.advanced_options.ip ? device.ip : undefined;
                 // refresh view
                 createForm(configSchema, configuration);
@@ -243,7 +262,7 @@
 
                 homebridge.toast.success('Device Updated');
               } else {
-                console.error(`Unable to find existing device record by ID or IP. Save configuration and retry.`);
+                console.error(`Unable to find existing device record by ID. Save configuration and retry.`);
                 homebridge.toast.error('Update failed. Save configuration and retry discovery.');
               }
             });
@@ -261,7 +280,8 @@
                 type: device.displayName,
                 advanced_options: {
                   ...defaultDeviceConfig.advanced_options,
-                  // ip: device.ip, // do not save IP address. Not required as device discovered on local subnet. 
+                  // add IP address only if it is one we were asked to find
+                  ip: (ipAddrs.includes(device.ip)) ? device.ip : undefined,
                   token: device.token,
                   key: device.key,
                 }
