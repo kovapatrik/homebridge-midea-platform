@@ -78,13 +78,11 @@
                 "token": {
                   "title": "Device login token",
                   "type": "string",
-                  "required": true,
                   "description": "Token of the device obtained from cloud. This shouldn't be changed if it was added by discovery."
                 },
                 "key": {
                   "title": "Device login key",
                   "type": "string",
-                  "required": true,
                   "description": "Key of the device obtained from cloud. This shouldn't be changed if it was added by discovery."
                 },
                 "verbose": {

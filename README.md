@@ -40,11 +40,11 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 ## Device Discovery
 
-Credentials for each Midea device on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface.  On opening the settings window, click on *Discover Devices* and enter the requested information.
+Midea devices uses different communication protocols. Protocol version 3 needs credentials for each device. Credentials for this Midea devices on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface. On opening the settings window, click on *Discover Devices* and enter the requested information. You can also run the discovery without providing your login credentials, however in this case if a protocol version 3 device is found in your network, it cannot be added. If you have a protocol version 3 device, you must provide your login credentials.
 
-* **Registered app** *(required)*: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
-* **Username** *(required)*: Email address / userid that you use to login to the Midea cloud service.
-* **Password** *(required)*: Password for Midea cloud service
+* **Registered app**: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
+* **Username**: Email address / userid that you use to login to the Midea cloud service.
+* **Password**: Password for Midea cloud service
 
 On clicking *Discover All Devices* the plugin sends a message to the broadcast address for the subnet of each network interface attached to the Homebridge server.  Midea devices attached to the network will respond.  Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).  At the end of the process details of all devices discovered are listed in the Settings window.  From there, you can add new devices or update the *token/key* credentials for existing devices.  You can then edit details for each device (for example change the name).
 
