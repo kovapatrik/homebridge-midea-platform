@@ -84,7 +84,9 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
       try {
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
-        await this.cloud.login();
+        if (username && password && registeredApp) {
+          await this.cloud.login();
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
