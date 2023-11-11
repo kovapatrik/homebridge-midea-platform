@@ -48,7 +48,7 @@ Credentials for each Midea device on your Local Area Network (LAN) must be retri
 
 On clicking *Discover All Devices* the plugin sends a message to the broadcast address for the subnet of each network interface attached to the Homebridge server.  Midea devices attached to the network will respond.  Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).  At the end of the process details of all devices discovered are listed in the Settings window.  From there, you can add new devices or update the *token/key* credentials for existing devices.  You can then edit details for each device (for example change the name).
 
-If your Midea device is not connected to the same LAN subnet as your Homebridge server then you must manually add the IP address of each device in config settings. You can do this in the plugin settings window by opening advanced options and typing in the IP address of your device. You can add multiple devices and then run the device discovery process to obtain *token/key* credentials. You must press the *Update* button for each device to copy the credentials into the device configuration.
+If your Midea device is not connected to the same LAN subnet as your Homebridge server then you must manually add the IP addresses of each device before running discovery.  Add a space- or comma-separated list of IP addresses to the entry field above the *Discover All devices* button.
 
 *You must click Save button* to update the Homebridge config.json file and restart the plugin.
 
