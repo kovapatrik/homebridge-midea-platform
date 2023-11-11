@@ -83,7 +83,9 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.platformConfig.devices.forEach((device) => {
       // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
       const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-      const ip = device.advanced_options?.ip?.toString().trim();
+      // Pull in defaults
+      device = defaultsDeep(device, defaultDeviceConfig);
+      const ip = device.advanced_options.ip.toString().trim();
       if (regexIPv4.test(ip)) {
         this.discover.discoverDeviceByIP(ip);
       } else if (ip) {

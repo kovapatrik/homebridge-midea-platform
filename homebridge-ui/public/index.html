@@ -191,7 +191,7 @@
       configuration = await homebridge.request('/mergeToDefault', { config: currentConfig });
 
       // Add any existing IP addresses to list user provided
-      Object.values(configuration.devices).forEach((d) => {
+      configuration.devices.forEach((d) => {
         if (d.advanced_options?.ip) ipAddrs.push(d.advanced_options.ip);
       });
       // Remove duplicates from the array
@@ -248,12 +248,12 @@
             button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
               // Update button clicked...
-              const viewDev = configuration.devices.find((d) => d.id === device.id);
-              if (viewDev) {
-                viewDev.advanced_options.token = device.token;
-                viewDev.advanced_options.key = device.key;
+              const i = configuration.devices.findIndex((o) => o.id === device.id);
+              if (i >= 0) {
+                configuration.devices[i].advanced_options.token = device.token;
+                configuration.devices[i].advanced_options.key = device.key;
                 // update IP address only if we are already storing an IP address (it might have changed)
-                viewDev.advanced_options.ip = viewDev.advanced_options.ip ? device.ip : undefined;
+                configuration.devices[i].advanced_options.ip = configuration.devices[i].advanced_options.ip ? device.ip : undefined;
                 // refresh view
                 createForm(configSchema, configuration);
 
