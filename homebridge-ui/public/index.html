@@ -42,7 +42,8 @@
             <input type="password" class="form-control" id="password">
           </div>
           <div class="mb-3">
-            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on another LAN subnet)</label>
+            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
+              another LAN subnet)</label>
             <input type="text" class="form-control" id="ip" placeholder="IP addresses">
           </div>
           <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
@@ -249,22 +250,17 @@
             button.addEventListener('click', async () => {
               // Update button clicked...
               const i = configuration.devices.findIndex((o) => o.id === device.id);
-              if (i >= 0) {
-                configuration.devices[i].advanced_options.token = device.token;
-                configuration.devices[i].advanced_options.key = device.key;
-                // update IP address only if we are already storing an IP address (it might have changed)
-                configuration.devices[i].advanced_options.ip = configuration.devices[i].advanced_options.ip ? device.ip : undefined;
-                // refresh view
-                createForm(configSchema, configuration);
+              configuration.devices[i].advanced_options.token = device.token;
+              configuration.devices[i].advanced_options.key = device.key;
+              // update IP address only if we are already storing an IP address (it might have changed)
+              configuration.devices[i].advanced_options.ip = configuration.devices[i].advanced_options.ip ? device.ip : undefined;
+              // refresh view
+              createForm(configSchema, configuration);
 
-                addCell.removeChild(button);
-                addCell.appendChild(document.createTextNode('Updated'));
+              addCell.removeChild(button);
+              addCell.appendChild(document.createTextNode('Updated'));
 
-                homebridge.toast.success('Device Updated');
-              } else {
-                console.error(`Unable to find existing device record by ID. Save configuration and retry.`);
-                homebridge.toast.error('Update failed. Save configuration and retry discovery.');
-              }
+              homebridge.toast.success('Device Updated');
             });
             addCell.appendChild(button);
           } else {
