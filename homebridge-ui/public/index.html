@@ -63,7 +63,6 @@
                 <th scope="col">Type</th>
                 <th scope="col">Model</th>
                 <th scope="col">Id</th>
-                <th scope="col">Protocol Version</th>
                 <th scope="col">Token&nbsp;/&nbsp;Key</th>
                 <th scope="col">Local&nbsp;Ip</th>
                 <th scope="col">Add&nbsp;/&nbsp;Update</th>
@@ -176,17 +175,13 @@
 
 
       console.info(`Request login...`);
-      // Login is only needed for protocol version 3 devices, so it's optional
-      if (username && password && registeredApp) {
-        try {
-          console.info(`Request login...`);
-          await homebridge.request('/login', { username, password, registeredApp });
-        } catch (e) {
-          homebridge.toast.error(e.message);
-          homebridge.hideSpinner();
-          // Abort if we did not login successfully.
-          return;
-        }
+      try {
+        await homebridge.request('/login', { username, password, registeredApp });
+      } catch (e) {
+        homebridge.toast.error(e.message);
+        homebridge.hideSpinner();
+        // Abort if we did not login successfully.
+        return;
       }
 
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
@@ -234,7 +229,6 @@
           tr.insertCell().appendChild(document.createTextNode(device.displayName));
           tr.insertCell().appendChild(document.createTextNode(device.model));
           tr.insertCell().appendChild(document.createTextNode(device.id));
-          tr.insertCell().appendChild(document.createTextNode(device.version));
           if (device.version === 3) {
             tr.insertCell().appendChild(document.createTextNode(
               device.token ?

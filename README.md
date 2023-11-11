@@ -40,7 +40,7 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 ## Device Discovery
 
-Midea devices use different communication protocols. Protocol version 3 needs credentials for each device. Credentials for these Midea devices on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface. On opening the settings window, click on *Discover Devices* and enter the requested information. You can run the discovery without providing your login credentials, however in this case if a protocol version 3 device is found in your network, it cannot be added. If you have a protocol version 3 device, you must provide your login credentials.
+Midea devices use different communication protocols. Protocol version 3 needs credentials for each device. Credentials for these Midea devices on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface. On opening the settings window, click on *Discover Devices* and enter the requested information. You can run the discovery without providing your login credentials, however in this case if a protocol version 3 device is found in your network, it cannot be added. If you see *No credentials" instead of an *Add* or *Update* button then you must provide your login credentials.
 
 * **Registered app** *(optional)*: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
 * **Username** *(optional)*: Email address / userid that you use to login to the Midea cloud service.
