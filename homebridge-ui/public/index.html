@@ -25,10 +25,10 @@
     <div class="collapse" id="discoverDevices">
       <div class="card-body">
         <form>
-          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
-            You can discover your devices without providing credentials, but for protocol version 3 devices you must
-            provide them.
-            After you discover you can see which devices are using protocol version 3.
+          <div class="mb-3">
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in the
+            Add/Update column then you must provide login credentials so that a <i>token/key</i> pair can be retrieved
+            from Midea cloud servers, these are protocol version 3 devices.
           </div>
           <div class="mb-3">
             <label for="registeredApp" class="form-label">Registered app</label>
@@ -49,7 +49,7 @@
           <div class="mb-3">
             <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
               another LAN subnet)</label>
-            <input type="text" class="form-control" id="ip" placeholder="IP addresses">
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)">
           </div>
           <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
             Discover All Devices
