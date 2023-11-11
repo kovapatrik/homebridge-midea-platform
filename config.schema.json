@@ -69,6 +69,12 @@
               "expandable": true,
               "expanded": false,
               "properties": {
+                "ip": {
+                  "title": "IP Address",
+                  "type": "string",
+                  "required": false,
+                  "description": "IP address of device on your local LAN. This is optional and shouldn't be changed if it was added by discovery."
+                },
                 "token": {
                   "title": "Device login token",
                   "type": "string",
@@ -235,6 +241,7 @@
               "expandable": true,
               "expanded": false,
               "items": [
+                "devices[].advanced_options.ip",
                 "devices[].advanced_options.token",
                 "devices[].advanced_options.key",
                 "devices[].advanced_options.verbose",

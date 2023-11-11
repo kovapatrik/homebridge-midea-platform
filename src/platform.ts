@@ -79,6 +79,20 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    */
   private finishedLaunching() {
     this.log.info('Start device discovery...');
+    // If IP address is in config then probe them directly
+    this.platformConfig.devices.forEach((device) => {
+      // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
+      const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+      // Pull in defaults
+      device = defaultsDeep(device, defaultDeviceConfig);
+      const ip = device.advanced_options.ip.toString().trim();
+      if (regexIPv4.test(ip)) {
+        this.discover.discoverDeviceByIP(ip);
+      } else if (ip) {
+        // IP is non-empty, non-null, but not valid IP address
+        this.log.warn(`[${device.name}] Invalid IP address in configuration: ${ip}`);
+      }
+    });
     // And then send broadcast to network(s)
     this.discover.startDiscover();
   }
@@ -111,7 +125,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // Check if network broadcasting found all devices that user configured.  If not then
     // we have to handle those.
     let missingDevices = 0;
-    Object.values(this.platformConfig.devices).forEach((device) => {
+    this.platformConfig.devices.forEach((device) => {
       if (!this.discoveredDevices[device.id]) {
         // This device was not found by network discovery.
         missingDevices++;

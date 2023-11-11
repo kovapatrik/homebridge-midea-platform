@@ -46,7 +46,9 @@ Credentials for each Midea device on your Local Area Network (LAN) must be retri
 * **Username** *(required)*: Email address / userid that you use to login to the Midea cloud service.
 * **Password** *(required)*: Password for Midea cloud service
 
-On clicking *Discover All Devices* the plugin sends a message to the broadcast address for the subnet of each network interface attached to the Homebridge server.  Midea devices attached to the network will respond.  Network discovery is repeated multiple times (currently 4 times at interval of 3 seconds between each).  At the end of the  process details of all devices discovered are listed in the Settings window.  From there, you can add new devices or update the *token/key* credentials for existing devices.  You can then edit details for each device (for example change the name).
+On clicking *Discover All Devices* the plugin sends a message to the broadcast address for the subnet of each network interface attached to the Homebridge server.  Midea devices attached to the network will respond.  Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).  At the end of the process details of all devices discovered are listed in the Settings window.  From there, you can add new devices or update the *token/key* credentials for existing devices.  You can then edit details for each device (for example change the name).
+
+If your Midea device is not connected to the same LAN subnet as your Homebridge server then you must manually add the IP addresses of each device before running discovery.  Add a space- or comma-separated list of IP addresses to the entry field above the *Discover All devices* button.
 
 *You must click Save button* to update the Homebridge config.json file and restart the plugin.
 
@@ -74,6 +76,7 @@ If you delete a device in the plugin settings window, or the Homebridge config.j
                     "name": "Dehumidifier",
                     "id": "123456789012345",
                     "advanced_options": {
+                        "ip": "192.168.100.1",
                         "token": "ABCDEF1234567890",
                         "key": "1234567890ABCDEF",
                         "verbose": false,
@@ -102,6 +105,7 @@ If you delete a device in the plugin settings window, or the Homebridge config.j
   * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebridge accessories page. Entries in the log are prefixed with this name to assist in identifying the source of information being logged.
   * **id** *(required)*: ID to identify specific device.  This will be filled in by the device discovery process in the Settings window but uou can also find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
   * **advanced_options** *(required)*: Object with settings specific for this device:
+    * **ip** *(optional)*: IP address of device on your local LAN. This is only required if the device is not on the same LAN subnet as your Homebridge server.
     * **token** *(required)*: Device login token.
     * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin.
     * **verbose** *(optional)*: Override global setting for this one device.
