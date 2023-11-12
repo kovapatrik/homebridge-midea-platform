@@ -63,6 +63,7 @@
                 <th scope="col">Type</th>
                 <th scope="col">Model</th>
                 <th scope="col">Id</th>
+                <th scope="col">Ver.</th>
                 <th scope="col">Token&nbsp;/&nbsp;Key</th>
                 <th scope="col">Local&nbsp;Ip</th>
                 <th scope="col">Add&nbsp;/&nbsp;Update</th>
@@ -229,6 +230,7 @@
           tr.insertCell().appendChild(document.createTextNode(device.displayName));
           tr.insertCell().appendChild(document.createTextNode(device.model));
           tr.insertCell().appendChild(document.createTextNode(device.id));
+          tr.insertCell().appendChild(document.createTextNode(device.version));
           if (device.version === 3) {
             tr.insertCell().appendChild(document.createTextNode(
               device.token ?
