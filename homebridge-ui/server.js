@@ -231,12 +231,13 @@ class UiServer extends HomebridgePluginUiServer {
             break;
         }
         devices.push(device);
-        this.pushEvent('showToast', { success: true, msg: `Discovered ${device.name} at ${device.ip}`, device: device });
+        // too verbose to post every device as found...
+        // this.pushEvent('showToast', { success: true, msg: `Discovered ${device.name} at ${device.ip}`, device: device });
       });
 
-      discover.on('retry', (tries) => {
+      discover.on('retry', (nTry, nDevices) => {
         this.logger.info('Device discovery complete.');
-        this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices...` });
+        this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices (${nDevices} found)` });
       });
 
       discover.on('complete', () => {

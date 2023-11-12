@@ -136,7 +136,7 @@ export default class Discover extends EventEmitter {
         this.emit('complete');
         return;
       } else {
-        this.emit('retry', tries);
+        this.emit('retry', tries, this.ips.length);
       }
       for (const ip of broadcastAddrs) {
         this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
