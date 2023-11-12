@@ -161,7 +161,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
     const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
-    if (device === undefined) {
+    if (device === null) {
       this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
     } else {
       if (existingAccessory) {
