@@ -11,6 +11,8 @@ export default class DeviceFactory {
         return new MideaACDevice(logger, device_info, config, deviceConfig);
       case DeviceType.DEHUMIDIFIER:
         return new MideaA1Device(logger, device_info, config, deviceConfig);
+      default:
+        return null;
     }
   }
 }

@@ -10,7 +10,7 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import Discover from './core/MideaDiscover';
-import { DeviceInfo } from './core/MideaConstants';
+import { DeviceInfo, ProtocolVersion } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
 import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils';
@@ -160,51 +160,52 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
-
-    if (existingAccessory) {
-      // the accessory already exists, restore from Homebridge cache
-      this.log.info(`[${device_info.name}] Restoring existing accessory from cache: ${existingAccessory.displayName}`);
-      const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
-      if (device) {
+    const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
+    if (device === null) {
+      this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
+    } else {
+      if (existingAccessory) {
+        // the accessory already exists, restore from Homebridge cache
+        this.log.info(`[${device_info.name}] Restoring existing accessory from cache: ${existingAccessory.displayName}`);
         try {
-          if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
-            // token/key provided in config file, use those... replacing values in cached context
-            this.log.info(`[${device_info.name}] Cached device, using token/key from config file`);
-            existingAccessory.context.token = deviceConfig.advanced_options.token;
-            existingAccessory.context.key = deviceConfig.advanced_options.key;
-            device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
-            await device.connect(false);
-          } else {
-            // use token/key values from the accessory cached context
-            this.log.info(`[${device_info.name}] Cached device, using saved credentials`);
-            device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
-            await device.connect(false);
+          // Token/key is only required for V3 devices
+          if (device_info.version === ProtocolVersion.V3) {
+            if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
+              // token/key provided in config file, use those... replacing values in cached context
+              this.log.info(`[${device_info.name}] Cached device, using token/key from config file`);
+              existingAccessory.context.token = deviceConfig.advanced_options.token;
+              existingAccessory.context.key = deviceConfig.advanced_options.key;
+              device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
+            } else {
+              // use token/key values from the accessory cached context
+              this.log.info(`[${device_info.name}] Cached device, using saved credentials`);
+              device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
+            }
           }
+          await device.connect(false);
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);
         }
       } else {
-        this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
-      }
-    } else {
-      try {
-        this.log.info('Adding new accessory:', device_info.name);
-        const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
-        const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
-        if (device) {
-          if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
-            // token/key provided in config file, use those... set values in cached context
-            this.log.info(`[${device_info.name}] New device at ${device_info.ip}:${device_info.port}, using token/key from config file`);
-            accessory.context.token = deviceConfig.advanced_options.token;
-            accessory.context.key = deviceConfig.advanced_options.key;
-            accessory.context.id = device_info.id.toString();
-            device.setCredentials(Buffer.from(accessory.context.token, 'hex'), Buffer.from(accessory.context.key, 'hex'));
-            await device.connect(false);
-          } else {
-            throw new Error(`Token/key not provided in config file, cannot add new device`);
+        try {
+          this.log.info('Adding new accessory:', device_info.name);
+          const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
+          // Token/key is only required for V3 devices
+          if (device_info.version === ProtocolVersion.V3) {
+            if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
+              // token/key provided in config file, use those... set values in cached context
+              this.log.info(`[${device_info.name}] New device at ${device_info.ip}:${device_info.port}, using token/key from config file`);
+              accessory.context.token = deviceConfig.advanced_options.token;
+              accessory.context.key = deviceConfig.advanced_options.key;
+              accessory.context.id = device_info.id.toString();
+              device.setCredentials(Buffer.from(accessory.context.token, 'hex'), Buffer.from(accessory.context.key, 'hex'));
+            } else {
+              throw new Error(`Token/key not provided in config file, cannot add new device`);
+            }
           }
+          await device.connect(false);
           // Set serial number and model into the context if they are provided.
           accessory.context.sn = device_info.sn ?? 'unknown';
           accessory.context.model = device_info.model ?? 'unknown';
@@ -213,14 +214,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        } else {
-          throw new Error(`Device type is unsupported by the plugin: ${device_info.type}`);
+        } catch (err) {
+          this.log.error(
+            `[${device_info.name} | ${device_info.ip}:${device_info.port}}] 
+            Cannot add new device ${device_info.ip}:${device_info.port}, error:\n${err}`,
+          );
         }
-      } catch (err) {
-        this.log.error(
-          `[${device_info.name} | ${device_info.ip}:${device_info.port}}] 
-          Cannot add new device ${device_info.ip}:${device_info.port}, error:\n${err}`,
-        );
       }
     }
   }
