@@ -110,6 +110,19 @@
     configuration = await homebridge.request('/mergeToDefault', { config: configuration });
 
     /*********************************************************************
+     * showToast event listener
+     * Provides information from server-side to the end user.
+     */
+    homebridge.addEventListener('showToast', (event) => {
+      debugLog(`showToast Received: ${JSON.stringify(event.data)}`);
+      if (event.data.success) {
+        homebridge.toast.success(event.data.msg);
+      } else {
+        homebridge.toast.error(event.data.msg);
+      }
+    });
+
+    /*********************************************************************
      * filterOutDefaults
      * returns object for config.json that has default values removed
      */
