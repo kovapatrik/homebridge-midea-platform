@@ -210,12 +210,14 @@ class UiServer extends HomebridgePluginUiServer {
     const discover = new Discover(this.logger);
     return new Promise((resolve, reject) => {
       this.logger.info('Start device discovery...');
+      this.pushEvent('showToast', { success: true, msg: 'Start device discovery' });
       // If IP addresses provided then probe them directly
       ipAddrs?.forEach((ip) => {
-          discover.discoverDeviceByIP(ip);
+        discover.discoverDeviceByIP(ip);
       });
       // And then send broadcast to network(s)
       discover.startDiscover();
+
       discover.on('device', async (device) => {
         switch (device.type) {
           case DeviceType.AIR_CONDITIONER:
@@ -229,9 +231,18 @@ class UiServer extends HomebridgePluginUiServer {
             break;
         }
         devices.push(device);
+        // too verbose to post every device as found...
+        // this.pushEvent('showToast', { success: true, msg: `Discovered ${device.name} at ${device.ip}`, device: device });
       });
+
+      discover.on('retry', (nTry, nDevices) => {
+        this.logger.info('Device discovery complete.');
+        this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices (${nDevices} found)` });
+      });
+
       discover.on('complete', () => {
         this.logger.info('Device discovery complete.');
+        this.pushEvent('showToast', { success: true, msg: 'Discovery complete' });
         resolve(devices);
       });
     });
