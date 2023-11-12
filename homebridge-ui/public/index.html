@@ -25,6 +25,11 @@
     <div class="collapse" id="discoverDevices">
       <div class="card-body">
         <form>
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in the
+            Add/Update column then you must provide login credentials so that a <i>token/key</i> pair can be retrieved
+            from Midea cloud servers, these are protocol version 3 devices.
+          </div>
           <div class="mb-3">
             <label for="registeredApp" class="form-label">Registered app</label>
             <select id="registeredApp" class="form-select">
@@ -44,7 +49,7 @@
           <div class="mb-3">
             <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
               another LAN subnet)</label>
-            <input type="text" class="form-control" id="ip" placeholder="IP addresses">
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)">
           </div>
           <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
             Discover All Devices
@@ -58,6 +63,7 @@
                 <th scope="col">Type</th>
                 <th scope="col">Model</th>
                 <th scope="col">Id</th>
+                <th scope="col">Ver.</th>
                 <th scope="col">Token&nbsp;/&nbsp;Key</th>
                 <th scope="col">Local&nbsp;Ip</th>
                 <th scope="col">Add&nbsp;/&nbsp;Update</th>
@@ -166,15 +172,11 @@
       const registeredApp = document.getElementById('registeredApp').value;
       let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
 
-      if (!username || !password || !registeredApp) {
-        homebridge.toast.error('Please enter username, password and registered app');
-        return;
-      }
-
       homebridge.showSpinner();
 
+
+      console.info(`Request login...`);
       try {
-        console.info(`Request login...`);
         await homebridge.request('/login', { username, password, registeredApp });
       } catch (e) {
         homebridge.toast.error(e.message);
@@ -218,7 +220,8 @@
       currentConfig.devices = currentConfig.devices || [];
       if (devices) {
         devices.forEach((device) => {
-          const validAuth = device.token && device.key;
+          // Token and key only needed for protocol version 3
+          const validAuth = (device.token && device.key) || device.version !== 3;
           const tr = table.insertRow();
           const td = tr.insertCell();
           td.appendChild(document.createTextNode(device.name));
@@ -227,21 +230,26 @@
           tr.insertCell().appendChild(document.createTextNode(device.displayName));
           tr.insertCell().appendChild(document.createTextNode(device.model));
           tr.insertCell().appendChild(document.createTextNode(device.id));
-          tr.insertCell().appendChild(document.createTextNode(
-            device.token ?
-              device.token.slice(0, 6) + '...' + device.token.slice(-4) :
-              'token missing' + '\n' +
-                device.key ?
-                device.key.slice(0, 6) + '...' + device.key.slice(-4) :
-                'key missing'
-          ));
+          tr.insertCell().appendChild(document.createTextNode(device.version));
+          if (device.version === 3) {
+            tr.insertCell().appendChild(document.createTextNode(
+              device.token ?
+                device.token.slice(0, 6) + '...' + device.token.slice(-4) :
+                'token missing' + '\n' +
+                  device.key ?
+                  device.key.slice(0, 6) + '...' + device.key.slice(-4) :
+                  'key missing'
+            ));
+          } else {
+            tr.insertCell().appendChild(document.createTextNode('not needed'));
+          }
           tr.insertCell().appendChild(document.createTextNode(device.ip));
 
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {
             addCell.appendChild(document.createTextNode('Not supported'));
           } else if (!validAuth) {
-            addCell.appendChild(document.createTextNode('Invalid credentials'));
+            addCell.appendChild(document.createTextNode('No credentials'));
           } else if (currentConfig.devices.find((d) => d.id === device.id)) {
             // We already have a record for this device, either with device ID, add button to update it.
             const button = document.createElement('button');

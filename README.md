@@ -40,11 +40,12 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 ## Device Discovery
 
-Credentials for each Midea device on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface.  On opening the settings window, click on *Discover Devices* and enter the requested information.
+Midea devices use different communication protocols. Protocol version 3 needs credentials for each device. Credentials for these Midea devices on your Local Area Network (LAN) must be retrieved from Midea cloud server, this is done through the Settings window in the Homebridge Config User Interface. On opening the settings window, click on *Discover Devices* and enter the requested information. You can run the discovery without providing your login credentials, however in this case if a protocol version 3 device is found in your network, it cannot be added. If you see *No credentials" instead of an *Add* or *Update* button then you must provide your login credentials.
 
-* **Registered app** *(required)*: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
-* **Username** *(required)*: Email address / userid that you use to login to the Midea cloud service.
-* **Password** *(required)*: Password for Midea cloud service
+* **Registered app** *(optional)*: Name of the Midea mobile app that you registered your userid and password with.  Defaults to *Midea SmartHome (MSmartHome)*, but you can also select *NetHome Plus* or *Meiju*.
+* **Username** *(optional)*: Email address / userid that you use to login to the Midea cloud service.
+* **Password** *(optional)*: Password for Midea cloud service.
+* **IP Addresses** *(optional)*: Comma- or space-separated list of device IP addresses.
 
 On clicking *Discover All Devices* the plugin sends a message to the broadcast address for the subnet of each network interface attached to the Homebridge server.  Midea devices attached to the network will respond.  Network discovery is repeated multiple times (currently 4 times at interval of 2 seconds between each).  At the end of the process details of all devices discovered are listed in the Settings window.  From there, you can add new devices or update the *token/key* credentials for existing devices.  You can then edit details for each device (for example change the name).
 
@@ -105,9 +106,9 @@ If you delete a device in the plugin settings window, or the Homebridge config.j
   * **name** *(optional)*: This replaces the name set by the Midea device and is displayed in the Homebridge accessories page. Entries in the log are prefixed with this name to assist in identifying the source of information being logged.
   * **id** *(required)*: ID to identify specific device.  This will be filled in by the device discovery process in the Settings window but uou can also find this from the Homebridge log during plugin initialization or in the Homebridge Config UI X by clicking on an accessory settings and copying the *Product Data* field.
   * **advanced_options** *(required)*: Object with settings specific for this device:
-    * **ip** *(optional)*: IP address of device on your local LAN. This is only required if the device is not on the same LAN subnet as your Homebridge server.
-    * **token** *(required)*: Device login token.
-    * **key** *(required)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin.
+    * **ip** *(optional)*: IP address of device on your local LAN. Required if the device is not on the same LAN subnet as your Homebridge server.
+    * **token** *(optional)*: Device login token. Required for protocol version 3 devices.
+    * **key** *(optional)*: Device login key. Specifying a token/key pair will override any values previously cached by the plugin. Required for protocol version 3 devices.
     * **verbose** *(optional)*: Override global setting for this one device.
     * **logRecoverableErrors** *(optional)*: Override global setting for this one device.
   * **<device_options>** *(optional)*: Object with name and options that are device type specific.  See *device notes* below.

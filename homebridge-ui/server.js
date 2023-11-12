@@ -10,7 +10,7 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
-const { DeviceType, TCPMessageType } = require("../dist/core/MideaConstants.js");
+const { DeviceType, TCPMessageType, ProtocolVersion } = require("../dist/core/MideaConstants.js");
 const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
@@ -84,11 +84,12 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/login', async ({ username, password, registeredApp }) => {
       try {
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
-        await this.cloud.login();
+        if (username && password && registeredApp) {
+          await this.cloud.login();
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
-        throw new RequestError('Login failed, check credentials.');
       }
     });
 
@@ -114,7 +115,12 @@ class UiServer extends HomebridgePluginUiServer {
       try {
         const devices = await this.blockingDiscover(ip);
         for (const device of devices) {
-          await this.getNewCredentials(device);
+          if (device.version === ProtocolVersion.V3 && this.cloud.loggedIn) {
+            await this.getNewCredentials(device);
+          } else {
+            device.token = '';
+            device.key = '';
+          }
         }
         this.logger.debug(`All devices:\n${JSON.stringify(devices, null, 2)}`);
         return devices
