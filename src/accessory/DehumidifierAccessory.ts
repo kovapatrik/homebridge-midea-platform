@@ -51,11 +51,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       .onGet(this.getTargetHumidifierDehumidifierState.bind(this))
       .onSet(this.setTargetHumidifierDehumidifierState.bind(this))
       .setProps({
-        validValues: [
-          this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER_OR_DEHUMIDIFIER,
-          this.platform.Characteristic.TargetHumidifierDehumidifierState.HUMIDIFIER,
-          this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
-        ],
+        validValues: [this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER],
       });
 
     this.service
