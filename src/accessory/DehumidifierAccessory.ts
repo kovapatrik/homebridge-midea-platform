@@ -14,11 +14,9 @@ import { MideaAccessory, MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 import { DeviceConfig } from '../platformUtils';
 import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device';
-import { PLATFORM_NAME, PLUGIN_NAME } from '../settings';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   private service: Service;
-  private accessories: MideaAccessory[];
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -37,8 +35,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
 
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
-
-    this.accessories = this.platform.accessories.filter((acc) => acc.context.id === this.accessory.UUID && acc !== this.accessory);
 
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
@@ -94,9 +90,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     // is called whenever there is a change in any attribute value from the device.
     this.device.on('update', this.updateCharacteristics.bind(this));
     this.device.refresh_status();
-
-    // Remove unused accessories
-    this.platform.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, this.accessories);
   }
 
   /*********************************************************************
