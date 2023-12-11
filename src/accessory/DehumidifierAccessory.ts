@@ -74,16 +74,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.SwingMode)
-      .onGet(this.getSwingMode.bind(this))
-      .onSet(this.setSwingMode.bind(this));
-
-    this.service
-      .getCharacteristic(this.platform.Characteristic.LockPhysicalControls)
-      .onGet(this.getChildLockMode.bind(this))
-      .onSet(this.setChildLockMode.bind(this));
-
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
@@ -122,12 +112,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         case 'mode':
           updateState = true;
           break;
-        case 'swing':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.SwingMode,
-            v ? this.platform.Characteristic.SwingMode.SWING_ENABLED : this.platform.Characteristic.SwingMode.SWING_DISABLED,
-          );
-          break;
         case 'current_temperature':
           // Not currently supported
           break;
@@ -139,14 +123,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           break;
         case 'water_level_set':
           // No HomeKit characteristic
-          break;
-        case 'child_lock':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.LockPhysicalControls,
-            v
-              ? this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_ENABLED
-              : this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED,
-          );
           break;
         default:
           this.platform.log.warn(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
@@ -292,33 +268,5 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private async getWaterLevel(): Promise<CharacteristicValue> {
     this.platform.log.debug(`[${this.device.name}] GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
     return this.device.attributes.TANK_LEVEL;
-  }
-
-  // Handle requests to get the current value of the "swingMode" characteristic
-  private async getSwingMode(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`[${this.device.name}] GET SwingMode, value: ${this.device.attributes.SWING}`);
-    return this.device.attributes.SWING
-      ? this.platform.Characteristic.SwingMode.SWING_ENABLED
-      : this.platform.Characteristic.SwingMode.SWING_DISABLED;
-  }
-
-  // Handle requests to set the "swingMode" characteristic
-  private async setSwingMode(value: CharacteristicValue) {
-    this.platform.log.debug(`[${this.device.name}] SET SwingMode to: ${value}`);
-    await this.device.set_attribute({ SWING: !!value });
-  }
-
-  // Handle requests to get the current value of the "LockPhysicalControls" characteristic
-  private async getChildLockMode(): Promise<CharacteristicValue> {
-    this.platform.log.debug(`[${this.device.name}] GET LockPhysicalControls, value: ${this.device.attributes.SWING}`);
-    return this.device.attributes.CHILD_LOCK
-      ? this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_ENABLED
-      : this.platform.Characteristic.LockPhysicalControls.CONTROL_LOCK_DISABLED;
-  }
-
-  // Handle requests to set the "LockPhysicalControls" characteristic
-  private async setChildLockMode(value: CharacteristicValue) {
-    this.platform.log.debug(`[${this.device.name}] SET LockPhysicalControls to: ${value}`);
-    await this.device.set_attribute({ CHILD_LOCK: !!value });
   }
 }
