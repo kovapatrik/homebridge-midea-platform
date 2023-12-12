@@ -33,6 +33,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   ) {
     super(platform, accessory, device, configDev);
 
+    platform.log.debug(`Dehumidifier serviceVersion: ${this.serviceVersion}, currentVersion: ${this.accessory.context.serviceVersion}`);
     this.service =
       this.accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
       // We set service version in cache at same time as adding new accessory,
@@ -40,9 +41,11 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       (((this.accessory.context.serviceVersion = this.serviceVersion) as unknown as Service) &&
         this.accessory.addService(this.platform.Service.HumidifierDehumidifier));
 
-    platform.log.debug(`Dehumidifier serviceVersion: ${this.serviceVersion}, cachedVersion: ${this.accessory.context.serviceVersion}`);
     if (this.serviceVersion !== this.accessory.context.serviceVersion) {
-      platform.log.info(`New dehumidifier service version, replacing cached version.`);
+      platform.log.info(
+        // eslint-disable-next-line max-len
+        `New dehumidifier service versiob. Upgrading from version ${this.accessory.context.serviceVersion} to version ${this.serviceVersion}.`,
+      );
       this.accessory.removeService(this.service);
       this.service = this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
       this.accessory.context.serviceVersion = this.serviceVersion;
