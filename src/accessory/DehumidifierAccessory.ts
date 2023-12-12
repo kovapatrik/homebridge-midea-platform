@@ -33,48 +33,49 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   ) {
     super(platform, accessory, device, configDev);
 
-    platform.log.debug(`Dehumidifier serviceVersion: ${this.serviceVersion}, currentVersion: ${this.accessory.context.serviceVersion}`);
+    platform.log.debug(
+      `[${device.name}] Dehumidifier serviceVersion: ${this.serviceVersion}, currentVersion: ${accessory.context.serviceVersion}`,
+    );
     this.service =
-      this.accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
+      accessory.getService(platform.Service.HumidifierDehumidifier) ||
       // We set service version in cache at same time as adding new accessory,
       // so if/then below won't delete/add it again.
-      (((this.accessory.context.serviceVersion = this.serviceVersion) as unknown as Service) &&
-        this.accessory.addService(this.platform.Service.HumidifierDehumidifier));
+      (((accessory.context.serviceVersion = this.serviceVersion) as unknown as Service) &&
+        accessory.addService(platform.Service.HumidifierDehumidifier));
 
-    if (this.serviceVersion !== this.accessory.context.serviceVersion) {
+    if (this.serviceVersion !== accessory.context.serviceVersion) {
       platform.log.info(
-        // eslint-disable-next-line max-len
-        `New dehumidifier service versiob. Upgrading from version ${this.accessory.context.serviceVersion} to version ${this.serviceVersion}.`,
+        `[${device.name}] New dehumidifier service version. Upgrade from v${accessory.context.serviceVersion} to v${this.serviceVersion}.`,
       );
-      this.accessory.removeService(this.service);
-      this.service = this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
-      this.accessory.context.serviceVersion = this.serviceVersion;
+      accessory.removeService(this.service);
+      this.service = accessory.addService(platform.Service.HumidifierDehumidifier);
+      accessory.context.serviceVersion = this.serviceVersion;
     }
 
-    this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
+    this.service.setCharacteristic(platform.Characteristic.Name, device.name);
 
-    this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
+    this.service.getCharacteristic(platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
     this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState)
+      .getCharacteristic(platform.Characteristic.CurrentHumidifierDehumidifierState)
       .onGet(this.getCurrentHumidifierDehumidifierState.bind(this));
 
     // need to set as dehumidifier before setting validValues as defult of 0 will
     // throw error when we state that only valid value is dehumidifier (2).
     this.service.updateCharacteristic(
-      this.platform.Characteristic.TargetHumidifierDehumidifierState,
-      this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
+      platform.Characteristic.TargetHumidifierDehumidifierState,
+      platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
     );
     this.service
-      .getCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState)
+      .getCharacteristic(platform.Characteristic.TargetHumidifierDehumidifierState)
       .onGet(this.getTargetHumidifierDehumidifierState.bind(this))
       .onSet(this.setTargetHumidifierDehumidifierState.bind(this))
       .setProps({
-        validValues: [this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER],
+        validValues: [platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER],
       });
 
     this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+      .getCharacteristic(platform.Characteristic.CurrentRelativeHumidity)
       .onGet(this.getCurrentRelativeHumidity.bind(this))
       .setProps({
         minValue: 0,
@@ -83,7 +84,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       });
 
     this.service
-      .getCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold)
+      .getCharacteristic(platform.Characteristic.RelativeHumidityDehumidifierThreshold)
       .onGet(this.getRelativeHumidityDehumidifierThreshold.bind(this))
       .onSet(this.setRelativeHumidityDehumidifierThreshold.bind(this))
       .setProps({
@@ -93,7 +94,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       });
 
     this.service
-      .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+      .getCharacteristic(platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
 
@@ -101,8 +102,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
-    this.device.on('update', this.updateCharacteristics.bind(this));
-    this.device.refresh_status();
+    device.on('update', this.updateCharacteristics.bind(this));
+    device.refresh_status();
   }
 
   /*********************************************************************
