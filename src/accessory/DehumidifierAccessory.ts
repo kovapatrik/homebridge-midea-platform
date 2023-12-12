@@ -17,6 +17,9 @@ import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   private service: Service;
+  // Increment this every time we make a change to accessory that requires
+  // previously cached Homebridge service to be deleted/replaced.
+  private serviceVersion = 1;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -32,7 +35,18 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
     this.service =
       this.accessory.getService(this.platform.Service.HumidifierDehumidifier) ||
-      this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
+      // We set service version in cache at same time as adding new accessory,
+      // so if/then below won't delete/add it again.
+      (((this.accessory.context.serviceVersion = this.serviceVersion) as unknown as Service) &&
+        this.accessory.addService(this.platform.Service.HumidifierDehumidifier));
+
+    platform.log.debug(`Dehumidifier serviceVersion: ${this.serviceVersion}, cachedVersion: ${this.accessory.context.serviceVersion}`);
+    if (this.serviceVersion !== this.accessory.context.serviceVersion) {
+      platform.log.info(`New dehumidifier service version, replacing cached version.`);
+      this.accessory.removeService(this.service);
+      this.service = this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
+      this.accessory.context.serviceVersion = this.serviceVersion;
+    }
 
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
 
@@ -42,6 +56,12 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       .getCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState)
       .onGet(this.getCurrentHumidifierDehumidifierState.bind(this));
 
+    // need to set as dehumidifier before setting validValues as defult of 0 will
+    // throw error when we state that only valid value is dehumidifier (2).
+    this.service.updateCharacteristic(
+      this.platform.Characteristic.TargetHumidifierDehumidifierState,
+      this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
+    );
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetHumidifierDehumidifierState)
       .onGet(this.getTargetHumidifierDehumidifierState.bind(this))
@@ -122,6 +142,12 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           // No HomeKit characteristic
           break;
         case 'water_level_set':
+          // No HomeKit characteristic
+          break;
+        case 'swing':
+          // No HomeKit characteristic
+          break;
+        case 'child_lock':
           // No HomeKit characteristic
           break;
         default:
