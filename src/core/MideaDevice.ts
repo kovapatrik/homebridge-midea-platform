@@ -362,7 +362,9 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   protected async update(values: DeviceAttributeBase) {
-    this.logger.info(`[${this.name}] Status change: ${JSON.stringify(values)}`);
+    if (this.verbose) {
+      this.logger.info(`[${this.name}] Status change: ${JSON.stringify(values)}`);
+    }
     this.emit('update', values);
   }
 

@@ -24,6 +24,7 @@ export interface MideaAccessory extends PlatformAccessory {
     type: string;
     sn: string;
     model: string;
+    serviceVersion: number;
   };
 }
 
