@@ -185,6 +185,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
           updateState = true;
           break;
+        case 'outdoor_temperature':
+          this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+          break;
         case 'fan_speed':
           this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
           break;
