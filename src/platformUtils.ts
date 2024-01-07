@@ -75,7 +75,6 @@ export const defaultDeviceConfig: DeviceConfig = {
   },
   AC_options: {
     swingMode: SwingMode.NONE,
-    ecoSwitch: true,
     displaySwitch: {
       flag: true,
       command: false,
@@ -85,6 +84,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     tempStep: 1,
     fahrenheit: false,
     fanOnlyMode: false,
+    ecoSwitch: false,
     outDoorTemp: false,
     breezeAwaySwitch: false,
     audioFeedback: false,
