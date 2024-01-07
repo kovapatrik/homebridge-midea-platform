@@ -99,6 +99,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         'Outdoor',
       );
       this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Outdoor`);
+      this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Outdoor`);
       this.outDoorTemperatureService
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .onGet(this.getOutdoorTemperature.bind(this));
@@ -118,6 +119,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.configDev.AC_options.fanOnlyMode) {
       this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, `${this.device.name} Fan`, 'Fan');
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
+      this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan`);
       this.fanService
         .getCharacteristic(this.platform.Characteristic.Active)
         .onGet(this.getFanOnlyMode.bind(this))
@@ -141,6 +143,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.device.set_alternate_switch_display(this.configDev.AC_options.displaySwitch.command);
       this.displayService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Display`, 'Display');
       this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Display`);
+      this.displayService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Display`);
       this.displayService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getDisplayActive.bind(this))
@@ -154,6 +157,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.configDev.AC_options.ecoSwitch) {
       this.ecoModeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Eco`, 'EcoMode');
       this.ecoModeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Eco`);
+      this.ecoModeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Eco`);
       this.ecoModeService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getEcoMode.bind(this))
@@ -167,6 +171,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.configDev.AC_options.breezeAwaySwitch) {
       this.breezeAwayService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Breeze`, 'BreezeAway');
       this.breezeAwayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Breeze`);
+      this.breezeAwayService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Breeze`);
       this.breezeAwayService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(() => this.device.attributes.INDIRECT_WIND)
