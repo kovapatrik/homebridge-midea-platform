@@ -160,16 +160,21 @@
                   "description": "Toggles if the ECO mode switch is created with the accessory.",
                   "type": "boolean"
                 },
-                "switchDisplay": {
+                "breezeAwaySwitch": {
+                  "title": "Breeze Away Mode",
+                  "description": "Toggles if the breeze away mode swtich is created with the accessory.",
+                  "type": "boolean"
+                },
+                "displaySwitch": {
                   "type": "object",
                   "properties": {
                     "flag": {
-                      "title": "Switch Display",
+                      "title": "Display Switch",
                       "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
                       "type": "boolean"
                     },
                     "command": {
-                      "title": "Switch Display Alternate Command",
+                      "title": "Display Switch Alternate Command",
                       "description": "Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature.",
                       "type": "boolean"
                     }

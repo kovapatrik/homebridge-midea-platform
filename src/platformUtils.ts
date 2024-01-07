@@ -42,7 +42,7 @@ export enum SwingMode {
 type ACOptions = {
   swingMode: SwingMode;
   ecoSwitch: boolean;
-  switchDisplay: {
+  displaySwitch: {
     flag: boolean;
     command: boolean;
   };
@@ -51,6 +51,7 @@ type ACOptions = {
   tempStep: number;
   fahrenheit: boolean;
   fanOnlyMode: boolean;
+  breezeAwaySwitch: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
 };
@@ -75,7 +76,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   AC_options: {
     swingMode: SwingMode.NONE,
     ecoSwitch: true,
-    switchDisplay: {
+    displaySwitch: {
       flag: true,
       command: false,
     },
@@ -84,7 +85,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     tempStep: 1,
     fahrenheit: false,
     fanOnlyMode: false,
-    outDoorTemp: true,
+    outDoorTemp: false,
+    breezeAwaySwitch: false,
     audioFeedback: false,
   },
   A1_options: {

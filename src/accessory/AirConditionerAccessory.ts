@@ -20,6 +20,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private displayService?: Service;
   private fanService?: Service;
   private ecoModeService?: Service;
+  private breezeAwayService?: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -91,20 +92,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     // Outdoor temperature sensor
     this.outDoorTemperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Outdoor');
-
     if (this.configDev.AC_options.outDoorTemp) {
       this.outDoorTemperatureService ??= this.accessory.addService(
         this.platform.Service.TemperatureSensor,
         `${this.device.name} Outdoor`,
         'Outdoor',
       );
-
       this.outDoorTemperatureService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Outdoor`);
-
       this.outDoorTemperatureService
         .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
         .onGet(this.getOutdoorTemperature.bind(this));
-
       this.outDoorTemperatureService
         .getCharacteristic(this.platform.Characteristic.StatusFault)
         .onGet(() =>
@@ -116,10 +113,32 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.outDoorTemperatureService);
     }
 
+    // Fan-only mode
+    this.fanService = this.accessory.getServiceById(this.platform.Service.Fanv2, 'Fan');
+    if (this.configDev.AC_options.fanOnlyMode) {
+      this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, `${this.device.name} Fan`, 'Fan');
+      this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.Active)
+        .onGet(this.getFanOnlyMode.bind(this))
+        .onSet(this.setFanOnlyMode.bind(this));
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+        .onGet(this.getRotationSpeed.bind(this))
+        .onSet(this.setRotationSpeed.bind(this))
+        .setProps({
+          minValue: 0,
+          maxValue: 102,
+          minStep: 1,
+        });
+    } else if (this.fanService) {
+      this.accessory.removeService(this.fanService);
+    }
+
     // Display switch
     this.displayService = this.accessory.getServiceById(this.platform.Service.Switch, 'Display');
-    if (this.configDev.AC_options.switchDisplay.flag) {
-      this.device.set_alternate_switch_display(this.configDev.AC_options.switchDisplay.command);
+    if (this.configDev.AC_options.displaySwitch.flag) {
+      this.device.set_alternate_switch_display(this.configDev.AC_options.displaySwitch.command);
       this.displayService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Display`, 'Display');
       this.displayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Display`);
       this.displayService
@@ -141,6 +160,21 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onSet(this.setEcoMode.bind(this));
     } else if (this.ecoModeService) {
       this.accessory.removeService(this.ecoModeService);
+    }
+
+    // Breeze away switch
+    this.breezeAwayService = this.accessory.getServiceById(this.platform.Service.Switch, 'BreezeAway');
+    if (this.configDev.AC_options.breezeAwaySwitch) {
+      this.breezeAwayService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Breeze`, 'BreezeAway');
+      this.breezeAwayService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Breeze`);
+      this.breezeAwayService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(() => this.device.attributes.INDIRECT_WIND)
+        .onSet(async (value) => {
+          await this.device.set_attribute({ INDIRECT_WIND: !!value });
+        });
+    } else if (this.breezeAwayService) {
+      this.accessory.removeService(this.breezeAwayService);
     }
 
     // Misc
@@ -197,6 +231,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           break;
         case 'mode':
           updateState = true;
+          break;
+        case 'eco_mode':
+          this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          break;
+        case 'indirect_wind':
+          this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
           break;
         default:
           this.platform.log.warn(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
@@ -279,6 +319,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     );
   }
 
+  getFanOnlyMode(): CharacteristicValue {
+    return this.device.attributes.MODE === 5;
+  }
+
+  async setFanOnlyMode(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ MODE: 5 });
+    } else {
+      await this.device.set_attribute({ MODE: 0 });
+    }
+  }
+
   async setTargetTemperature(value: CharacteristicValue) {
     value = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
     await this.device.set_target_temperature(value);
@@ -310,7 +362,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setRotationSpeed(value: CharacteristicValue) {
     value = value as number;
-    if (value === 101) {
+    if (value > 100) {
       value = 102;
     }
     await this.device.set_attribute({ FAN_SPEED: value });
@@ -336,5 +388,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setEcoMode(value: CharacteristicValue) {
     await this.device.set_attribute({ ECO_MODE: !!value });
+  }
+
+  getBreezeAway(): CharacteristicValue {
+    return this.device.attributes.INDIRECT_WIND;
+  }
+
+  async setBreezeAway(value: CharacteristicValue) {
+    await this.device.set_attribute({ INDIRECT_WIND: !!value });
   }
 }
