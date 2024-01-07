@@ -270,11 +270,12 @@
                 "devices[].AC_options.outDoorTemp",
                 "devices[].AC_options.audioFeedback",
                 "devices[].AC_options.ecoSwitch",
+                "devices[].AC_options.breezeAwaySwitch",
                 {
-                  "key": "devices[].AC_options.switchDisplay",
+                  "key": "devices[].AC_options.displaySwitch",
                   "items": [
-                    "devices[].AC_options.switchDisplay.flag",
-                    "devices[].AC_options.switchDisplay.command"
+                    "devices[].AC_options.displaySwitch.flag",
+                    "devices[].AC_options.displaySwitch.command"
                   ]
                 },
                 "devices[].AC_options.minTemp",
