@@ -41,7 +41,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
     if (service && this.accessory.context.serviceVersion !== this.serviceVersion) {
       this.platform.log.info(
-        `[${this.device.name}] New dehumidifier service version.
+        `[${this.device.name}] New dehumidifier service version.\
           Upgrade from v${this.accessory.context.serviceVersion} to v${this.serviceVersion}.`,
       );
       this.accessory.removeService(service);
