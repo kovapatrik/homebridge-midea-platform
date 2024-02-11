@@ -1,11 +1,5 @@
-import { CharacteristicValue, Service } from 'homebridge';
-import MideaE2Device, { E2Attributes } from '../devices/e2/MideaE2Device';
-import BaseAccessory from './BaseAccessory';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import { DeviceConfig } from '../platformUtils';
-
 /***********************************************************************
- * Midea Platform Air Conditioner Accessory class
+ * Midea Platform Electric Water Heater Accessory class
  *
  * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
  *
@@ -14,6 +8,12 @@ import { DeviceConfig } from '../platformUtils';
  * An instance of this class is created for each accessory the platform registers.
  *
  */
+import { CharacteristicValue, Service } from 'homebridge';
+import MideaE2Device, { E2Attributes } from '../devices/e2/MideaE2Device';
+import BaseAccessory from './BaseAccessory';
+import { MideaAccessory, MideaPlatform } from '../platform';
+import { DeviceConfig } from '../platformUtils';
+
 export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2Device> {
   private service: Service;
 
