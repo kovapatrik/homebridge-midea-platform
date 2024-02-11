@@ -207,7 +207,7 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.E2_options.maxTemp, value as number));
+    value = Math.max(this.configDev.E2_options.minTemp, Math.min(this.configDev.E2_options.maxTemp, value as number));
     await this.device.set_attribute({ TARGET_TEMPERATURE: value });
   }
 
