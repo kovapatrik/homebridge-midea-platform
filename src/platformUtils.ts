@@ -30,6 +30,7 @@ export type DeviceConfig = {
   };
   AC_options: ACOptions;
   A1_options: A1Options;
+  E2_options: E2Options;
 };
 
 export enum SwingMode {
@@ -60,6 +61,15 @@ type A1Options = {
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
+};
+
+type E2Options = {
+  protocol: string;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  variableHeatingSwitch: boolean;
+  wholeTankHeatingSwitch: boolean;
 };
 
 export const defaultDeviceConfig: DeviceConfig = {
@@ -93,5 +103,13 @@ export const defaultDeviceConfig: DeviceConfig = {
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
+  },
+  E2_options: {
+    protocol: 'auto',
+    minTemp: 30,
+    maxTemp: 75,
+    tempStep: 1,
+    variableHeatingSwitch: false,
+    wholeTankHeatingSwitch: false,
   },
 };

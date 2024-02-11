@@ -48,7 +48,8 @@
               "required": true,
               "enum": [
                 "Air Conditioner",
-                "Dehumidifier"
+                "Dehumidifier",
+                "Electric Water Heater"
               ],
               "description": "Select the type of device you are adding."
             },
@@ -207,6 +208,35 @@
                   "type": "boolean"
                 }
               }
+            },
+            "E2_options": {
+              "title": "Electric Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Electric Water Heater';"
+              },
+              "properties": {
+                "protocol": {
+                  "title": "Protocol",
+                  "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "old",
+                    "new"
+                  ]
+                },
+                "variableHeatingSwitch": {
+                  "title": "Variable Heating Switch",
+                  "description": "Toggles if the variable heating switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "wholeTankHeatingSwitch": {
+                  "title": "Whole Tank Heating Switch",
+                  "description": "Toggles if the whole tank heating switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
             }
           }
         }
@@ -283,6 +313,16 @@
                 "devices[].AC_options.tempStep",
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyMode"
+              ]
+            },
+            {
+              "key": "devices[].E2_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].E2_options.protocol",
+                "devices[].E2_options.variableHeatingSwitch",
+                "devices[].E2_options.wholeTankHeatingSwitch"
               ]
             }
           ]
