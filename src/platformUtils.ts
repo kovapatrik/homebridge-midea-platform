@@ -31,6 +31,7 @@ export type DeviceConfig = {
   AC_options: ACOptions;
   A1_options: A1Options;
   E2_options: E2Options;
+  E3_options: E3Options;
 };
 
 export enum SwingMode {
@@ -72,6 +73,13 @@ type E2Options = {
   wholeTankHeatingSwitch: boolean;
 };
 
+type E3Options = {
+  precisionHalves: boolean;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+};
+
 export const defaultDeviceConfig: DeviceConfig = {
   id: -1,
   type: '',
@@ -111,5 +119,11 @@ export const defaultDeviceConfig: DeviceConfig = {
     tempStep: 1,
     variableHeatingSwitch: false,
     wholeTankHeatingSwitch: false,
+  },
+  E3_options: {
+    precisionHalves: false,
+    minTemp: 35,
+    maxTemp: 65,
+    tempStep: 1,
   },
 };

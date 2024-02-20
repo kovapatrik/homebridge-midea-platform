@@ -15,6 +15,7 @@ export enum DeviceType {
   AIR_CONDITIONER = 0xac,
   DEHUMIDIFIER = 0xa1,
   ELECTRIC_WATER_HEATER = 0xe2,
+  GAS_WATER_HEATER = 0xe3,
 }
 
 export enum ParseMessageResult {

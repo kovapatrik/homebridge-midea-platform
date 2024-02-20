@@ -15,6 +15,15 @@ import { numberToUint8Array } from './MideaUtils';
 import { Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
 
+interface CloudProvider {
+  appId: string;
+  appKey: string;
+  loginKey?: string;
+  iotKey?: string;
+  hmacKey?: string;
+  apiURL: string;
+}
+
 abstract class CloudBase<T extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
   protected readonly FORMAT = 2;

@@ -49,7 +49,8 @@
               "enum": [
                 "Air Conditioner",
                 "Dehumidifier",
-                "Electric Water Heater"
+                "Electric Water Heater",
+                "Gas Water Heater"
               ],
               "description": "Select the type of device you are adding."
             },
@@ -226,6 +227,22 @@
                     "new"
                   ]
                 },
+                "minTemp": {
+                  "title": "Minimum Temperature",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step",
+                  "type": "number",
+                  "enum": [
+                    0.5,
+                    1
+                  ]
+                },
                 "variableHeatingSwitch": {
                   "title": "Variable Heating Switch",
                   "description": "Toggles if the variable heating switch is created with the accessory.",
@@ -235,6 +252,36 @@
                   "title": "Whole Tank Heating Switch",
                   "description": "Toggles if the whole tank heating switch is created with the accessory.",
                   "type": "boolean"
+                }
+              }
+            },
+            "E3_options": {
+              "title": "Gas Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Gas Water Heater';"
+              },
+              "properties": {
+                "precisionHalves": {
+                  "title": "Precision Halves",
+                  "description": "Toggles if the temperature on the unit is displayed in half degrees.",
+                  "type": "boolean"
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step",
+                  "type": "number",
+                  "enum": [
+                    0.5,
+                    1
+                  ]
                 }
               }
             }
@@ -322,7 +369,21 @@
               "items": [
                 "devices[].E2_options.protocol",
                 "devices[].E2_options.variableHeatingSwitch",
-                "devices[].E2_options.wholeTankHeatingSwitch"
+                "devices[].E2_options.wholeTankHeatingSwitch",
+                "devices[].E2_options.minTemp",
+                "devices[].E2_options.maxTemp",
+                "devices[].E2_options.tempStep"
+              ]
+            },
+            {
+              "key": "devices[].E3_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].E3_options.precisionHalves",
+                "devices[].E3_options.minTemp",
+                "devices[].E3_options.maxTemp",
+                "devices[].E3_options.tempStep"
               ]
             }
           ]
