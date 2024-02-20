@@ -226,6 +226,9 @@ class UiServer extends HomebridgePluginUiServer {
           case DeviceType.DEHUMIDIFIER:
             device['displayName'] = 'Dehumidifier';
             break;
+          case DeviceType.ELECTRIC_WATER_HEATER:
+            device['displayName'] = 'Electric Water Heater';
+            break;
           default:
             device['displayName'] = 'Unknown';
             break;
