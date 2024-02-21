@@ -10,7 +10,7 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
-const { DeviceType, TCPMessageType, ProtocolVersion } = require("../dist/core/MideaConstants.js");
+const { DeviceType, TCPMessageType, ProtocolVersion, Endianness } = require("../dist/core/MideaConstants.js");
 const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
@@ -149,9 +149,9 @@ class UiServer extends HomebridgePluginUiServer {
     // works or having tried both.
     while (i <= 1 && !connected) {
       // Start with big-endianess as it is more likely to succeed.
-      const endianess = i === 0 ? 'big' : 'little';
+      const endianess = i === 0 ? Endianness.Little : Endianness.Big;
       try {
-        const [token, key] = await this.cloud.getToken(device.id, endianess);
+        const [token, key] = await this.cloud.getTokenKey(device.id, endianess);
         device.token = token ? token.toString('hex') : undefined;
         device.key = key ? key.toString('hex') : undefined;
         await this.authenticate(device);

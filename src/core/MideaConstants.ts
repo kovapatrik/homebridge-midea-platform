@@ -57,4 +57,7 @@ export enum ProtocolVersion {
   V3,
 }
 
-export type Endianness = 'little' | 'big';
+export enum Endianness {
+  Little,
+  Big,
+}

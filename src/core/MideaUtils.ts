@@ -17,7 +17,7 @@ export function numberToUint8Array(num: number, byte_length: number, endianness:
     arr[i] = num % 256;
     num = Math.floor(num / 256);
   }
-  return endianness === 'big' ? arr.reverse() : arr;
+  return endianness === Endianness.Big ? arr.reverse() : arr;
 }
 
 export function strxor(a: Buffer, b: Buffer) {
