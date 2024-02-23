@@ -10,7 +10,14 @@
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import axios from 'axios';
-import { CloudSecurity, MeijuCloudSecurity, NetHomePlusSecurity, MideaAirSecurity } from './MideaSecurity';
+import {
+  CloudSecurity,
+  MeijuCloudSecurity,
+  NetHomePlusSecurity,
+  MideaAirSecurity,
+  MSmartHomeCloudSecurity,
+  AristonClimaSecurity,
+} from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 import { DeviceType, Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
@@ -183,13 +190,13 @@ abstract class CloudBase<S extends CloudSecurity> {
   abstract downloadLua(device_type: DeviceType, serial_number: string, model_number?: string, manufacturer_code?: string): Promise<void>;
 }
 
-class MSmartHomeCloud extends CloudBase<MeijuCloudSecurity> {
+class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
-    super(account, password, new MeijuCloudSecurity());
+    super(account, password, new MSmartHomeCloudSecurity());
   }
 }
 
@@ -200,6 +207,10 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity());
+  }
+
+  login(): Promise<void> {
+    throw new Error('Method not implemented.');
   }
 }
 
@@ -223,13 +234,13 @@ class MideaAirCloud extends CloudBase<MideaAirSecurity> {
   }
 }
 
-class AristonClimaCloud extends CloudBase<MideaAirSecurity> {
+class AristonClimaCloud extends CloudBase<AristonClimaSecurity> {
   protected readonly APP_ID = '1005';
   protected readonly APP_KEY = '434a209a5ce141c3b726de067835d7f0';
   protected readonly API_URL = 'https://mapp.appsmb.com';
 
   constructor(account: string, password: string) {
-    super(account, password, new MideaAirSecurity());
+    super(account, password, new AristonClimaSecurity());
   }
 }
 

@@ -325,14 +325,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getFanOnlyMode(): CharacteristicValue {
-    return this.device.attributes.MODE === 5;
+    return this.device.attributes.POWER === true && this.device.attributes.MODE === 5;
   }
 
   async setFanOnlyMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ MODE: 5 });
+      await this.device.set_attribute({ POWER: true, MODE: 5 });
     } else {
-      await this.device.set_attribute({ MODE: 0 });
+      await this.device.set_attribute({ POWER: false, MODE: 0 });
     }
   }
 

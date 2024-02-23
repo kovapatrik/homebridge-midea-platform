@@ -7,32 +7,31 @@ function unescape_plus(str: string) {
   return unescape(str.replace(/\+/g, ' '));
 }
 
-function bigintToHex(data: string) {
-  return BigInt(data).toString(16);
-}
-
 export type KeyToken = Buffer | undefined;
 
 export abstract class CloudSecurity {
-  protected readonly LOGIN_KEY: string;
+  protected readonly APP_KEY: string;
+
+  protected readonly LOGIN_KEY?: string;
   protected readonly IOT_KEY?: string;
   protected readonly HMAC_KEY?: string;
 
   protected readonly FIXED_KEY?: Buffer;
   protected readonly FIXED_IV?: Buffer;
-  constructor(login_key: string, iot_key?: string, hmac_key?: string, fixed_key?: string, fixed_iv?: string) {
+  constructor(app_key: string, iot_key?: bigint, hmac_key?: bigint, login_key?: string, fixed_key?: bigint, fixed_iv?: bigint) {
+    this.APP_KEY = app_key;
     this.LOGIN_KEY = login_key;
     if (hmac_key) {
-      this.HMAC_KEY = Buffer.from(bigintToHex(hmac_key), 'hex').toString();
+      this.HMAC_KEY = Buffer.from(hmac_key.toString(16), 'hex').toString();
     }
     if (iot_key) {
-      this.IOT_KEY = Buffer.from(bigintToHex(iot_key), 'hex').toString();
+      this.IOT_KEY = Buffer.from(iot_key.toString(16), 'hex').toString();
     }
     if (fixed_key) {
-      this.FIXED_KEY = Buffer.from(bigintToHex(fixed_key), 'hex');
+      this.FIXED_KEY = Buffer.from(fixed_key.toString(16), 'hex');
     }
     if (fixed_iv) {
-      this.FIXED_IV = Buffer.from(bigintToHex(fixed_iv), 'hex');
+      this.FIXED_IV = Buffer.from(fixed_iv.toString(16), 'hex');
     }
   }
 
@@ -52,19 +51,8 @@ export abstract class CloudSecurity {
     return m2.digest('hex');
   }
 
-  abstract encrpytIAMPassword(loginId: string, password: string): string;
-
   // Encrypts password for cloud API iampwd field.
-  // public encrpytIAMPassword(loginId: string, password: string) {
-  //   const m1 = createHash('md5').update(password);
-
-  //   const m2 = createHash('md5').update(m1.digest('hex'));
-
-  //   const login_hash = `${loginId}${m2.digest('hex')}${this.LOGIN_KEY}`;
-  //   const sha = createHash('sha256').update(login_hash);
-
-  //   return sha.digest('hex');
-  // }
+  abstract encrpytIAMPassword(loginId: string, password: string): string;
 
   public static getUDPID(device_id_buf: Uint8Array) {
     const data = createHash('sha256').update(device_id_buf).digest();
@@ -76,12 +64,31 @@ export abstract class CloudSecurity {
   }
 }
 
-export class MeijuCloudSecurity extends CloudSecurity {
-  readonly _login_key = 'a2ffa5a9a4b5472d';
-  readonly _iot_key = 'a2ffa5a9a4b5472d';
-
+export class MSmartHomeCloudSecurity extends CloudSecurity {
   constructor() {
-    super('96c7acdfdb8af79a');
+    super('ac21b9f9cbfe4ca5a88562ef25e2b768', BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
+  }
+
+  public encrpytIAMPassword(loginId: string, password: string) {
+    const m1 = createHash('md5').update(password);
+
+    const m2 = createHash('md5').update(m1.digest('hex'));
+
+    const login_hash = `${loginId}${m2.digest('hex')}${this.LOGIN_KEY}`;
+    const sha = createHash('sha256').update(login_hash);
+
+    return sha.digest('hex');
+  }
+}
+
+export class MeijuCloudSecurity extends CloudSecurity {
+  constructor() {
+    super(
+      '46579c15',
+      BigInt('9795516279659324117647275084689641883661667'),
+      BigInt('117390035944627627450677220413733956185864939010425'),
+      'ad0ee21d48a64bf49f4fb583ab76e799',
+    );
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
@@ -91,9 +98,13 @@ export class MeijuCloudSecurity extends CloudSecurity {
   }
 }
 
-export class NetHomePlusSecurity extends CloudSecurity {
-  constructor(login_key: string, iot_key?: string) {
-    super(login_key, iot_key);
+class SimpleSecurity extends CloudSecurity {
+  constructor(app_key: string) {
+    super(app_key, undefined, undefined, app_key);
+  }
+
+  public encrpytIAMPassword() {
+    return '';
   }
 
   public sign(url: string, query: string): string {
@@ -105,7 +116,23 @@ export class NetHomePlusSecurity extends CloudSecurity {
   }
 }
 
-export class MideaAirSecurity extends NetHomePlusSecurity {}
+export class MideaAirSecurity extends SimpleSecurity {
+  constructor() {
+    super('ff0cf6f5f0c3471de36341cab3f7a9af');
+  }
+}
+
+export class NetHomePlusSecurity extends SimpleSecurity {
+  constructor() {
+    super('3742e9e5842d4ad59c2db887e12449f9');
+  }
+}
+
+export class AristonClimaSecurity extends SimpleSecurity {
+  constructor() {
+    super('434a209a5ce141c3b726de067835d7f0');
+  }
+}
 
 export class LocalSecurity {
   private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
