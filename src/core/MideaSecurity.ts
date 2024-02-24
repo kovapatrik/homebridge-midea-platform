@@ -10,16 +10,13 @@ function unescape_plus(str: string) {
 export type KeyToken = Buffer | undefined;
 
 export abstract class CloudSecurity {
-  protected readonly APP_KEY: string;
-
-  protected readonly LOGIN_KEY?: string;
+  protected readonly LOGIN_KEY: string;
   protected readonly IOT_KEY?: string;
   protected readonly HMAC_KEY?: string;
 
   protected readonly FIXED_KEY?: Buffer;
   protected readonly FIXED_IV?: Buffer;
-  constructor(app_key: string, iot_key?: bigint, hmac_key?: bigint, login_key?: string, fixed_key?: bigint, fixed_iv?: bigint) {
-    this.APP_KEY = app_key;
+  constructor(login_key: string, iot_key?: bigint, hmac_key?: bigint, fixed_key?: bigint, fixed_iv?: bigint) {
     this.LOGIN_KEY = login_key;
     if (hmac_key) {
       this.HMAC_KEY = Buffer.from(hmac_key.toString(16), 'hex').toString();
@@ -65,8 +62,8 @@ export abstract class CloudSecurity {
 }
 
 export class MSmartHomeCloudSecurity extends CloudSecurity {
-  constructor() {
-    super('ac21b9f9cbfe4ca5a88562ef25e2b768', BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
+  constructor(login_key: string) {
+    super(login_key, BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
@@ -82,13 +79,8 @@ export class MSmartHomeCloudSecurity extends CloudSecurity {
 }
 
 export class MeijuCloudSecurity extends CloudSecurity {
-  constructor() {
-    super(
-      '46579c15',
-      BigInt('9795516279659324117647275084689641883661667'),
-      BigInt('117390035944627627450677220413733956185864939010425'),
-      'ad0ee21d48a64bf49f4fb583ab76e799',
-    );
+  constructor(login_key: string) {
+    super(login_key, BigInt('9795516279659324117647275084689641883661667'), BigInt('117390035944627627450677220413733956185864939010425'));
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
@@ -98,9 +90,9 @@ export class MeijuCloudSecurity extends CloudSecurity {
   }
 }
 
-class SimpleSecurity extends CloudSecurity {
-  constructor(app_key: string) {
-    super(app_key, undefined, undefined, app_key);
+export class SimpleSecurity extends CloudSecurity {
+  constructor(login_key: string) {
+    super(login_key);
   }
 
   public encrpytIAMPassword() {
@@ -113,24 +105,6 @@ class SimpleSecurity extends CloudSecurity {
     return createHash('sha256')
       .update(`${path}${unescape_plus(query)}${this.LOGIN_KEY}`)
       .digest('hex');
-  }
-}
-
-export class MideaAirSecurity extends SimpleSecurity {
-  constructor() {
-    super('ff0cf6f5f0c3471de36341cab3f7a9af');
-  }
-}
-
-export class NetHomePlusSecurity extends SimpleSecurity {
-  constructor() {
-    super('3742e9e5842d4ad59c2db887e12449f9');
-  }
-}
-
-export class AristonClimaSecurity extends SimpleSecurity {
-  constructor() {
-    super('434a209a5ce141c3b726de067835d7f0');
   }
 }
 

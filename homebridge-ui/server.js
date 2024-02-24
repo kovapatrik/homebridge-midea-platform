@@ -90,6 +90,7 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
+        throw new RequestError(`Login failed! Check the logs for more information.`);
       }
     });
 
