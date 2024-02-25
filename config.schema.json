@@ -162,6 +162,11 @@
                   "description": "Toggles if the ECO mode switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "dryModeSwitch": {
+                  "title": "Dry Mode Switch",
+                  "description": "Toggles if the dry mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "breezeAwaySwitch": {
                   "title": "Breeze Away Mode",
                   "description": "Toggles if the breeze away mode swtich is created with the accessory.",

@@ -21,6 +21,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private fanService?: Service;
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
+  private dryModeService?: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -174,12 +175,22 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.breezeAwayService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Breeze`);
       this.breezeAwayService
         .getCharacteristic(this.platform.Characteristic.On)
-        .onGet(() => this.device.attributes.INDIRECT_WIND)
-        .onSet(async (value) => {
-          await this.device.set_attribute({ INDIRECT_WIND: !!value });
-        });
+        .onGet(this.getBreezeAway.bind(this))
+        .onSet(this.setBreezeAway.bind(this));
     } else if (this.breezeAwayService) {
       this.accessory.removeService(this.breezeAwayService);
+    }
+
+    // Dry mode switch
+    this.dryModeService = this.accessory.getServiceById(this.platform.Service.Switch, 'DryMode');
+    if (this.configDev.AC_options.dryModeSwitch) {
+      this.dryModeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Dry`, 'DryMode');
+      this.dryModeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Dry`);
+      this.dryModeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Dry`);
+      this.dryModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getDryMode.bind(this))
+        .onSet(this.setDryMode.bind(this));
     }
 
     // Misc
@@ -401,5 +412,17 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setBreezeAway(value: CharacteristicValue) {
     await this.device.set_attribute({ INDIRECT_WIND: !!value });
+  }
+
+  getDryMode(): CharacteristicValue {
+    return this.device.attributes.MODE === 3;
+  }
+
+  async setDryMode(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, MODE: 3 });
+    } else {
+      await this.device.set_attribute({ POWER: false, MODE: 0 });
+    }
   }
 }
