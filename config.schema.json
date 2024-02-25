@@ -282,6 +282,31 @@
                     0.5,
                     1
                   ]
+                },
+                "burningStateSensor": {
+                  "title": "Burning State Sensor",
+                  "description": "Toggles if the burning state sensor is created with the accessory.",
+                  "type": "boolean"
+                },
+                "protectionSensor": {
+                  "title": "Protection Sensor",
+                  "description": "Toggles if the protection sensor is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zeroColdWaterSwitch": {
+                  "title": "Zero Cold Water Switch",
+                  "description": "Toggles if the zero cold water switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zeroColdPulseSwitch": {
+                  "title": "Zero Cold Pulse Switch",
+                  "description": "Toggles if the zero cold pulse switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "smartVolumeSwitch": {
+                  "title": "Smart Volume Switch",
+                  "description": "Toggles if the smart volume switch is created with the accessory.",
+                  "type": "boolean"
                 }
               }
             }
@@ -381,6 +406,11 @@
               "expanded": false,
               "items": [
                 "devices[].E3_options.precisionHalves",
+                "devices[].E3_options.burningStateSensor",
+                "devices[].E3_options.protectionSensor",
+                "devices[].E3_options.zeroColdWaterSwitch",
+                "devices[].E3_options.zeroColdPulseSwitch",
+                "devices[].E3_options.smartVolumeSwitch",
                 "devices[].E3_options.minTemp",
                 "devices[].E3_options.maxTemp",
                 "devices[].E3_options.tempStep"

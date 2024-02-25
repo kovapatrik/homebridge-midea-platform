@@ -78,6 +78,11 @@ type E3Options = {
   minTemp: number;
   maxTemp: number;
   tempStep: number;
+  burningStateSensor: boolean;
+  protectionSensor: boolean;
+  zeroColdWaterSwitch: boolean;
+  zeroColdPulseSwitch: boolean;
+  smartVolumeSwitch: boolean;
 };
 
 export const defaultDeviceConfig: DeviceConfig = {
@@ -125,5 +130,10 @@ export const defaultDeviceConfig: DeviceConfig = {
     minTemp: 35,
     maxTemp: 65,
     tempStep: 1,
+    burningStateSensor: false,
+    protectionSensor: false,
+    zeroColdWaterSwitch: false,
+    zeroColdPulseSwitch: false,
+    smartVolumeSwitch: false,
   },
 };
