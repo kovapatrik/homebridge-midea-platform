@@ -95,7 +95,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
           updateState = true;
           break;
         case 'target_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, v as CharacteristicValue);
+          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as CharacteristicValue);
           updateState = true;
           break;
         default:

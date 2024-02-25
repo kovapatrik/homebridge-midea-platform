@@ -83,6 +83,13 @@ export default class MideaE3Device extends MideaDevice {
         this.attributes[status] = value;
       }
     }
+
+    // Now we update Homebridge / Homekit accessory
+    if (Object.keys(changed).length > 0) {
+      this.update(changed);
+    } else {
+      this.logger.debug(`[${this.name}] Status unchanged`);
+    }
   }
 
   make_message_set() {
