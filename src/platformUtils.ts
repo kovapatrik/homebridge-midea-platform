@@ -55,6 +55,7 @@ type ACOptions = {
   fanOnlyMode: boolean;
   breezeAwaySwitch: boolean;
   dryModeSwitch: boolean;
+  auxHeatingSwitches: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
 };
@@ -111,6 +112,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoSwitch: false,
     outDoorTemp: false,
     breezeAwaySwitch: false,
+    auxHeatingSwitches: false,
     dryModeSwitch: false,
     audioFeedback: false,
   },

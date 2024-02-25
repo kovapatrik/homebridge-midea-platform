@@ -22,6 +22,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
   private dryModeService?: Service;
+  private auxService?: Service;
+  private auxHeatingService?: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -191,6 +193,31 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getDryMode.bind(this))
         .onSet(this.setDryMode.bind(this));
+    }
+
+    // Aux switch
+    this.auxService = this.accessory.getServiceById(this.platform.Service.Switch, 'Aux');
+    if (this.configDev.AC_options.auxHeatingSwitches) {
+      this.auxService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Aux`, 'Aux');
+      this.auxService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Aux`);
+      this.auxService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Aux`);
+      this.auxService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getAux.bind(this)).onSet(this.setAux.bind(this));
+    } else if (this.auxService) {
+      this.accessory.removeService(this.auxService);
+    }
+
+    // Aux+Heat switch
+    this.auxHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, 'AuxHeating');
+    if (this.configDev.AC_options.auxHeatingSwitches) {
+      this.auxHeatingService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Aux+Heat`, 'AuxHeating');
+      this.auxHeatingService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Aux+Heat`);
+      this.auxHeatingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Aux+Heat`);
+      this.auxHeatingService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getAuxHeating.bind(this))
+        .onSet(this.setAuxHeating.bind(this));
+    } else if (this.auxHeatingService) {
+      this.accessory.removeService(this.auxHeatingService);
     }
 
     // Misc
@@ -399,7 +426,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getEcoMode(): CharacteristicValue {
-    return this.device.attributes.ECO_MODE;
+    return this.device.attributes.POWER === true && this.device.attributes.ECO_MODE;
   }
 
   async setEcoMode(value: CharacteristicValue) {
@@ -407,7 +434,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getBreezeAway(): CharacteristicValue {
-    return this.device.attributes.INDIRECT_WIND;
+    return this.device.attributes.POWER === true && this.device.attributes.INDIRECT_WIND;
   }
 
   async setBreezeAway(value: CharacteristicValue) {
@@ -423,6 +450,30 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       await this.device.set_attribute({ POWER: true, MODE: 3 });
     } else {
       await this.device.set_attribute({ POWER: false, MODE: 0 });
+    }
+  }
+
+  getAux(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.SMART_EYE === true;
+  }
+
+  async setAux(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, SMART_EYE: true, AUX_HEATING: false });
+    } else {
+      await this.device.set_attribute({ POWER: false, SMART_EYE: false });
+    }
+  }
+
+  getAuxHeating(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.AUX_HEATING === true;
+  }
+
+  async setAuxHeating(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, AUX_HEATING: true, SMART_EYE: false });
+    } else {
+      await this.device.set_attribute({ POWER: false, AUX_HEATING: false });
     }
   }
 }

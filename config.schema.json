@@ -187,6 +187,11 @@
                     }
                   }
                 },
+                "auxHeatingSwitches": {
+                  "title": "Auxiliary Heating Switches",
+                  "description": "Toggles if the aux and aux+heat switches are created with the accessory.",
+                  "type": "boolean"
+                },
                 "minTemp": {
                   "title": "Minimum Temperature",
                   "type": "number"
@@ -378,6 +383,8 @@
                 "devices[].AC_options.audioFeedback",
                 "devices[].AC_options.ecoSwitch",
                 "devices[].AC_options.breezeAwaySwitch",
+                "devices[].AC_options.dryModeSwitch",
+                "devices[].AC_options.auxHeatingSwitches",
                 {
                   "key": "devices[].AC_options.displaySwitch",
                   "items": [
