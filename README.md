@@ -11,7 +11,7 @@
 
 Pull requests and/or other offers of development assistance gratefully received.
 
-More information can be found in the [wiki](../../wiki).
+More information can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki).
 
 ## Features
 
