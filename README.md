@@ -11,6 +11,8 @@
 
 Pull requests and/or other offers of development assistance gratefully received.
 
+More information can be found in the [wiki](../../wiki).
+
 ## Features
 
 Currently supports the following devices:
