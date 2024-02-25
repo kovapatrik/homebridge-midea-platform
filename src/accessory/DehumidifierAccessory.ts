@@ -159,7 +159,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           // No HomeKit characteristic
           break;
         default:
-          this.platform.log.warn(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(
