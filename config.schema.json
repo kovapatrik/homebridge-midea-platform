@@ -106,6 +106,16 @@
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dehumidifier';"
               },
               "properties": {
+                "temperatureSensor": {
+                  "title": "Temperature Sensor",
+                  "description": "Toggles if the temperature sensor is created with the accessory.",
+                  "type": "boolean"
+                },
+                "pumpSwitch": {
+                  "title": "Pump Switch",
+                  "description": "Toggles if the pump switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
                   "type": "number",
@@ -368,6 +378,8 @@
               "expandable": true,
               "expanded": false,
               "items": [
+                "devices[].A1_options.temperatureSensor",
+                "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
                 "devices[].A1_options.humidityStep"

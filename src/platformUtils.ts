@@ -61,6 +61,8 @@ type ACOptions = {
 };
 
 type A1Options = {
+  temperatureSensor: boolean;
+  pumpSwitch: boolean;
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
@@ -117,6 +119,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     audioFeedback: false,
   },
   A1_options: {
+    temperatureSensor: false,
+    pumpSwitch: false,
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
