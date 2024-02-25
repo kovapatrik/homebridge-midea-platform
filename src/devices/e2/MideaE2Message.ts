@@ -11,7 +11,7 @@ import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../..
 
 abstract class MessageE2Base extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
-    super(DeviceType.ELECTRIC_WATER_HEATER, device_protocol_version, message_type, body_type);
+    super(DeviceType.ELECTRIC_WATER_HEATER, message_type, body_type, device_protocol_version);
   }
 }
 

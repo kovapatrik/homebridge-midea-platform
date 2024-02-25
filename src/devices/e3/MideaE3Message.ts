@@ -18,7 +18,7 @@ export enum NewProtocolTags {
 
 abstract class MessageE3Base extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
-    super(DeviceType.GAS_WATER_HEATER, device_protocol_version, message_type, body_type);
+    super(DeviceType.GAS_WATER_HEATER, message_type, body_type, device_protocol_version);
   }
 }
 
