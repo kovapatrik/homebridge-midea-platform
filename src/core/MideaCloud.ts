@@ -7,13 +7,13 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
+import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
-import axios from 'axios';
+import { Semaphore } from 'semaphore-promise';
+import { Endianness } from './MideaConstants';
 import { CloudSecurity, MeijuCloudSecurity, MSmartHomeCloudSecurity, SimpleSecurity } from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
-import { Endianness } from './MideaConstants';
-import { Semaphore } from 'semaphore-promise';
 
 abstract class CloudBase<S extends CloudSecurity> {
   protected readonly LANGUAGE = 'en_US';
@@ -43,6 +43,9 @@ abstract class CloudBase<S extends CloudSecurity> {
     return DateTime.now().toFormat('yyyyMMddHHmmss');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abstract makeGeneralData(): { [key: string]: any };
+
   async apiRequest(
     endpoint: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,9 +56,9 @@ abstract class CloudBase<S extends CloudSecurity> {
     if (data['reqId'] === undefined) {
       data['reqId'] = randomBytes(16).toString('hex');
     }
-    // if (data['stamp'] === undefined) {
-    //   data['stamp'] = this.timestamp();
-    // }
+    if (data['stamp'] === undefined) {
+      data['stamp'] = this.timestamp();
+    }
 
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
@@ -63,13 +66,18 @@ abstract class CloudBase<S extends CloudSecurity> {
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
       ...header,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       secretVersion: '1',
       sign: sign,
       random: random,
-      accessToken: this.access_token,
-      // uid: this.uid,
     };
+
+    if (this.uid) {
+      headers['uid'] = this.uid;
+    }
+    if (this.access_token) {
+      headers['access_token'] = this.access_token;
+    }
 
     for (let i = 0; i < 3; i++) {
       try {
@@ -89,13 +97,7 @@ abstract class CloudBase<S extends CloudSecurity> {
   async getLoginId() {
     try {
       const response = await this.apiRequest('/v1/user/login/id/get', {
-        appId: this.APP_ID,
-        format: 2,
-        clientType: 1,
-        language: this.LANGUAGE,
-        src: this.APP_ID,
-        stamp: this.timestamp(),
-        deviceId: this.DEVICE_ID,
+        ...this.makeGeneralData(),
         loginAccount: this.account,
       });
       if (response) {
@@ -113,6 +115,7 @@ abstract class CloudBase<S extends CloudSecurity> {
   async getTokenKey(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
     const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
     const response = await this.apiRequest('/v1/iot/secure/getToken', {
+      ...this.makeGeneralData(),
       udpid: udpid,
     });
 
@@ -140,6 +143,20 @@ class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
     super(account, password, new MSmartHomeCloudSecurity(MSmartHomeCloud.APP_KEY));
   }
 
+  makeGeneralData() {
+    return {
+      src: this.APP_ID,
+      format: 2,
+      stamp: this.timestamp(),
+      platformId: 1,
+      devideId: this.DEVICE_ID,
+      reqId: randomBytes(16).toString('hex'),
+      uid: this.uid,
+      clientType: 1,
+      appId: this.APP_ID,
+    };
+  }
+
   async login() {
     const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
@@ -148,6 +165,9 @@ class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
+      const iotData = this.makeGeneralData();
+      delete iotData['uid'];
+
       const response = await this.apiRequest('/mj/user/login', {
         data: {
           appKey: this.APP_KEY,
@@ -155,16 +175,10 @@ class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
           deviceId: this.DEVICE_ID,
         },
         iotData: {
-          appId: this.APP_ID,
-          clientType: 1,
-          devideId: this.DEVICE_ID,
+          ...iotData,
           iampwd: this.security.encrpytIAMPassword(login_id, this.password),
           loginAccount: this.account,
           password: this.security.encrpytPassword(login_id, this.password),
-          pushToken: randomBytes(20).toString('base64url'),
-          reqId: randomBytes(16).toString('hex'),
-          src: this.APP_ID,
-          stamp: this.timestamp(),
         },
       });
       if (response) {
@@ -194,6 +208,10 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity(MeijuCloud.LOGIN_KEY));
+  }
+
+  makeGeneralData() {
+    return {};
   }
 
   async login() {
@@ -250,6 +268,22 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     super(account, password, security);
   }
 
+  makeGeneralData() {
+    const data = {
+      src: this.APP_ID,
+      format: 2,
+      stamp: this.timestamp(),
+      devideId: this.DEVICE_ID,
+      reqId: randomBytes(16).toString('hex'),
+      clientType: 1,
+      appId: this.APP_ID,
+    };
+    if (this.sessionId) {
+      data['sessionId'] = this.sessionId;
+    }
+    return data;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(endpoint: string, data: { [key: string]: any }, header?: { [key: string]: any } | undefined) {
     const headers = {
@@ -302,13 +336,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
       const data = {
-        src: this.APP_ID,
-        format: 2,
-        stamp: this.timestamp(),
-        deviceId: this.DEVICE_ID,
-        reqId: randomBytes(16).toString('hex'),
-        clientType: 1,
-        appId: this.APP_ID,
+        ...this.makeGeneralData(),
         loginAccount: this.account,
         password: this.security.encrpytPassword(login_id, this.password),
       };

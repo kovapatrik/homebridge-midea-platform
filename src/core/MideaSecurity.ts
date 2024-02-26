@@ -63,7 +63,13 @@ export abstract class CloudSecurity {
 
 export class MSmartHomeCloudSecurity extends CloudSecurity {
   constructor(login_key: string) {
-    super(login_key, BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
+    super(
+      login_key,
+      BigInt('7882822598523843940'),
+      BigInt('117390035944627627450677220413733956185864939010425'),
+      BigInt('13101328926877700970'),
+      BigInt('16429062708050928556'),
+    );
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
@@ -80,10 +86,15 @@ export class MSmartHomeCloudSecurity extends CloudSecurity {
 
 export class MeijuCloudSecurity extends CloudSecurity {
   constructor(login_key: string) {
-    super(login_key, BigInt('9795516279659324117647275084689641883661667'), BigInt('117390035944627627450677220413733956185864939010425'));
+    super(
+      login_key,
+      BigInt('9795516279659324117647275084689641883661667'),
+      BigInt('117390035944627627450677220413733956185864939010425'),
+      BigInt('10864842703515613082'),
+    );
   }
 
-  public encrpytIAMPassword(loginId: string, password: string) {
+  public encrpytIAMPassword(_loginId: string, password: string) {
     const m1 = createHash('md5').update(password);
     const m2 = createHash('md5').update(m1.digest('hex'));
     return m2.digest('hex');
@@ -109,9 +120,12 @@ export class SimpleSecurity extends CloudSecurity {
 }
 
 export class LocalSecurity {
-  private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
+  private readonly aes_key = Buffer.from(BigInt('141661095494369103254425781617665632877').toString(16), 'hex');
 
-  private readonly salt = Buffer.from('78686469776a6e6368656b6434643531326368646a783564386534633339344432443753', 'hex');
+  private readonly salt = Buffer.from(
+    BigInt('233912452794221312800602098970898185176935770387238278451789080441632479840061417076563').toString(16),
+    'hex',
+  );
 
   private readonly iv = Buffer.alloc(16);
 
