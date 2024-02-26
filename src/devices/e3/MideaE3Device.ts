@@ -48,6 +48,7 @@ export default class MideaE3Device extends MideaDevice {
       PROTECTION: false,
       ZERO_COLD_PULSE: false,
       SMART_VOLUME: false,
+      CURRENT_TEMPERATURE: undefined,
       TARGET_TEMPERATURE: 40,
     };
     this._precision_halves = deviceConfig.E3_options.precisionHalves;
