@@ -74,7 +74,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.burningStateService ??= this.accessory.addService(
         this.platform.Service.MotionSensor,
         `${this.device.name} Burning State`,
-        'Burning State',
+        'BurningState',
       );
       this.burningStateService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name}  Burning State`);
       this.burningStateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name}  Burning State`);
@@ -104,7 +104,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.zeroColdWaterService ??= this.accessory.addService(
         this.platform.Service.Switch,
         `${this.device.name} Zero Cold Water`,
-        'Zero Cold Water',
+        'ZeroColdWater',
       );
       this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Water`);
       this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Water`);
@@ -122,7 +122,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.zeroColdPulseService ??= this.accessory.addService(
         this.platform.Service.Switch,
         `${this.device.name} Zero Cold Pulse`,
-        'Zero Cold Pulse',
+        'ZeroColdPulse',
       );
       this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Pulse`);
       this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Pulse`);
@@ -140,7 +140,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.smartVolumeService ??= this.accessory.addService(
         this.platform.Service.Switch,
         `${this.device.name} Smart Volume`,
-        'Smart Volume',
+        'SmartVolume',
       );
       this.smartVolumeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Smart Volume`);
       this.smartVolumeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Smart Volume`);
