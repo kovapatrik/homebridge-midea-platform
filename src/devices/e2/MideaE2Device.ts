@@ -48,10 +48,13 @@ export default class MideaE2Device extends MideaDevice {
       HEATING: false,
       KEEP_WARM: false,
       PROTECTION: false,
+      CURRENT_TEMPERATURE: undefined,
       TARGET_TEMPERATURE: 40,
       WHOLE_TANK_HEATING: false,
       VARIABLE_HEATING: false,
       HEATING_TIME_REMAINING: 0,
+      WATER_CONSUMPTION: undefined,
+      HEATING_POWER: undefined,
     };
     this._old_protocol = deviceConfig.E2_options.protocol;
   }
