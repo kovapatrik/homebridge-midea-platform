@@ -36,7 +36,6 @@
               <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
               <option value="NetHome Plus">NetHome Plus</option>
               <option value="Meiju">Meiju</option>
-              <option value="Midea Air">Midea Air</option>
               <option value="Artison Clima">Artison Clima</option>
             </select>
           </div>
@@ -220,7 +219,7 @@
         return (regexIPv4.test(ip));
       });
       if (!validIPs) {
-        homebride.toast.error(`Invalid IP address provided`);
+        homebridge.toast.error(`Invalid IP address provided`);
         homebridge.hideSpinner();
         // Abort if we have invalid IP address
         return;
@@ -248,12 +247,8 @@
           tr.insertCell().appendChild(document.createTextNode(device.version));
           if (device.version === 3) {
             tr.insertCell().appendChild(document.createTextNode(
-              device.token ?
-                device.token.slice(0, 6) + '...' + device.token.slice(-4) :
-                'token missing' + '\n' +
-                  device.key ?
-                  device.key.slice(0, 6) + '...' + device.key.slice(-4) :
-                  'key missing'
+              (device.token ? (device.token.slice(0, 6) + '...' + device.token.slice(-4)) : 'token missing') + '\n' +
+              (device.key ? (device.key.slice(0, 6) + '...' + device.key.slice(-4)) : 'key missing')
             ));
           } else {
             tr.insertCell().appendChild(document.createTextNode('not needed'));

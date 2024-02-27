@@ -44,7 +44,18 @@ abstract class CloudBase<S extends CloudSecurity> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  abstract makeGeneralData(): { [key: string]: any };
+  makeGeneralData(): { [key: string]: any } {
+    return {
+      appId: this.APP_ID,
+      format: 2,
+      clientType: 1,
+      language: this.LANGUAGE,
+      src: this.APP_ID,
+      stamp: this.timestamp(),
+      deviceId: this.DEVICE_ID,
+      reqId: randomBytes(16).toString('hex'),
+    };
+  }
 
   async apiRequest(
     endpoint: string,
@@ -53,20 +64,13 @@ abstract class CloudBase<S extends CloudSecurity> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     header?: { [key: string]: any },
   ) {
-    if (data['reqId'] === undefined) {
-      data['reqId'] = randomBytes(16).toString('hex');
-    }
-    if (data['stamp'] === undefined) {
-      data['stamp'] = this.timestamp();
-    }
-
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
 
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
       ...header,
-      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Type': 'application/json',
       secretVersion: '1',
       sign: sign,
       random: random,
@@ -82,7 +86,7 @@ abstract class CloudBase<S extends CloudSecurity> {
     for (let i = 0; i < 3; i++) {
       try {
         const response = await axios.post(url, data, { headers: headers });
-        if (Number.parseInt(response.data['code']) === 0) {
+        if (Number.parseInt(response.data['code']) === 0 && response.data['data'] !== undefined) {
           return response.data['data'];
         } else {
           throw new Error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
@@ -143,20 +147,6 @@ class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
     super(account, password, new MSmartHomeCloudSecurity(MSmartHomeCloud.APP_KEY));
   }
 
-  makeGeneralData() {
-    return {
-      src: this.APP_ID,
-      format: 2,
-      stamp: this.timestamp(),
-      platformId: 1,
-      devideId: this.DEVICE_ID,
-      reqId: randomBytes(16).toString('hex'),
-      uid: this.uid,
-      clientType: 1,
-      appId: this.APP_ID,
-    };
-  }
-
   async login() {
     const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
@@ -208,10 +198,6 @@ class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity(MeijuCloud.LOGIN_KEY));
-  }
-
-  makeGeneralData() {
-    return {};
   }
 
   async login() {
@@ -373,17 +359,6 @@ class NetHomePlusCloud extends SimpleCloud<SimpleSecurity> {
   }
 }
 
-class MideaAirCloud extends SimpleCloud<SimpleSecurity> {
-  protected readonly APP_ID = '1117';
-  protected static readonly APP_KEY = 'ff0cf6f5f0c3471de36341cab3f7a9af';
-  protected readonly APP_KEY = MideaAirCloud.APP_KEY;
-  protected readonly API_URL = 'https://mapp.appsmb.com';
-
-  constructor(account: string, password: string) {
-    super(account, password, new SimpleSecurity(MideaAirCloud.APP_KEY));
-  }
-}
-
 class AristonClimaCloud extends SimpleCloud<SimpleSecurity> {
   protected readonly APP_ID = '1005';
   protected static readonly APP_KEY = '434a209a5ce141c3b726de067835d7f0';
@@ -404,8 +379,6 @@ export default class CloudFactory {
         return new MeijuCloud(account, password);
       case 'NetHome Plus':
         return new NetHomePlusCloud(account, password);
-      case 'Midea Air':
-        return new MideaAirCloud(account, password);
       case 'Ariston Clima':
         return new AristonClimaCloud(account, password);
       default:
