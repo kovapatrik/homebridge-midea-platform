@@ -43,6 +43,7 @@ export enum SwingMode {
 
 type ACOptions = {
   swingMode: SwingMode;
+  heatingCapability: boolean;
   ecoSwitch: boolean;
   displaySwitch: {
     flag: boolean;
@@ -102,6 +103,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   },
   AC_options: {
     swingMode: SwingMode.NONE,
+    heatingCapability: false,
     displaySwitch: {
       flag: true,
       command: false,

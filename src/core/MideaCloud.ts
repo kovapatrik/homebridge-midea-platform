@@ -80,7 +80,7 @@ abstract class CloudBase<S extends CloudSecurity> {
       headers['uid'] = this.uid;
     }
     if (this.access_token) {
-      headers['access_token'] = this.access_token;
+      headers['accessToken'] = this.access_token;
     }
 
     for (let i = 0; i < 3; i++) {

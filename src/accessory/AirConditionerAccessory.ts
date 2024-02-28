@@ -52,6 +52,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .onGet(this.getTargetHeaterCoolerState.bind(this))
       .onSet(this.setTargetHeaterCoolerState.bind(this));
+    // .setProps({
+    //   validValues: [],
+    // });
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
 
