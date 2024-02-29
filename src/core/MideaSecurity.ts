@@ -11,8 +11,8 @@ export type KeyToken = Buffer | undefined;
 
 export abstract class CloudSecurity {
   protected readonly LOGIN_KEY: string;
-  protected readonly IOT_KEY?: string;
-  protected readonly HMAC_KEY?: string;
+  public readonly IOT_KEY?: string;
+  public readonly HMAC_KEY?: string;
 
   protected readonly FIXED_KEY?: Buffer;
   protected readonly FIXED_IV?: Buffer;

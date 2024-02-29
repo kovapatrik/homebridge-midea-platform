@@ -47,12 +47,12 @@ abstract class CloudBase<S extends CloudSecurity> {
   makeGeneralData(): { [key: string]: any } {
     return {
       appId: this.APP_ID,
-      format: 2,
-      clientType: 1,
-      language: this.LANGUAGE,
+      format: '2',
+      clientType: '1',
       src: this.APP_ID,
       stamp: this.timestamp(),
       deviceId: this.DEVICE_ID,
+      platformId: '1',
       reqId: randomBytes(16).toString('hex'),
     };
   }
@@ -64,6 +64,13 @@ abstract class CloudBase<S extends CloudSecurity> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     header?: { [key: string]: any },
   ) {
+    if (data['reqId'] === undefined) {
+      data['reqId'] = randomBytes(16).toString('hex');
+    }
+    if (data['stamp'] === undefined) {
+      data['stamp'] = this.timestamp();
+    }
+
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
 
@@ -143,8 +150,20 @@ class MSmartHomeCloud extends CloudBase<MSmartHomeCloudSecurity> {
   protected readonly APP_KEY = MSmartHomeCloud.APP_KEY;
   protected readonly API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
+  protected readonly AUTH_BASE: string;
   constructor(account: string, password: string) {
     super(account, password, new MSmartHomeCloudSecurity(MSmartHomeCloud.APP_KEY));
+    this.AUTH_BASE = Buffer.from(`${this.APP_KEY}:${this.security.IOT_KEY}`, 'ascii').toString('base64');
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async apiRequest(endpoint: string, data: { [key: string]: any }, header?: { [key: string]: any } | undefined) {
+    const headers = {
+      ...header,
+      'x-recipe-app': this.APP_ID,
+      Authorization: `Basic ${this.AUTH_BASE}`,
+    };
+    return await super.apiRequest(endpoint, data, headers);
   }
 
   async login() {
