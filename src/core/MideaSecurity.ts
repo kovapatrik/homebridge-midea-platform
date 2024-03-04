@@ -48,9 +48,6 @@ export abstract class CloudSecurity {
     return m2.digest('hex');
   }
 
-  // Encrypts password for cloud API iampwd field.
-  abstract encrpytIAMPassword(loginId: string, password: string): string;
-
   public static getUDPID(device_id_buf: Uint8Array) {
     const data = createHash('sha256').update(device_id_buf).digest();
     const output = Buffer.alloc(16);
@@ -61,7 +58,12 @@ export abstract class CloudSecurity {
   }
 }
 
-export class MSmartHomeCloudSecurity extends CloudSecurity {
+export abstract class ProxiedSecurity extends CloudSecurity {
+  // Encrypts password for cloud API iampwd field.
+  abstract encrpytIAMPassword(loginId: string, password: string): string;
+}
+
+export class MSmartHomeCloudSecurity extends ProxiedSecurity {
   constructor(login_key: string) {
     super(
       login_key,
@@ -84,7 +86,7 @@ export class MSmartHomeCloudSecurity extends CloudSecurity {
   }
 }
 
-export class MeijuCloudSecurity extends CloudSecurity {
+export class MeijuCloudSecurity extends ProxiedSecurity {
   constructor(login_key: string) {
     super(
       login_key,
