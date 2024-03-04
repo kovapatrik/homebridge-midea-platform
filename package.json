@@ -24,6 +24,12 @@
     "format": "prettier --log-level warn --write \"**/*.ts\" && npm run lint -- --fix",
     "prepare": "husky install"
   },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
   "keywords": [
     "homebridge-plugin"
   ],
@@ -46,6 +52,7 @@
     "eslint-plugin-prettier": "^5.0.1",
     "homebridge": "^1.6.0",
     "husky": "^8.0.0",
+    "lint-staged": "^15.2.2",
     "nodemon": "^3.0.1",
     "prettier": "^3.0.3",
     "rimraf": "^3.0.2",
