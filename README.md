@@ -5,7 +5,7 @@
 [![npm](https://badgen.net/npm/v/homebridge-midea-platform/latest?icon=npm&label)](https://www.npmjs.com/package/homebridge-midea-platform)
 [![npm](https://badgen.net/npm/dt/homebridge-midea-platform?label=downloads)](https://www.npmjs.com/package/homebridge-midea-platform)
 
-*Unofficial* plugin for Midea. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant.
+*Unofficial* plugin for Midea. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant. Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
 
 **Warning** this plugin is new and not fully tested for all devices.
 
