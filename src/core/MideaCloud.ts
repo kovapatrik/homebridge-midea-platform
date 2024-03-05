@@ -234,6 +234,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
+  protected readonly WORKAROUND_URL = undefined;
 
   constructor(account: string, password: string) {
     super(account, password, new MSmartHomeCloudSecurity());
