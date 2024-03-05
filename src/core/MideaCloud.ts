@@ -31,6 +31,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 
   protected abstract readonly APP_ID: string;
   protected abstract readonly API_URL: string;
+  protected abstract readonly WORKAROUND_URL?: string;
   protected readonly DEVICE_ID = randomBytes(8).toString('hex');
 
   protected access_token?: string;
@@ -99,7 +100,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
-    const url = `${this.API_URL}${endpoint}`;
+    const url = `${endpoint === '/v1/iot/secure/getToken' ? this.WORKAROUND_URL ?? this.API_URL : this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
@@ -117,7 +118,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data, { headers: headers });
+        const response = await axios.post(url, data, { headers: headers, timeout: 10000 });
         if (response.data['code'] !== undefined) {
           if (Number.parseInt(response.data['code']) === 0) {
             return response.data['data'];
@@ -242,6 +243,7 @@ class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
+  protected readonly WORKAROUND_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity());
