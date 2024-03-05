@@ -13,7 +13,15 @@ import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import { Semaphore } from 'semaphore-promise';
 import { Endianness } from './MideaConstants';
-import { CloudSecurity, MeijuCloudSecurity, MSmartHomeCloudSecurity, ProxiedSecurity, SimpleSecurity } from './MideaSecurity';
+import {
+  ArtisonClimaSecurity,
+  CloudSecurity,
+  MeijuCloudSecurity,
+  MSmartHomeCloudSecurity,
+  NetHomePlusSecurity,
+  ProxiedSecurity,
+  SimpleSecurity,
+} from './MideaSecurity';
 import { numberToUint8Array } from './MideaUtils';
 
 abstract class CloudBase<S extends CloudSecurity> {
@@ -22,7 +30,6 @@ abstract class CloudBase<S extends CloudSecurity> {
   protected readonly LANGUAGE = 'en_US';
 
   protected abstract readonly APP_ID: string;
-  protected abstract readonly APP_KEY: string;
   protected abstract readonly API_URL: string;
   protected readonly DEVICE_ID = randomBytes(8).toString('hex');
 
@@ -183,27 +190,61 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       releaseSemaphore();
     }
   }
+
+  async getProtocolLua(deviceType: number, serialNumber: string) {
+    const response = await this.apiRequest('/v2/luaEncryption/luaGet', {
+      ...this.buildRequestData(),
+      applianceMFCode: '0000',
+      applianceSn: this.security.encryptAESAppKey(Buffer.from(serialNumber, 'utf8')).toString('hex'),
+      applianceType: `0x${deviceType.toString(16).padStart(2, '0')}`,
+      encryptedType: 2,
+      version: '0',
+    });
+
+    if (response) {
+      return response;
+    } else {
+      throw new Error('Failed to get protocol.');
+    }
+  }
+
+  async getPlugin(deviceType: number, serialNumber: string) {
+    const response = await this.apiRequest('/v1/plugin/update/overseas/get', {
+      ...this.buildRequestData(),
+      clientVersion: '0',
+      uid: this.uid ?? randomBytes(16).toString('hex'),
+      applianceList: [
+        {
+          appModel: serialNumber.substring(9, 17),
+          appType: `0x${deviceType.toString(16).padStart(2, '0')}`,
+          modelNumber: '0',
+        },
+      ],
+    });
+
+    if (response) {
+      return response;
+    } else {
+      throw new Error('Failed to get plugin.');
+    }
+  }
 }
 
 class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
   protected readonly APP_ID = '1010';
-  protected static readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
-  protected readonly APP_KEY = MSmartHomeCloud.APP_KEY;
   protected readonly API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
-    super(account, password, new MSmartHomeCloudSecurity(MSmartHomeCloud.APP_KEY));
+    super(account, password, new MSmartHomeCloudSecurity());
   }
 }
 
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
-  protected static readonly LOGIN_KEY = 'ad0ee21d48a64bf49f4fb583ab76e799';
-  protected readonly APP_KEY = '46579c15';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
-    super(account, password, new MeijuCloudSecurity(MeijuCloud.LOGIN_KEY));
+    super(account, password, new MeijuCloudSecurity());
   }
 }
 
@@ -308,25 +349,21 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
   }
 }
 
-class NetHomePlusCloud extends SimpleCloud<SimpleSecurity> {
+class NetHomePlusCloud extends SimpleCloud<NetHomePlusSecurity> {
   protected readonly APP_ID = '1017';
-  protected static readonly APP_KEY = '3742e9e5842d4ad59c2db887e12449f9';
-  protected readonly APP_KEY = NetHomePlusCloud.APP_KEY;
   protected readonly API_URL = 'https://mapp.appsmb.com';
 
   constructor(account: string, password: string) {
-    super(account, password, new SimpleSecurity(NetHomePlusCloud.APP_KEY));
+    super(account, password, new NetHomePlusSecurity());
   }
 }
 
-class AristonClimaCloud extends SimpleCloud<SimpleSecurity> {
+class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   protected readonly APP_ID = '1005';
-  protected static readonly APP_KEY = '434a209a5ce141c3b726de067835d7f0';
-  protected readonly APP_KEY = AristonClimaCloud.APP_KEY;
   protected readonly API_URL = 'https://mapp.appsmb.com';
 
   constructor(account: string, password: string) {
-    super(account, password, new SimpleSecurity(AristonClimaCloud.APP_KEY));
+    super(account, password, new ArtisonClimaSecurity());
   }
 }
 

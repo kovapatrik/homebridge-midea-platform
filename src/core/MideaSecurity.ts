@@ -14,21 +14,13 @@ export abstract class CloudSecurity {
   public readonly IOT_KEY?: string;
   public readonly HMAC_KEY?: string;
 
-  protected readonly FIXED_KEY?: Buffer;
-  protected readonly FIXED_IV?: Buffer;
-  constructor(login_key: string, iot_key?: bigint, hmac_key?: bigint, fixed_key?: bigint, fixed_iv?: bigint) {
+  constructor(login_key: string, iot_key?: bigint, hmac_key?: bigint) {
     this.LOGIN_KEY = login_key;
     if (hmac_key) {
       this.HMAC_KEY = Buffer.from(hmac_key.toString(16), 'hex').toString();
     }
     if (iot_key) {
       this.IOT_KEY = Buffer.from(iot_key.toString(16), 'hex').toString();
-    }
-    if (fixed_key) {
-      this.FIXED_KEY = Buffer.from(fixed_key.toString(16), 'hex');
-    }
-    if (fixed_iv) {
-      this.FIXED_IV = Buffer.from(fixed_iv.toString(16), 'hex');
     }
   }
 
@@ -59,19 +51,38 @@ export abstract class CloudSecurity {
 }
 
 export abstract class ProxiedSecurity extends CloudSecurity {
+  abstract readonly APP_KEY: string;
+
   // Encrypts password for cloud API iampwd field.
   abstract encrpytIAMPassword(loginId: string, password: string): string;
+
+  getAppKeyAndIv() {
+    const hash = createHash('sha256').update(Buffer.from(this.APP_KEY, 'utf8')).digest('hex');
+    return {
+      appKey: Buffer.from(hash.substring(0, 16)),
+      iv: Buffer.from(hash.substring(16, 32)),
+    };
+  }
+
+  encryptAESAppKey(data: Buffer) {
+    const { appKey, iv } = this.getAppKeyAndIv();
+    const cipher = createCipheriv('aes-128-cbc', appKey, iv);
+    return Buffer.concat([cipher.update(data), cipher.final()]);
+  }
+
+  decryptAESAppKey(data: Buffer) {
+    const { appKey, iv } = this.getAppKeyAndIv();
+    const decipher = createDecipheriv('aes-128-cbc', appKey, iv);
+    return Buffer.concat([decipher.update(data), decipher.final()]);
+  }
 }
 
 export class MSmartHomeCloudSecurity extends ProxiedSecurity {
-  constructor(login_key: string) {
-    super(
-      login_key,
-      BigInt('7882822598523843940'),
-      BigInt('117390035944627627450677220413733956185864939010425'),
-      BigInt('13101328926877700970'),
-      BigInt('16429062708050928556'),
-    );
+  static readonly _LOGIN_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+  readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+
+  constructor() {
+    super(MSmartHomeCloudSecurity._LOGIN_KEY, BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
@@ -87,12 +98,14 @@ export class MSmartHomeCloudSecurity extends ProxiedSecurity {
 }
 
 export class MeijuCloudSecurity extends ProxiedSecurity {
-  constructor(login_key: string) {
+  static readonly _LOGIN_KEY = 'ad0ee21d48a64bf49f4fb583ab76e799';
+  readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+
+  constructor() {
     super(
-      login_key,
+      MeijuCloudSecurity._LOGIN_KEY,
       BigInt('9795516279659324117647275084689641883661667'),
       BigInt('117390035944627627450677220413733956185864939010425'),
-      BigInt('10864842703515613082'),
     );
   }
 
@@ -118,6 +131,22 @@ export class SimpleSecurity extends CloudSecurity {
     return createHash('sha256')
       .update(`${path}${unescape_plus(query)}${this.LOGIN_KEY}`)
       .digest('hex');
+  }
+}
+
+export class NetHomePlusSecurity extends SimpleSecurity {
+  static readonly _LOGIN_KEY = '3742e9e5842d4ad59c2db887e12449f9';
+
+  constructor() {
+    super(NetHomePlusSecurity._LOGIN_KEY);
+  }
+}
+
+export class ArtisonClimaSecurity extends SimpleSecurity {
+  static readonly _LOGIN_KEY = '434a209a5ce141c3b726de067835d7f0';
+
+  constructor() {
+    super(ArtisonClimaSecurity._LOGIN_KEY);
   }
 }
 
