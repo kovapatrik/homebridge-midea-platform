@@ -31,7 +31,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 
   protected abstract readonly APP_ID: string;
   protected abstract readonly API_URL: string;
-  protected abstract readonly WORKAROUND_URL?: string;
+  protected WORKAROUND_URL?: string;
   protected readonly DEVICE_ID = randomBytes(8).toString('hex');
 
   protected access_token?: string;
@@ -234,7 +234,6 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
-  protected readonly WORKAROUND_URL = undefined;
 
   constructor(account: string, password: string) {
     super(account, password, new MSmartHomeCloudSecurity());
@@ -244,10 +243,10 @@ class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
-  protected readonly WORKAROUND_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity());
+    this.WORKAROUND_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
   }
 }
 
