@@ -31,7 +31,6 @@ abstract class CloudBase<S extends CloudSecurity> {
 
   protected abstract readonly APP_ID: string;
   protected abstract readonly API_URL: string;
-  protected WORKAROUND_URL?: string;
   protected readonly DEVICE_ID = randomBytes(8).toString('hex');
 
   protected access_token?: string;
@@ -100,7 +99,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
-    const url = `${endpoint === '/v1/iot/secure/getToken' ? this.WORKAROUND_URL ?? this.API_URL : this.API_URL}${endpoint}`;
+    const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
@@ -246,7 +245,6 @@ class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity());
-    this.WORKAROUND_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
   }
 }
 
