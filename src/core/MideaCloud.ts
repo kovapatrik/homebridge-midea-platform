@@ -241,7 +241,7 @@ class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
 
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
-  protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
+  protected readonly API_URL = 'https://mp-uat.smartmidea.net/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
     super(account, password, new MeijuCloudSecurity());
