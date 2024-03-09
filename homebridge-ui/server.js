@@ -15,6 +15,12 @@ const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
 
+const DEFAULT_ACCOUNT = [
+  BigInt("39182118275972017797890111985649342047468653967530949796945843010512"),
+  BigInt("29406100301096535908214728322278519471982973450672552249652548883645"),
+  BigInt("39182118275972017797890111985649342050088014265865102175083010656997")
+]
+
 var _ = require('lodash');
 
 /*********************************************************************
@@ -81,8 +87,14 @@ class UiServer extends HomebridgePluginUiServer {
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.logRecoverableErrors ? config.logRecoverableErrors : false);
 
-    this.onRequest('/login', async ({ username, password, registeredApp }) => {
+    this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
+        if (useDefaultProfile) {
+          this.logger.debug(`Using default profile.`);
+          registeredApp = 'Midea SmartHome (MSmartHome)';
+          username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii')
+          password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii')
+        }
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
         if (username && password && registeredApp) {
           await this.cloud.login();
