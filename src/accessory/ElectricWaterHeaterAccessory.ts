@@ -62,12 +62,12 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
         minStep: this.configDev.E2_options.tempStep,
       });
 
-    this.variableHeatingService = this.accessory.getService(`${this.device.name} Variable Heating`);
+    this.variableHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, 'VariableHeating');
     if (this.configDev.E2_options.variableHeatingSwitch) {
       this.variableHeatingService ??= this.accessory.addService(
         this.platform.Service.Switch,
         `${this.device.name} Variable Heating`,
-        'Variable Heating',
+        'VariableHeating',
       );
       this.variableHeatingService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Variable Heating`);
       this.variableHeatingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Variable Heating`);
@@ -79,12 +79,12 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
       this.accessory.removeService(this.variableHeatingService);
     }
 
-    this.wholeTankHeatingService = this.accessory.getService(`${this.device.name} Whole Tank Heating`);
+    this.wholeTankHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, 'WholeTankHeating');
     if (this.configDev.E2_options.wholeTankHeatingSwitch) {
       this.wholeTankHeatingService ??= this.accessory.addService(
         this.platform.Service.Switch,
         `${this.device.name} Whole Tank Heating`,
-        'Whole Tank Heating',
+        'WholeTankHeating',
       );
       this.wholeTankHeatingService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Whole Tank Heating`);
       this.wholeTankHeatingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Whole Tank Heating`);
