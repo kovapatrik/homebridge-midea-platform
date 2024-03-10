@@ -237,6 +237,8 @@
       const password = document.getElementById('password').value;
       const registeredApp = document.getElementById('registeredApp').value;
       const useDefaultProfile = document.getElementById('useDefaultProfile').checked === true;
+      const isMeiju = registeredApp === 'Meiju';
+      
       let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
 
       homebridge.showSpinner();
@@ -244,7 +246,7 @@
 
       console.info(`Request login...`);
       try {
-        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile });
+        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile || isMeiju });
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
