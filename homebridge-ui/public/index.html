@@ -246,7 +246,7 @@
 
       console.info(`Request login...`);
       try {
-        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile || isMeiju });
+        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile: useDefaultProfile || isMeiju });
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
