@@ -24,7 +24,7 @@ Providing air conditioner settings is optional and the whole section or individu
 }
 ```
 ## Options
-- **swingMode** *(optional)*: Set swing mode of the unit. If you AC does not support this feature then leave it on None.
+- **swingMode** *(optional)*: The swing mode of the unit.  Options are "Both", "Vertical", "Horizontal", or "None".  Default is "None".
 - **heatingCapable** *(optional)*: Toggles if the unit is capable of heating. Default is false.
 - **displaySwitch** *(optional)*: Object with following two options...
 - * **flag** *(optional)*: Toggles if a switch, which can turn the display on or off will be created or not. Default is true.
