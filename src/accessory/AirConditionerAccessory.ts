@@ -51,10 +51,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .onGet(this.getTargetHeaterCoolerState.bind(this))
-      .onSet(this.setTargetHeaterCoolerState.bind(this));
-    // .setProps({
-    //   validValues: [],
-    // });
+      .onSet(this.setTargetHeaterCoolerState.bind(this))
+      .setProps({
+        validValues: this.configDev.AC_options.heatingCapability
+          ? [
+              this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
+              this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
+              this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+            ]
+          : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
+      });
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
 
