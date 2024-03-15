@@ -53,7 +53,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       .onGet(this.getTargetHeaterCoolerState.bind(this))
       .onSet(this.setTargetHeaterCoolerState.bind(this))
       .setProps({
-        validValues: this.configDev.AC_options.heatingCapability
+        validValues: this.configDev.AC_options.heatingCapable
           ? [
               this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
               this.platform.Characteristic.TargetHeaterCoolerState.HEAT,

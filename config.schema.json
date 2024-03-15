@@ -157,7 +157,7 @@
                     "Both"
                   ]
                 },
-                "heatingCapability": {
+                "heatingCapable": {
                   "title": "Heating Capability",
                   "description": "Toggles if heating is enabled on the accessory. If your unit does not support heating then leave this off.",
                   "type": "boolean"
@@ -396,7 +396,7 @@
               "expanded": false,
               "items": [
                 "devices[].AC_options.swingMode",
-                "devices[].AC_options.heatingCapability",
+                "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
                 "devices[].AC_options.audioFeedback",
                 "devices[].AC_options.ecoSwitch",
