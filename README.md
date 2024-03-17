@@ -1,13 +1,14 @@
-# Homebridge Midea-Platform Plugin
-<!--
+<p align="center">
+  <a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="Homebridge Verified" src="./branding/Homebridge_x_Midea.svg" width="500px"></a>
+</p>
+
+# homebridge-midea-platform
+
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
- -->
 [![npm](https://badgen.net/npm/v/homebridge-midea-platform/latest?icon=npm&label)](https://www.npmjs.com/package/homebridge-midea-platform)
 [![npm](https://badgen.net/npm/dt/homebridge-midea-platform?label=downloads)](https://www.npmjs.com/package/homebridge-midea-platform)
 
-*Unofficial* plugin for Midea. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant. Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
-
-**Warning** this plugin is new and not fully tested for all devices.
+*Official* plugin for Midea. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant. Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
 
 Pull requests and/or other offers of development assistance gratefully received.
 
@@ -26,7 +27,7 @@ Currently supports the following devices:
 
 ### Unsupported Devices
 
-If you have a device not supported by the plugin then useful information will be logged as warnings.  If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues).
+If you have a device not supported by the plugin then useful information will be logged as warnings. If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues).
 
 ## Installation
 
@@ -49,8 +50,6 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest and **strongly recommended** way to configure this plugin.
 
 You should use the UI to discover and add devices. More information on the settings can be found in the [Settings](#settings) section below.
-
-
 
 ## License
 
