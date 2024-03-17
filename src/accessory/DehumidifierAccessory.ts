@@ -17,6 +17,9 @@ import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   private service: Service;
+
+  private temperatureService?: Service;
+  private pumpService?: Service;
   // Increment this every time we make a change to accessory that requires
   // previously cached Homebridge service to be deleted/replaced.
   private serviceVersion = 1;
@@ -104,6 +107,26 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
 
+    // Temperature sensor
+    this.temperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Temperature');
+    if (this.configDev.A1_options.temperatureSensor) {
+      this.temperatureService ??= this.accessory.addService(this.platform.Service.TemperatureSensor, 'Temperature', 'Temperature');
+      this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getTemperature.bind(this));
+    } else if (this.temperatureService) {
+      this.accessory.removeService(this.temperatureService);
+    }
+
+    // Pump switch
+    this.pumpService = this.accessory.getServiceById(this.platform.Service.Switch, 'Pump');
+    if (this.configDev.A1_options.pumpSwitch) {
+      this.pumpService ??= this.accessory.addService(this.platform.Service.Switch, 'Pump', 'Pump');
+      this.pumpService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Pump`);
+      this.pumpService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Pump`);
+      this.pumpService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getPump.bind(this)).onSet(this.setPump.bind(this));
+    } else if (this.pumpService) {
+      this.accessory.removeService(this.pumpService);
+    }
+
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
     this.device.on('update', this.updateCharacteristics.bind(this));
@@ -141,10 +164,13 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           updateState = true;
           break;
         case 'current_temperature':
-          // Not currently supported
+          this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
           break;
         case 'tank_level':
           this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
+          break;
+        case 'pump':
+          this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
           break;
         case 'tank_full':
           // No HomeKit characteristic
@@ -159,7 +185,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           // No HomeKit characteristic
           break;
         default:
-          this.platform.log.warn(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(
@@ -302,5 +328,23 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private async getWaterLevel(): Promise<CharacteristicValue> {
     this.platform.log.debug(`[${this.device.name}] GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
     return this.device.attributes.TANK_LEVEL;
+  }
+
+  // Handle requests to get the current value of the "Pump" characteristic
+  private getTemperature(): CharacteristicValue {
+    this.platform.log.debug(`[${this.device.name}] GET Temperature, value: ${this.device.attributes.CURRENT_TEMPERATURE}`);
+    return this.device.attributes.CURRENT_TEMPERATURE;
+  }
+
+  // Handle requests to get the current value of the "Pump" characteristic
+  private async getPump(): Promise<CharacteristicValue> {
+    this.platform.log.debug(`[${this.device.name}] GET Pump, value: ${this.device.attributes.PUMP}`);
+    return this.device.attributes.POWER === true && this.device.attributes.PUMP;
+  }
+
+  // Handle requests to set the "Pump" characteristic
+  private async setPump(value: CharacteristicValue) {
+    this.platform.log.debug(`[${this.device.name}] SET Pump to: ${value}`);
+    await this.device.set_attribute({ PUMP: !!value });
   }
 }

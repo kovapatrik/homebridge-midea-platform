@@ -30,6 +30,8 @@ export type DeviceConfig = {
   };
   AC_options: ACOptions;
   A1_options: A1Options;
+  E2_options: E2Options;
+  E3_options: E3Options;
 };
 
 export enum SwingMode {
@@ -41,6 +43,7 @@ export enum SwingMode {
 
 type ACOptions = {
   swingMode: SwingMode;
+  heatingCapable: boolean;
   ecoSwitch: boolean;
   displaySwitch: {
     flag: boolean;
@@ -52,14 +55,39 @@ type ACOptions = {
   fahrenheit: boolean;
   fanOnlyMode: boolean;
   breezeAwaySwitch: boolean;
+  dryModeSwitch: boolean;
+  auxHeatingSwitches: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
 };
 
 type A1Options = {
+  temperatureSensor: boolean;
+  pumpSwitch: boolean;
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
+};
+
+type E2Options = {
+  protocol: string;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  variableHeatingSwitch: boolean;
+  wholeTankHeatingSwitch: boolean;
+};
+
+type E3Options = {
+  precisionHalves: boolean;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  burningStateSensor: boolean;
+  protectionSensor: boolean;
+  zeroColdWaterSwitch: boolean;
+  zeroColdPulseSwitch: boolean;
+  smartVolumeSwitch: boolean;
 };
 
 export const defaultDeviceConfig: DeviceConfig = {
@@ -75,6 +103,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   },
   AC_options: {
     swingMode: SwingMode.NONE,
+    heatingCapable: false,
     displaySwitch: {
       flag: true,
       command: false,
@@ -87,11 +116,34 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoSwitch: false,
     outDoorTemp: false,
     breezeAwaySwitch: false,
+    auxHeatingSwitches: false,
+    dryModeSwitch: false,
     audioFeedback: false,
   },
   A1_options: {
+    temperatureSensor: false,
+    pumpSwitch: false,
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
+  },
+  E2_options: {
+    protocol: 'auto',
+    minTemp: 30,
+    maxTemp: 75,
+    tempStep: 1,
+    variableHeatingSwitch: false,
+    wholeTankHeatingSwitch: false,
+  },
+  E3_options: {
+    precisionHalves: false,
+    minTemp: 35,
+    maxTemp: 65,
+    tempStep: 1,
+    burningStateSensor: false,
+    protectionSensor: false,
+    zeroColdWaterSwitch: false,
+    zeroColdPulseSwitch: false,
+    smartVolumeSwitch: false,
   },
 };

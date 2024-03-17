@@ -14,6 +14,8 @@ export const DEVICE_INFO_MESSAGE = new Int8Array([
 export enum DeviceType {
   AIR_CONDITIONER = 0xac,
   DEHUMIDIFIER = 0xa1,
+  ELECTRIC_WATER_HEATER = 0xe2,
+  GAS_WATER_HEATER = 0xe3,
 }
 
 export enum ParseMessageResult {
@@ -55,4 +57,7 @@ export enum ProtocolVersion {
   V3,
 }
 
-export type Endianness = 'little' | 'big';
+export enum Endianness {
+  Little,
+  Big,
+}

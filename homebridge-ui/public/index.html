@@ -26,25 +26,41 @@
       <div class="card-body">
         <form>
           <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
-            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in the
-            Add/Update column then you must provide login credentials so that a <i>token/key</i> pair can be retrieved
-            from Midea cloud servers, these are protocol version 3 devices.
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in
+            the
+            Add/Update column then you must provide login credentials or use the default profile option so the
+            <i>token/key</i> pair can be retrieved
+            from Midea cloud servers.<br/>
+            <i>Note: you don't have to have your devices connected to the account you are using to fetch the token/key pair.</i>
           </div>
-          <div class="mb-3">
-            <label for="registeredApp" class="form-label">Registered app</label>
-            <select id="registeredApp" class="form-select">
-              <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
-              <option value="NetHome Plus">NetHome Plus</option>
-              <option value="Meiju">Meiju</option>
-            </select>
+          <div class="mb-3 form-check form-switch">
+            <input id="useDefaultProfile" type="checkbox" class="form-check-input" role="switch">
+            <label for="useDefaultProfile" class="form-check-label">Use default Midea SmartHome profile</label>
           </div>
-          <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="username">
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password">
+          <div class="mb-3" id="login">
+            <div class="mb-3">
+              <label for="registeredApp" class="form-label">Registered app</label>
+              <select id="registeredApp" class="form-select">
+                <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
+                <option value="NetHome Plus">NetHome Plus</option>
+                <option value="Meiju">Meiju</option>
+                <option value="Artison Clima">Artison Clima</option>
+              </select>
+            </div>
+            <div class="mb-3 hide bg-warning-subtle border-warning-subtle p-3 rounded-2" id="meijuWarning">
+              The Meiju app disabled the process of obtaining the required token/key pair for protocol version 3 devices. 
+              When choosing Meiju, it will utilize the default Midea SmartHome profile to retrieve the token/key pair.
+            </div>
+            <div id="userPass">
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username">
+              </div>
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password">
+              </div>
+            </div>
           </div>
           <div class="mb-3">
             <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
@@ -81,6 +97,19 @@
   </div>
 
 </div>
+
+<style>
+
+  .hide {
+    display: none;
+  }
+
+  .disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+</style>
+
 
 <script>
 
@@ -174,6 +203,30 @@
     createForm(configSchema, configuration);
     homebridge.hideSpinner();
 
+    const loginSection = document.getElementById('login')
+    const userPass = document.getElementById('userPass');
+    const meijuWarning = document.getElementById('meijuWarning');
+
+    document.getElementById('useDefaultProfile').addEventListener('change', function (e) {
+      if (e.target.checked === true) {
+        loginSection.classList.add('disabled');
+      } else {
+        loginSection.classList.remove('disabled');
+      }
+    });
+
+    document.getElementById('registeredApp').addEventListener('change', function (e) {
+      if (e.target.value === 'Meiju') {
+        meijuWarning.classList.remove('hide');
+        userPass.classList.add('disabled');
+      } else {
+        meijuWarning.classList.add('hide');
+        userPass.classList.remove('disabled');
+      }
+    });
+
+
+
     /*********************************************************************
      * Discover button clicked....
      */
@@ -183,6 +236,9 @@
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       const registeredApp = document.getElementById('registeredApp').value;
+      const isMeiju = registeredApp === 'Meiju';
+      const useDefaultProfile = document.getElementById('useDefaultProfile').checked === true || isMeiju;
+      
       let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
 
       homebridge.showSpinner();
@@ -190,7 +246,7 @@
 
       console.info(`Request login...`);
       try {
-        await homebridge.request('/login', { username, password, registeredApp });
+        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile });
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
@@ -200,6 +256,7 @@
 
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
+
 
       // Merge current config over to the server so discover has latest device config...
       let currentConfig = await homebridge.getPluginConfig();
@@ -218,7 +275,7 @@
         return (regexIPv4.test(ip));
       });
       if (!validIPs) {
-        homebride.toast.error(`Invalid IP address provided`);
+        homebridge.toast.error(`Invalid IP address provided`);
         homebridge.hideSpinner();
         // Abort if we have invalid IP address
         return;
@@ -246,12 +303,8 @@
           tr.insertCell().appendChild(document.createTextNode(device.version));
           if (device.version === 3) {
             tr.insertCell().appendChild(document.createTextNode(
-              device.token ?
-                device.token.slice(0, 6) + '...' + device.token.slice(-4) :
-                'token missing' + '\n' +
-                  device.key ?
-                  device.key.slice(0, 6) + '...' + device.key.slice(-4) :
-                  'key missing'
+              (device.token ? (device.token.slice(0, 6) + '...' + device.token.slice(-4)) : 'token missing') + '\n' +
+              (device.key ? (device.key.slice(0, 6) + '...' + device.key.slice(-4)) : 'key missing')
             ));
           } else {
             tr.insertCell().appendChild(document.createTextNode('not needed'));

@@ -10,10 +10,16 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
-const { DeviceType, TCPMessageType, ProtocolVersion } = require("../dist/core/MideaConstants.js");
+const { DeviceType, TCPMessageType, ProtocolVersion, Endianness } = require("../dist/core/MideaConstants.js");
 const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
 const { PromiseSocket } = require("../dist/core/MideaUtils.js");
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
+
+const DEFAULT_ACCOUNT = [
+  BigInt("39182118275972017797890111985649342047468653967530949796945843010512"),
+  BigInt("29406100301096535908214728322278519471982973450672552249652548883645"),
+  BigInt("39182118275972017797890111985649342050088014265865102175083010656997")
+]
 
 var _ = require('lodash');
 
@@ -81,8 +87,14 @@ class UiServer extends HomebridgePluginUiServer {
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.logRecoverableErrors ? config.logRecoverableErrors : false);
 
-    this.onRequest('/login', async ({ username, password, registeredApp }) => {
+    this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
+        if (useDefaultProfile) {
+          this.logger.debug(`Using default profile.`);
+          registeredApp = 'Midea SmartHome (MSmartHome)';
+          username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii')
+          password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii')
+        }
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
         if (username && password && registeredApp) {
           await this.cloud.login();
@@ -90,6 +102,7 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
+        throw new RequestError(`Login failed! Check the logs for more information.`);
       }
     });
 
@@ -149,9 +162,9 @@ class UiServer extends HomebridgePluginUiServer {
     // works or having tried both.
     while (i <= 1 && !connected) {
       // Start with big-endianess as it is more likely to succeed.
-      const endianess = i === 0 ? 'big' : 'little';
+      const endianess = i === 0 ? Endianness.Little : Endianness.Big;
       try {
-        const [token, key] = await this.cloud.getToken(device.id, endianess);
+        const [token, key] = await this.cloud.getTokenKey(device.id, endianess);
         device.token = token ? token.toString('hex') : undefined;
         device.key = key ? key.toString('hex') : undefined;
         await this.authenticate(device);
@@ -225,6 +238,12 @@ class UiServer extends HomebridgePluginUiServer {
             break;
           case DeviceType.DEHUMIDIFIER:
             device['displayName'] = 'Dehumidifier';
+            break;
+          case DeviceType.ELECTRIC_WATER_HEATER:
+            device['displayName'] = 'Electric Water Heater';
+            break;
+          case DeviceType.GAS_WATER_HEATER:
+            device['displayName'] = 'Gas Water Heater';
             break;
           default:
             device['displayName'] = 'Unknown';

@@ -4,29 +4,37 @@
  * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
  * Portions Copyright (c) 2023 David Kerr, https://github.com/dkerr64
  *
- * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan and
+ *                https://github.com/mill1000/midea-msmart
  *
  */
+import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
-import axios from 'axios';
-import { CloudSecurity, MeijuCloudSecurity, NetHomePlusSecurity, MideaAirSecurity } from './MideaSecurity';
-import { numberToUint8Array } from './MideaUtils';
-import { Endianness } from './MideaConstants';
 import { Semaphore } from 'semaphore-promise';
+import { Endianness } from './MideaConstants';
+import {
+  ArtisonClimaSecurity,
+  CloudSecurity,
+  MeijuCloudSecurity,
+  MSmartHomeCloudSecurity,
+  NetHomePlusSecurity,
+  ProxiedSecurity,
+  SimpleSecurity,
+} from './MideaSecurity';
+import { numberToUint8Array } from './MideaUtils';
 
-abstract class CloudBase<T extends CloudSecurity> {
+abstract class CloudBase<S extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
   protected readonly FORMAT = 2;
-  protected readonly APP_KEY = '4675636b';
-
   protected readonly LANGUAGE = 'en_US';
-  protected readonly APP_ID: string = '1010';
-  protected readonly SRC: string = '1010';
+
+  protected abstract readonly APP_ID: string;
+  protected abstract readonly API_URL: string;
   protected readonly DEVICE_ID = randomBytes(8).toString('hex');
 
-  protected abstract API_URL: string;
   protected access_token?: string;
+  protected uid?: string;
   protected key?: string;
 
   protected semaphore: Semaphore;
@@ -35,7 +43,7 @@ abstract class CloudBase<T extends CloudSecurity> {
   constructor(
     protected readonly account: string,
     protected readonly password: string,
-    protected readonly security: T,
+    protected readonly security: S,
   ) {
     // Required to serialize access to some cloud functions.
     this.semaphore = new Semaphore();
@@ -45,74 +53,98 @@ abstract class CloudBase<T extends CloudSecurity> {
     return DateTime.now().toFormat('yyyyMMddHHmmss');
   }
 
-  async apiRequest(
-    endpoint: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args?: { [key: string]: any },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: { [key: string]: any },
-  ) {
-    if (data === undefined) {
-      data = {
-        appId: this.APP_ID,
-        format: this.FORMAT,
-        clientType: this.CLIENT_TYPE,
-        language: this.LANGUAGE,
-        src: this.SRC,
-        stamp: this.timestamp(),
-        deviceId: this.DEVICE_ID,
-      };
-    }
-    data = { ...data, ...args };
+  abstract buildRequestData(): { [key: string]: string | number };
 
-    if (data['reqId'] === undefined) {
-      data['reqId'] = randomBytes(16).toString('hex');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abstract apiRequest(endpoint: string, data: { [key: string]: any }): Promise<any>;
+
+  async getLoginId() {
+    try {
+      const response = await this.apiRequest('/v1/user/login/id/get', {
+        ...this.buildRequestData(),
+        loginAccount: this.account,
+      });
+      if (response) {
+        return response['loginId'];
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.stack : e;
+      throw new Error(`Failed to get login ID:\n${msg}`);
+    }
+  }
+
+  abstract login(): Promise<void>;
+
+  async getTokenKey(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
+    const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
+    const response = await this.apiRequest('/v1/iot/secure/getToken', {
+      ...this.buildRequestData(),
+      udpid: udpid,
+    });
+
+    if (response) {
+      for (const token of response['tokenlist']) {
+        if (token['udpId'] === udpid) {
+          return [Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex')];
+        }
+      }
+    } else {
+      throw new Error('Failed to get token.');
     }
 
+    throw new Error(`No token/key found for udpid ${udpid}.`);
+  }
+}
+
+abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async apiRequest(endpoint: string, data: { [key: string]: any }) {
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
-
     const sign = this.security.sign(JSON.stringify(data), random);
     const headers = {
       'Content-Type': 'application/json',
       secretVersion: '1',
       sign: sign,
       random: random,
-      accessToken: this.access_token,
     };
+    if (this.uid) {
+      headers['uid'] = this.uid;
+    }
+    if (this.access_token) {
+      headers['accessToken'] = this.access_token;
+    }
 
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data, { headers: headers });
-        if (Number.parseInt(response.data['code']) === 0) {
-          return response.data['data'];
-        } else {
-          throw new Error(`Error while sending request to ${url}: ${JSON.stringify(response.data)}`);
+        const response = await axios.post(url, data, { headers: headers, timeout: 10000 });
+        if (response.data['code'] !== undefined) {
+          if (Number.parseInt(response.data['code']) === 0) {
+            return response.data['data'];
+          }
         }
+        throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
       } catch (error) {
         throw new Error(`Error while sending request to ${url}: ${error}`);
       }
     }
-
     throw new Error(`Failed to send request to ${url}.`);
   }
 
-  async getLoginId() {
-    const response = await this.apiRequest('/v1/user/login/id/get', {
-      loginAccount: this.account,
-    });
-
-    if (response) {
-      // this.logger.info('Logged in to Midea Cloud.');
-      return response['loginId'];
-    }
-
-    throw new Error('Failed to get login ID.');
+  buildRequestData() {
+    return {
+      appId: this.APP_ID,
+      format: this.FORMAT,
+      clientType: this.CLIENT_TYPE,
+      language: this.LANGUAGE,
+      src: this.APP_ID,
+      stamp: this.timestamp(),
+      deviceId: this.DEVICE_ID,
+      reqId: randomBytes(16).toString('hex'),
+    };
   }
 
   async login() {
-    // We need to protect against multiple attempts to login, so we only login if not already
-    // logged in.  Protect this block with a semaphone.
     const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
     try {
       if (this.loggedIn) {
@@ -120,9 +152,11 @@ abstract class CloudBase<T extends CloudSecurity> {
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
+      const iotData = this.buildRequestData();
+      delete iotData['uid'];
+
       const response = await this.apiRequest('/mj/user/login', {
         data: {
-          appKey: this.APP_KEY,
           platform: this.FORMAT,
           deviceId: this.DEVICE_ID,
         },
@@ -132,12 +166,13 @@ abstract class CloudBase<T extends CloudSecurity> {
           iampwd: this.security.encrpytIAMPassword(login_id, this.password),
           loginAccount: this.account,
           password: this.security.encrpytPassword(login_id, this.password),
-          pushToken: randomBytes(20).toString('base64url'),
+          pushToken: randomBytes(16).toString('base64url'),
           reqId: randomBytes(16).toString('hex'),
-          src: this.SRC,
+          src: this.APP_ID,
           stamp: this.timestamp(),
         },
       });
+
       if (response) {
         this.access_token = response['mdata']['accessToken'];
         if (response['key'] !== undefined) {
@@ -156,71 +191,96 @@ abstract class CloudBase<T extends CloudSecurity> {
     }
   }
 
-  async getToken(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
-    const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
-    const response = await this.apiRequest('/v1/iot/secure/getToken', {
-      udpid: udpid,
+  async getProtocolLua(deviceType: number, serialNumber: string) {
+    const response = await this.apiRequest('/v2/luaEncryption/luaGet', {
+      ...this.buildRequestData(),
+      applianceMFCode: '0000',
+      applianceSn: this.security.encryptAESAppKey(Buffer.from(serialNumber, 'utf8')).toString('hex'),
+      applianceType: `0x${deviceType.toString(16).padStart(2, '0')}`,
+      encryptedType: 2,
+      version: '0',
     });
 
     if (response) {
-      for (const token of response['tokenlist']) {
-        if (token['udpId'] === udpid) {
-          return [Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex')];
-        }
-      }
+      return response;
     } else {
-      throw new Error('Failed to get token.');
+      throw new Error('Failed to get protocol.');
     }
+  }
 
-    throw new Error(`No token/key found for udpid ${udpid}.`);
+  async getPlugin(deviceType: number, serialNumber: string) {
+    const response = await this.apiRequest('/v1/plugin/update/overseas/get', {
+      ...this.buildRequestData(),
+      clientVersion: '0',
+      uid: this.uid ?? randomBytes(16).toString('hex'),
+      applianceList: [
+        {
+          appModel: serialNumber.substring(9, 17),
+          appType: `0x${deviceType.toString(16).padStart(2, '0')}`,
+          modelNumber: '0',
+        },
+      ],
+    });
+
+    if (response) {
+      return response;
+    } else {
+      throw new Error('Failed to get plugin.');
+    }
   }
 }
 
-class MSmartHomeCloud extends CloudBase<CloudSecurity> {
-  protected API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
+class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
+  protected readonly APP_ID = '1010';
+  protected readonly API_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
-    super(account, password, new CloudSecurity('ac21b9f9cbfe4ca5a88562ef25e2b768', 'meicloud'));
+    super(account, password, new MSmartHomeCloudSecurity());
   }
 }
 
-class MeijuCloud extends CloudBase<MeijuCloudSecurity> {
-  protected API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
+class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
+  protected readonly APP_ID = '1010';
+  protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
 
   constructor(account: string, password: string) {
-    super(account, password, new MeijuCloudSecurity('ad0ee21d48a64bf49f4fb583ab76e799', 'prod_secret123@muc'));
+    super(account, password, new MeijuCloudSecurity());
   }
 }
 
-class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
-  protected API_URL = 'https://mapp.appsmb.com';
-
+abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
   protected sessionId?: string;
 
   constructor(account: string, password: string, security: T) {
     super(account, password, security);
   }
 
-  async apiRequest(
-    endpoint: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    args?: { [key: string]: any },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: { [key: string]: any },
-  ) {
-    if (data === undefined) {
-      data = {
-        appId: this.APP_ID,
-        format: this.FORMAT,
-        clientType: this.CLIENT_TYPE,
-        language: this.LANGUAGE,
-        src: this.SRC,
-        stamp: this.timestamp(),
-      };
-    }
-    data = { ...data, ...args };
+  buildRequestData() {
+    const data = {
+      src: this.APP_ID,
+      format: 2,
+      stamp: this.timestamp(),
+      devideId: this.DEVICE_ID,
+      reqId: randomBytes(16).toString('hex'),
+      clientType: 1,
+      appId: this.APP_ID,
+    };
     if (this.sessionId) {
       data['sessionId'] = this.sessionId;
+    }
+    return data;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async apiRequest(endpoint: string, data: { [key: string]: any }, header?: { [key: string]: any } | undefined) {
+    const headers = {
+      ...header,
+    };
+    if (data['reqId'] === undefined) {
+      data['reqId'] = randomBytes(16).toString('hex');
+    }
+    if (data['stamp'] === undefined) {
+      data['stamp'] = this.timestamp();
     }
 
     const url = `${this.API_URL}${endpoint}`;
@@ -228,9 +288,12 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
     queryParams.sort();
     data['sign'] = this.security.sign(url, queryParams.toString());
 
-    const headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    };
+    if (this.uid) {
+      headers['uid'] = this.uid;
+    }
+    if (this.access_token) {
+      headers['accessToken'] = this.access_token;
+    }
 
     for (let i = 0; i < 3; i++) {
       try {
@@ -259,13 +322,19 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
-      const response = await this.apiRequest('/v1/user/login', {
+      const data = {
+        ...this.buildRequestData(),
         loginAccount: this.account,
         password: this.security.encrpytPassword(login_id, this.password),
-      });
+      };
+      if (this.sessionId) {
+        data['sessionId'] = this.sessionId;
+      }
+      const response = await this.apiRequest('/v1/user/login', data);
       if (response) {
         this.access_token = response['accessToken'];
         this.sessionId = response['sessionId'];
+        this.uid = response['userId'];
         this.loggedIn = true;
       } else {
         this.loggedIn = false;
@@ -280,21 +349,21 @@ class UnProxiedCloudBase<T extends CloudSecurity> extends CloudBase<T> {
   }
 }
 
-class NetHomePlusCloud extends UnProxiedCloudBase<NetHomePlusSecurity> {
-  protected APP_ID = '1017';
-  protected SRC = '1017';
+class NetHomePlusCloud extends SimpleCloud<NetHomePlusSecurity> {
+  protected readonly APP_ID = '1017';
+  protected readonly API_URL = 'https://mapp.appsmb.com';
 
   constructor(account: string, password: string) {
-    super(account, password, new NetHomePlusSecurity('3742e9e5842d4ad59c2db887e12449f9'));
+    super(account, password, new NetHomePlusSecurity());
   }
 }
 
-class MideaAirCloud extends UnProxiedCloudBase<MideaAirSecurity> {
-  protected APP_ID = '1117';
-  protected SRC = '17';
+class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
+  protected readonly APP_ID = '1005';
+  protected readonly API_URL = 'https://mapp.appsmb.com';
 
   constructor(account: string, password: string) {
-    super(account, password, new MideaAirSecurity('ff0cf6f5f0c3471de36341cab3f7a9af'));
+    super(account, password, new ArtisonClimaSecurity());
   }
 }
 
@@ -307,8 +376,8 @@ export default class CloudFactory {
         return new MeijuCloud(account, password);
       case 'NetHome Plus':
         return new NetHomePlusCloud(account, password);
-      case 'Midea Air':
-        return new MideaAirCloud(account, password);
+      case 'Ariston Clima':
+        return new AristonClimaCloud(account, password);
       default:
         throw new Error(`Cloud ${cloud} is not supported.`);
     }

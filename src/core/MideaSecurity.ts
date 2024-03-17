@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
-import { TCPMessageType } from './MideaConstants';
+import { Endianness, TCPMessageType } from './MideaConstants';
 import { numberToUint8Array, strxor } from './MideaUtils';
 import { unescape } from 'querystring';
 
@@ -9,40 +9,35 @@ function unescape_plus(str: string) {
 
 export type KeyToken = Buffer | undefined;
 
-export class CloudSecurity {
-  protected readonly HMAC_KEY = 'PROD_VnoClJI9aikS8dyy';
+export abstract class CloudSecurity {
+  protected readonly LOGIN_KEY: string;
+  public readonly IOT_KEY?: string;
+  public readonly HMAC_KEY?: string;
 
-  constructor(
-    protected readonly login_key: string,
-    protected readonly iot_key?: string,
-  ) {}
+  constructor(login_key: string, iot_key?: bigint, hmac_key?: bigint) {
+    this.LOGIN_KEY = login_key;
+    if (hmac_key) {
+      this.HMAC_KEY = Buffer.from(hmac_key.toString(16), 'hex').toString();
+    }
+    if (iot_key) {
+      this.IOT_KEY = Buffer.from(iot_key.toString(16), 'hex').toString();
+    }
+  }
 
   // Generate a HMAC signature for the provided data and random data.
   public sign(data: string, random: string) {
-    const message = `${this.iot_key}${data}${random}`;
-    return createHmac('sha256', this.HMAC_KEY).update(message).digest('hex');
+    const message = `${this.IOT_KEY}${data}${random}`;
+    return createHmac('sha256', this.HMAC_KEY!).update(message).digest('hex');
   }
 
   // Encrypt the password for cloud API password.
   public encrpytPassword(loginId: string, password: string) {
     const m1 = createHash('sha256').update(password);
 
-    const login_hash = `${loginId}${m1.digest('hex')}${this.login_key}`;
+    const login_hash = `${loginId}${m1.digest('hex')}${this.LOGIN_KEY}`;
     const m2 = createHash('sha256').update(login_hash);
 
     return m2.digest('hex');
-  }
-
-  // Encrypts password for cloud API iampwd field.
-  public encrpytIAMPassword(loginId: string, password: string) {
-    const m1 = createHash('md5').update(password);
-
-    const m2 = createHash('md5').update(m1.digest('hex'));
-
-    const login_hash = `${loginId}${m2.digest('hex')}${this.login_key}`;
-    const sha = createHash('sha256').update(login_hash);
-
-    return sha.digest('hex');
   }
 
   public static getUDPID(device_id_buf: Uint8Array) {
@@ -55,38 +50,113 @@ export class CloudSecurity {
   }
 }
 
-export class MeijuCloudSecurity extends CloudSecurity {
-  constructor(login_key: string, iot_key: string) {
-    super(login_key, iot_key);
+export abstract class ProxiedSecurity extends CloudSecurity {
+  abstract readonly APP_KEY: string;
+
+  // Encrypts password for cloud API iampwd field.
+  abstract encrpytIAMPassword(loginId: string, password: string): string;
+
+  getAppKeyAndIv() {
+    const hash = createHash('sha256').update(Buffer.from(this.APP_KEY, 'utf8')).digest('hex');
+    return {
+      appKey: Buffer.from(hash.substring(0, 16)),
+      iv: Buffer.from(hash.substring(16, 32)),
+    };
+  }
+
+  encryptAESAppKey(data: Buffer) {
+    const { appKey, iv } = this.getAppKeyAndIv();
+    const cipher = createCipheriv('aes-128-cbc', appKey, iv);
+    return Buffer.concat([cipher.update(data), cipher.final()]);
+  }
+
+  decryptAESAppKey(data: Buffer) {
+    const { appKey, iv } = this.getAppKeyAndIv();
+    const decipher = createDecipheriv('aes-128-cbc', appKey, iv);
+    return Buffer.concat([decipher.update(data), decipher.final()]);
+  }
+}
+
+export class MSmartHomeCloudSecurity extends ProxiedSecurity {
+  static readonly _LOGIN_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+  readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+
+  constructor() {
+    super(MSmartHomeCloudSecurity._LOGIN_KEY, BigInt('7882822598523843940'), BigInt('117390035944627627450677220413733956185864939010425'));
   }
 
   public encrpytIAMPassword(loginId: string, password: string) {
+    const m1 = createHash('md5').update(password);
+
+    const m2 = createHash('md5').update(m1.digest('hex'));
+
+    const login_hash = `${loginId}${m2.digest('hex')}${this.LOGIN_KEY}`;
+    const sha = createHash('sha256').update(login_hash);
+
+    return sha.digest('hex');
+  }
+}
+
+export class MeijuCloudSecurity extends ProxiedSecurity {
+  static readonly _LOGIN_KEY = 'ad0ee21d48a64bf49f4fb583ab76e799';
+  readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
+
+  constructor() {
+    super(
+      MeijuCloudSecurity._LOGIN_KEY,
+      BigInt('9795516279659324117647275084689641883661667'),
+      BigInt('117390035944627627450677220413733956185864939010425'),
+    );
+  }
+
+  public encrpytIAMPassword(_loginId: string, password: string) {
     const m1 = createHash('md5').update(password);
     const m2 = createHash('md5').update(m1.digest('hex'));
     return m2.digest('hex');
   }
 }
 
-export class NetHomePlusSecurity extends CloudSecurity {
-  constructor(login_key: string, iot_key?: string) {
-    super(login_key, iot_key);
+export class SimpleSecurity extends CloudSecurity {
+  constructor(login_key: string) {
+    super(login_key);
+  }
+
+  public encrpytIAMPassword() {
+    return '';
   }
 
   public sign(url: string, query: string): string {
     const parsedUrl = new URL(url);
     const path = parsedUrl.pathname;
     return createHash('sha256')
-      .update(`${path}${unescape_plus(query)}${this.login_key}`)
+      .update(`${path}${unescape_plus(query)}${this.LOGIN_KEY}`)
       .digest('hex');
   }
 }
 
-export class MideaAirSecurity extends NetHomePlusSecurity {}
+export class NetHomePlusSecurity extends SimpleSecurity {
+  static readonly _LOGIN_KEY = '3742e9e5842d4ad59c2db887e12449f9';
+
+  constructor() {
+    super(NetHomePlusSecurity._LOGIN_KEY);
+  }
+}
+
+export class ArtisonClimaSecurity extends SimpleSecurity {
+  static readonly _LOGIN_KEY = '434a209a5ce141c3b726de067835d7f0';
+
+  constructor() {
+    super(ArtisonClimaSecurity._LOGIN_KEY);
+  }
+}
 
 export class LocalSecurity {
-  private readonly aes_key = Buffer.from('6a92ef406bad2f0359baad994171ea6d', 'hex');
+  private readonly aes_key = Buffer.from(BigInt('141661095494369103254425781617665632877').toString(16), 'hex');
 
-  private readonly salt = Buffer.from('78686469776a6e6368656b6434643531326368646a783564386534633339344432443753', 'hex');
+  private readonly salt = Buffer.from(
+    BigInt('233912452794221312800602098970898185176935770387238278451789080441632479840061417076563').toString(16),
+    'hex',
+  );
 
   private readonly iv = Buffer.alloc(16);
 
@@ -157,9 +227,9 @@ export class LocalSecurity {
       }
     }
 
-    header = Buffer.concat([header, numberToUint8Array(size, 2, 'big')]);
+    header = Buffer.concat([header, numberToUint8Array(size, 2, Endianness.Big)]);
     header = Buffer.concat([header, Buffer.from([0x20, (padding << 4) | message_type])]);
-    data = Buffer.concat([numberToUint8Array(this.request_count, 2, 'big'), data]);
+    data = Buffer.concat([numberToUint8Array(this.request_count, 2, Endianness.Big), data]);
     this.request_count += 1;
     if (this.request_count >= 0xffff) {
       this.request_count = 0;
