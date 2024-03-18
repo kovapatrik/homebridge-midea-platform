@@ -290,6 +290,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'indirect_wind':
           this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
           break;
+        case 'aux_heating':
+          this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          break;
+        case 'smart_eye':
+          this.auxService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
@@ -468,9 +474,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAux(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, SMART_EYE: true, AUX_HEATING: false });
+      await this.device.set_attribute({ SMART_EYE: true, AUX_HEATING: false });
     } else {
-      await this.device.set_attribute({ POWER: false, SMART_EYE: false });
+      await this.device.set_attribute({ SMART_EYE: false });
     }
   }
 
@@ -480,9 +486,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAuxHeating(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, AUX_HEATING: true, SMART_EYE: false });
+      await this.device.set_attribute({ AUX_HEATING: true, SMART_EYE: false });
     } else {
-      await this.device.set_attribute({ POWER: false, AUX_HEATING: false });
+      await this.device.set_attribute({ AUX_HEATING: false });
     }
   }
 }
