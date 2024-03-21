@@ -474,7 +474,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAux(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ SMART_EYE: true, AUX_HEATING: false });
+      await this.device.set_attribute({ SMART_EYE: true });
     } else {
       await this.device.set_attribute({ SMART_EYE: false });
     }
@@ -486,7 +486,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAuxHeating(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ AUX_HEATING: true, SMART_EYE: false });
+      await this.device.set_attribute({ AUX_HEATING: true });
     } else {
       await this.device.set_attribute({ AUX_HEATING: false });
     }
