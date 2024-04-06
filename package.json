@@ -11,6 +11,16 @@
   "bugs": {
     "url": "https://github.com/kovapatrik/homebridge-midea/issues"
   },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/kovapatrik"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://www.buymeacoffee.com/kovapatrik"
+    }
+  ],
   "engines": {
     "node": "^18.17.0 || ^20.9.0",
     "homebridge": "^1.6.0"
