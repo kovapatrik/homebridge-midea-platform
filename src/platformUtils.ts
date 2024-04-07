@@ -41,6 +41,12 @@ export enum SwingMode {
   BOTH = 'Both',
 }
 
+export enum WaterTankSensor {
+  NONE = 'None',
+  LEAK_SENSOR = 'Leak Sensor',
+  CONTACT_SENSOR = 'Contact Sensor',
+}
+
 type ACOptions = {
   swingMode: SwingMode;
   heatingCapable: boolean;
@@ -64,6 +70,7 @@ type ACOptions = {
 type A1Options = {
   temperatureSensor: boolean;
   pumpSwitch: boolean;
+  waterTankSensor: WaterTankSensor;
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
@@ -123,6 +130,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   A1_options: {
     temperatureSensor: false,
     pumpSwitch: false,
+    waterTankSensor: WaterTankSensor.NONE,
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
