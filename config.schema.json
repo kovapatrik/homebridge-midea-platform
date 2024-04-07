@@ -120,6 +120,7 @@
                   "title": "Water Tank Sensor",
                   "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as 'Leak Sensor' or 'Contact Sensor' depending on the type of device.",
                   "type": "string",
+                  "required": true,
                   "enum": [
                     "None",
                     "Leak Sensor",
