@@ -116,6 +116,16 @@
                   "description": "Toggles if the pump switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "waterTankSensor": {
+                  "title": "Water Tank Sensor",
+                  "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as 'Leak Sensor' or 'Contact Sensor' depending on the type of device.",
+                  "type": "string",
+                  "enum": [
+                    "None",
+                    "Leak Sensor",
+                    "Contact Sensor"
+                  ]
+                },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
                   "type": "number",
@@ -385,6 +395,7 @@
               "items": [
                 "devices[].A1_options.temperatureSensor",
                 "devices[].A1_options.pumpSwitch",
+                "devices[].A1_options.waterTankSensor",
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
                 "devices[].A1_options.humidityStep"

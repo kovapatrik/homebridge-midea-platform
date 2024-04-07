@@ -12,7 +12,7 @@
 import { CharacteristicValue, Service } from 'homebridge';
 import { MideaAccessory, MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
-import { DeviceConfig } from '../platformUtils';
+import { DeviceConfig, WaterTankSensor } from '../platformUtils';
 import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
@@ -20,6 +20,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   private temperatureService?: Service;
   private pumpService?: Service;
+  private waterTankService?: Service;
   // Increment this every time we make a change to accessory that requires
   // previously cached Homebridge service to be deleted/replaced.
   private serviceVersion = 1;
@@ -127,6 +128,21 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.removeService(this.pumpService);
     }
 
+    this.waterTankService = this.accessory.getServiceById(this.platform.Service.Switch, 'WaterTank');
+    if (this.configDev.A1_options.waterTankSensor !== WaterTankSensor.NONE) {
+      if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, 'WaterTank', 'WaterTank');
+        this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
+      } else {
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, 'WaterTank', 'WaterTank');
+        this.waterTankService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
+      }
+      this.waterTankService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Water Tank Sensor`);
+      this.waterTankService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Water Tank Sensor`);
+    } else if (this.waterTankService) {
+      this.accessory.removeService(this.waterTankService);
+    }
+
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
     this.device.on('update', this.updateCharacteristics.bind(this));
@@ -173,7 +189,11 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
           break;
         case 'tank_full':
-          // No HomeKit characteristic
+          if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
+            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.LeakDetected, v as CharacteristicValue);
+          } else if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
+            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, v as CharacteristicValue);
+          }
           break;
         case 'water_level_set':
           // No HomeKit characteristic
@@ -346,5 +366,11 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private async setPump(value: CharacteristicValue) {
     this.platform.log.debug(`[${this.device.name}] SET Pump to: ${value}`);
     await this.device.set_attribute({ PUMP: !!value });
+  }
+
+  // Handle requests to get the current value of the "WaterTankFull" characteristic
+  private getWaterTankFull(): CharacteristicValue {
+    this.platform.log.debug(`[${this.device.name}] GET WaterTankFull, value: ${this.device.attributes.TANK_FULL}`);
+    return this.device.attributes.TANK_FULL ?? false;
   }
 }
