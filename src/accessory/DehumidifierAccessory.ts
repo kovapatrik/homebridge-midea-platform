@@ -128,14 +128,24 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.removeService(this.pumpService);
     }
 
-    this.waterTankService = this.accessory.getServiceById(this.platform.Service.Switch, 'WaterTank');
+    this.waterTankService =
+      this.accessory.getServiceById(this.platform.Service.ContactSensor, 'WaterTankContact') ??
+      this.accessory.getServiceById(this.platform.Service.LeakSensor, 'WaterTankLeak');
     if (this.configDev.A1_options.waterTankSensor !== WaterTankSensor.NONE) {
-      if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, 'WaterTank', 'WaterTank');
-        this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
-      } else {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, 'WaterTank', 'WaterTank');
+      if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
+        this.waterTankService ??= this.accessory.addService(
+          this.platform.Service.ContactSensor,
+          `${this.device.name} Water Tank Sensor`,
+          'WaterTankContact',
+        );
         this.waterTankService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
+      } else {
+        this.waterTankService ??= this.accessory.addService(
+          this.platform.Service.LeakSensor,
+          `${this.device.name} Water Tank Sensor`,
+          'WaterTankLeak',
+        );
+        this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
       }
       this.waterTankService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Water Tank Sensor`);
       this.waterTankService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Water Tank Sensor`);
