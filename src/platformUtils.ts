@@ -111,7 +111,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   },
   AC_options: {
     swingMode: SwingMode.NONE,
-    heatingCapable: false,
+    heatingCapable: true,
     displaySwitch: {
       flag: true,
       command: false,

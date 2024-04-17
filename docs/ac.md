@@ -5,7 +5,7 @@ Providing air conditioner settings is optional and the whole section or individu
 ```json
 "AC_options": {
     "swingMode": "Both",
-    "heatingCapable": false,
+    "heatingCapable": true,
     "ecoSwitch": false,
     "displaySwitch": {
         "flag": true,
@@ -25,7 +25,7 @@ Providing air conditioner settings is optional and the whole section or individu
 ```
 ## Options
 - **swingMode** *(optional)*: The swing mode of the unit.  Options are "Both", "Vertical", "Horizontal", or "None".  Default is "None".
-- **heatingCapable** *(optional)*: Toggles if the unit is capable of heating. Default is false.
+- **heatingCapable** *(optional)*: Toggles if the unit is capable of heating. Default is true.
 - **displaySwitch** *(optional)*: Object with following two options...
 - * **flag** *(optional)*: Toggles if a switch, which can turn the display on or off will be created or not. Default is true.
 - * **command** *(optional)*: Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature. Default is false. 
