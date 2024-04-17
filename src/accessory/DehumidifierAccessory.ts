@@ -381,6 +381,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   // Handle requests to get the current value of the "WaterTankFull" characteristic
   private getWaterTankFull(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET WaterTankFull, value: ${this.device.attributes.TANK_FULL}`);
-    return this.device.attributes.TANK_FULL ?? false;
+    return this.device.attributes.TANK_FULL === true;
   }
 }
