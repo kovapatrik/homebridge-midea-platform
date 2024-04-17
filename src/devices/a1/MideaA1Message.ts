@@ -12,7 +12,7 @@ import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolM
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
-  LIGHT = 0x05b,
+  LIGHT = 0x005b,
 }
 
 abstract class MessageA1Base extends MessageRequest {

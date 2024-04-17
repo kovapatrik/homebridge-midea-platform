@@ -157,6 +157,10 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     // is called whenever there is a change in any attribute value from the device.
     this.device.on('update', this.updateCharacteristics.bind(this));
     this.device.refresh_status();
+
+    // Set device properties from config
+    this.device.attributes.WATER_LEVEL_SET = this.configDev.A1_options.waterLevelSet;
+    this.device.set_attribute({ WATER_LEVEL_SET: this.configDev.A1_options.waterLevelSet });
   }
 
   /*********************************************************************
@@ -381,6 +385,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   // Handle requests to get the current value of the "WaterTankFull" characteristic
   private getWaterTankFull(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET WaterTankFull, value: ${this.device.attributes.TANK_FULL}`);
-    return this.device.attributes.TANK_FULL ?? false;
+    return this.device.attributes.TANK_FULL;
   }
 }

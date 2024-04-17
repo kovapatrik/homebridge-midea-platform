@@ -127,6 +127,13 @@
                     "Contact Sensor"
                   ]
                 },
+                "waterLevelSet": {
+                  "title": "Water Level Set",
+                  "description": "Change the behaviour of the tank status sensor.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
                   "type": "number",
@@ -397,6 +404,7 @@
                 "devices[].A1_options.temperatureSensor",
                 "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.waterTankSensor",
+                "devices[].A1_options.waterLevelSet",
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
                 "devices[].A1_options.humidityStep"

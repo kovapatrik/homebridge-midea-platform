@@ -71,6 +71,7 @@ type A1Options = {
   temperatureSensor: boolean;
   pumpSwitch: boolean;
   waterTankSensor: WaterTankSensor;
+  waterLevelSet: number;
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
@@ -131,6 +132,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     temperatureSensor: false,
     pumpSwitch: false,
     waterTankSensor: WaterTankSensor.NONE,
+    waterLevelSet: 0,
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
