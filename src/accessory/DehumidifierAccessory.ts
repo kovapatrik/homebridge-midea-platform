@@ -157,10 +157,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     // is called whenever there is a change in any attribute value from the device.
     this.device.on('update', this.updateCharacteristics.bind(this));
     this.device.refresh_status();
-
-    // Set device properties from config
-    this.device.attributes.WATER_LEVEL_SET = this.configDev.A1_options.waterLevelSet;
-    this.device.set_attribute({ WATER_LEVEL_SET: this.configDev.A1_options.waterLevelSet });
   }
 
   /*********************************************************************
