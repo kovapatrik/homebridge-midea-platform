@@ -123,14 +123,6 @@ export default class MideaA1Device extends MideaDevice {
           this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
           changed[status] = value;
         }
-        if (status === 'tank_level') {
-          const tank_full = value === 100;
-          if (this.attributes.TANK_FULL !== tank_full) {
-            this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${tank_full}'`);
-            changed.TANK_FULL = tank_full;
-            this.attributes.TANK_FULL = tank_full;
-          }
-        }
         this.attributes[status] = value;
       }
     }
