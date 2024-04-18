@@ -12,7 +12,7 @@ import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolM
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
-  LIGHT = 0x05b,
+  LIGHT = 0x005b,
 }
 
 abstract class MessageA1Base extends MessageRequest {
@@ -174,6 +174,7 @@ class A1GeneralMessageBody extends MessageBody {
   public pump: boolean;
   public defrosting: boolean;
   public tank_level: number;
+  public tank_full: boolean;
   public water_level_set: number;
   public current_humidity: number;
   public current_temperature: number;
@@ -195,6 +196,7 @@ class A1GeneralMessageBody extends MessageBody {
     this.pump = (body[9] & 0x08) > 0;
     this.defrosting = (body[10] & 0x80) > 0;
     this.tank_level = body[10] & 0x7f;
+    this.tank_full = this.tank_level >= 100;
     this.water_level_set = body[15];
     this.current_humidity = body[16];
     this.current_temperature = (body[17] - 50) / 2;

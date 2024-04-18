@@ -28,7 +28,7 @@ export interface A1Attributes extends DeviceAttributeBase {
   ANION: boolean;
   TANK_LEVEL: number;
   WATER_LEVEL_SET: number;
-  TANK_FULL: boolean | undefined;
+  TANK_FULL: boolean;
   CURRENT_HUMIDITY: number;
   CURRENT_TEMPERATURE: number;
   DEFROSTING: boolean;
@@ -87,8 +87,8 @@ export default class MideaA1Device extends MideaDevice {
       TARGET_HUMIDITY: 999, // invalid
       ANION: false,
       TANK_LEVEL: 999, // invalid
-      WATER_LEVEL_SET: 999, // invalid
-      TANK_FULL: undefined, // invalid
+      WATER_LEVEL_SET: 50,
+      TANK_FULL: false, // invalid
       CURRENT_HUMIDITY: 999, // invalid
       CURRENT_TEMPERATURE: 999, // invalid
       DEFROSTING: false,
@@ -126,12 +126,6 @@ export default class MideaA1Device extends MideaDevice {
         this.attributes[status] = value;
       }
     }
-    const value = this.attributes.TANK_LEVEL >= this.attributes.WATER_LEVEL_SET;
-    if (this.attributes.TANK_FULL !== value) {
-      this.logger.debug(`[${this.name}] Value for TANK_FULL changed from '${this.attributes.TANK_FULL}' to '${value}'`);
-      changed.TANK_FULL = value;
-    }
-    this.attributes.TANK_FULL = value;
 
     // Now we update Homebridge / Homekit accessory
     if (Object.keys(changed).length > 0) {
