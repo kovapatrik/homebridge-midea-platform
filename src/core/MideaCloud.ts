@@ -257,13 +257,13 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
 
   buildRequestData() {
     const data = {
-      src: this.APP_ID,
-      format: 2,
-      stamp: this.timestamp(),
-      devideId: this.DEVICE_ID,
-      reqId: randomBytes(16).toString('hex'),
-      clientType: 1,
       appId: this.APP_ID,
+      format: 2,
+      clientType: 1,
+      language: this.LANGUAGE,
+      src: this.APP_ID,
+      stamp: this.timestamp(),
+      deviceId: this.DEVICE_ID,
     };
     if (this.sessionId) {
       data['sessionId'] = this.sessionId;
@@ -276,9 +276,6 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     const headers = {
       ...header,
     };
-    if (data['reqId'] === undefined) {
-      data['reqId'] = randomBytes(16).toString('hex');
-    }
     if (data['stamp'] === undefined) {
       data['stamp'] = this.timestamp();
     }
@@ -294,10 +291,10 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     if (this.access_token) {
       headers['accessToken'] = this.access_token;
     }
-
+    const payload = new URLSearchParams(data);
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data, { headers: headers });
+        const response = await axios.post(url, payload.toString(), { headers: headers });
         if (
           response.data['errorCode'] !== undefined &&
           Number.parseInt(response.data['errorCode']) === 0 &&
