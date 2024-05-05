@@ -129,7 +129,7 @@ export class SimpleSecurity extends CloudSecurity {
     const parsedUrl = new URL(url);
     const path = parsedUrl.pathname;
     return createHash('sha256')
-      .update(`${path}${unescape_plus(query)}${this.LOGIN_KEY}`)
+      .update(Buffer.from(`${path}${unescape_plus(query)}${this.LOGIN_KEY}`, 'ascii'))
       .digest('hex');
   }
 }
