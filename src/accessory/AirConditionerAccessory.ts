@@ -329,7 +329,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getCurrentHeaterCoolerState(): CharacteristicValue {
-    if (this.device.attributes.POWER && this.device.attributes.MODE > 0) {
+    if (this.device.attributes.POWER && this.device.attributes.MODE > 0 && this.device.attributes.MODE < 5) {
       if (this.device.attributes.TARGET_TEMPERATURE < (this.device.attributes.INDOOR_TEMPERATURE ?? 0)) {
         if ([1, 2].includes(this.device.attributes.MODE)) {
           return this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;

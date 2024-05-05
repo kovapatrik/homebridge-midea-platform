@@ -362,6 +362,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_target_temperature(target_temperature: number, mode?: number) {
+    this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
     const message = this.make_message_unique_set();
     message.target_temperature = target_temperature;
     this.attributes.TARGET_TEMPERATURE = target_temperature;
@@ -376,6 +377,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
+    this.logger.info(`[${this.name}] Set swing horizontal to: ${swing_horizontal}, vertical to: ${swing_vertical}`);
     const message = this.make_message_set();
     message.swing_horizontal = swing_horizontal;
     message.swing_vertical = swing_vertical;
@@ -385,7 +387,8 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_fan_auto(fan_auto: boolean) {
-    const message = this.make_message_set();
+    this.logger.info(`[${this.name}] Set fan auto to: ${fan_auto}`);
+    const message = this.make_message_unique_set();
     if (fan_auto) {
       // Save last fan speed before setting to auto
       this.last_fan_speed = this.attributes.FAN_SPEED;
