@@ -273,8 +273,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
           break;
         case 'fan_speed':
-          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
-          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
           break;
         case 'fan_auto':
           this.fanService?.updateCharacteristic(
@@ -431,7 +431,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getRotationSpeed(): CharacteristicValue {
-    return this.device.attributes.FAN_SPEED;
+    return Math.min(100, this.device.attributes.FAN_SPEED ?? 0);
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
