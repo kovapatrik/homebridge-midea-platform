@@ -87,12 +87,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.service
       .getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
-      .onSet(this.setRotationSpeed.bind(this))
-      .setProps({
-        minValue: 0,
-        maxValue: 102,
-        minStep: 1,
-      });
+      .onSet(this.setRotationSpeed.bind(this));
 
     // Swing modes
     if (this.configDev.AC_options.swingMode !== SwingMode.NONE) {
@@ -139,12 +134,15 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.fanService
         .getCharacteristic(this.platform.Characteristic.RotationSpeed)
         .onGet(this.getRotationSpeed.bind(this))
-        .onSet(this.setRotationSpeed.bind(this))
-        .setProps({
-          minValue: 0,
-          maxValue: 102,
-          minStep: 1,
-        });
+        .onSet(this.setRotationSpeed.bind(this));
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.TargetFanState)
+        .onGet(this.getFanState.bind(this))
+        .onSet(this.setFanState.bind(this));
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.SwingMode)
+        .onGet(this.getSwingMode.bind(this))
+        .onSet(this.setSwingMode.bind(this));
     } else if (this.fanService) {
       this.accessory.removeService(this.fanService);
     }
@@ -276,6 +274,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           break;
         case 'fan_speed':
           this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          break;
+        case 'fan_auto':
+          this.fanService?.updateCharacteristic(
+            this.platform.Characteristic.TargetFanState,
+            v ? this.platform.Characteristic.TargetFanState.AUTO : this.platform.Characteristic.TargetFanState.MANUAL,
+          );
           break;
         case 'swing_vertical':
         case 'swing_horizontal':
@@ -311,7 +316,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    *
    */
   async getActive(): Promise<CharacteristicValue> {
-    return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
+    // Show as inactive if device is off or in fan-only mode
+    return this.device.attributes.POWER && this.device.attributes.MODE !== 5
+      ? this.platform.Characteristic.Active.ACTIVE
+      : this.platform.Characteristic.Active.INACTIVE;
   }
 
   async setActive(value: CharacteristicValue) {
@@ -389,6 +397,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
   }
 
+  getFanState(): CharacteristicValue {
+    return this.device.attributes.FAN_AUTO;
+  }
+
+  async setFanState(value: CharacteristicValue) {
+    await this.device.set_fan_auto(value === this.platform.Characteristic.TargetFanState.AUTO);
+  }
+
   async setTargetTemperature(value: CharacteristicValue) {
     value = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
     await this.device.set_target_temperature(value);
@@ -419,11 +435,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
-    value = value as number;
-    if (value > 100) {
-      value = 102;
-    }
-    await this.device.set_attribute({ FAN_SPEED: value });
+    await this.device.set_attribute({ FAN_SPEED: value as number });
   }
 
   getOutdoorTemperature(): CharacteristicValue {

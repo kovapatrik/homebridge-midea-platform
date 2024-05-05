@@ -407,6 +407,7 @@ class XA0MessageBody extends MessageBody {
   public target_temperature: number;
   public mode: number;
   public fan_speed: number;
+  public fan_auto: boolean;
   public swing_vertical: boolean;
   public swing_horizontal: boolean;
   public boost_mode: boolean;
@@ -426,6 +427,7 @@ class XA0MessageBody extends MessageBody {
     this.target_temperature = ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
     this.mode = (body[2] & 0xe0) >> 5;
     this.fan_speed = body[3] & 0x7f;
+    this.fan_auto = this.fan_speed === 102;
     this.swing_vertical = (body[7] & 0xc) > 0;
     this.swing_horizontal = (body[7] & 0x3) > 0;
     this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
@@ -521,6 +523,7 @@ class XC0MessageBody extends MessageBody {
   public mode: number;
   public target_temperature: number;
   public fan_speed: number;
+  public fan_auto: boolean;
   public swing_vertical: boolean;
   public swing_horizontal: boolean;
   public boost_mode: boolean;
@@ -545,6 +548,7 @@ class XC0MessageBody extends MessageBody {
     this.mode = (body[2] & 0xe0) >> 5;
     this.target_temperature = (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
     this.fan_speed = body[3] & 0x7f;
+    this.fan_auto = this.fan_speed === 102;
     this.swing_vertical = (body[7] & 0x0c) > 0;
     this.swing_horizontal = (body[7] & 0x03) > 0;
     this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
@@ -630,6 +634,7 @@ class XBBMessageBody extends MessageBody {
   public mode?: number;
   public target_temperature?: number;
   public fan_speed?: number;
+  public fan_auto?: boolean;
   public timer?: boolean;
   public eco_mode?: boolean;
   public indoor_temperature?: number;
@@ -655,6 +660,7 @@ class XBBMessageBody extends MessageBody {
       }
       this.target_temperature = (subprotocol_body[6] - 30) / 2;
       this.fan_speed = subprotocol_body[7];
+      this.fan_auto = this.fan_speed === 102;
       this.timer = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
       this.eco_mode = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
     } else if (data_type === 0x10) {

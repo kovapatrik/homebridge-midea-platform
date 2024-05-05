@@ -31,6 +31,7 @@ export interface ACAttributes extends DeviceAttributeBase {
   MODE: number;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
+  FAN_AUTO: boolean;
   SWING_VERTICAL: boolean | undefined;
   SWING_HORIZONTAL: boolean | undefined;
   SMART_EYE: boolean;
@@ -90,6 +91,7 @@ export default class MideaACDevice extends MideaDevice {
   private power_analysis_method?: number;
 
   private alternate_switch_display = false;
+  private last_fan_speed = 0;
 
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
@@ -105,6 +107,7 @@ export default class MideaACDevice extends MideaDevice {
       MODE: 99, // invalid
       TARGET_TEMPERATURE: 999.0, // invalid
       FAN_SPEED: 999, // invalid
+      FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
       SWING_HORIZONTAL: undefined, // invalid
       SMART_EYE: false,
@@ -378,6 +381,19 @@ export default class MideaACDevice extends MideaDevice {
     message.swing_vertical = swing_vertical;
     this.attributes.SWING_HORIZONTAL = swing_horizontal;
     this.attributes.SWING_VERTICAL = swing_vertical;
+    await this.build_send(message);
+  }
+
+  async set_fan_auto(fan_auto: boolean) {
+    const message = this.make_message_set();
+    if (fan_auto) {
+      // Save last fan speed before setting to auto
+      this.last_fan_speed = this.attributes.FAN_SPEED;
+    }
+    const fan_speed = fan_auto ? 102 : this.last_fan_speed;
+    message.fan_speed = fan_speed;
+    this.attributes.FAN_SPEED = fan_speed;
+    this.attributes.FAN_AUTO = fan_auto;
     await this.build_send(message);
   }
 
