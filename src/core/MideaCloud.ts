@@ -304,6 +304,8 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
           response.data['result'] !== undefined
         ) {
           return response.data['result'];
+        } else {
+          throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
         }
       } catch (error) {
         throw new Error(`Error while sending request to ${url}: ${error}`);
