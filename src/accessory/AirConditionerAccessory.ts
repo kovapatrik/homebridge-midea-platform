@@ -18,6 +18,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private service: Service;
   private outDoorTemperatureService?: Service;
   private displayService?: Service;
+  private fanOnlyService?: Service;
   private fanService?: Service;
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
@@ -121,16 +122,30 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.outDoorTemperatureService);
     }
 
-    // Fan-only mode
+    // Fan-only mode switch
+    this.fanOnlyService = this.accessory.getServiceById(this.platform.Service.Switch, 'FanOnly');
+    if (this.configDev.AC_options.fanOnlyModeSwitch) {
+      this.fanOnlyService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} FanOnly`, 'FanOnly');
+      this.fanOnlyService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan-only Mode`);
+      this.fanOnlyService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan-only Mode`);
+      this.fanOnlyService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getFanOnlyMode.bind(this))
+        .onSet(this.setFanOnlyMode.bind(this));
+    } else if (this.fanOnlyService) {
+      this.accessory.removeService(this.fanOnlyService);
+    }
+
+    // Fan accessory
     this.fanService = this.accessory.getServiceById(this.platform.Service.Fanv2, 'Fan');
-    if (this.configDev.AC_options.fanOnlyMode) {
+    if (this.configDev.AC_options.fanAccessory) {
       this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, `${this.device.name} Fan`, 'Fan');
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
       this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan`);
       this.fanService
         .getCharacteristic(this.platform.Characteristic.Active)
-        .onGet(this.getFanOnlyMode.bind(this))
-        .onSet(this.setFanOnlyMode.bind(this));
+        .onGet(this.getActive.bind(this))
+        .onSet(this.setActive.bind(this));
       this.fanService
         .getCharacteristic(this.platform.Characteristic.RotationSpeed)
         .onGet(this.getRotationSpeed.bind(this))
@@ -200,6 +215,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getDryMode.bind(this))
         .onSet(this.setDryMode.bind(this));
+    } else if (this.dryModeService) {
+      this.accessory.removeService(this.dryModeService);
     }
 
     // Aux switch
@@ -230,18 +247,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     // Misc
     this.device.attributes.PROMPT_TONE = this.configDev.AC_options.audioFeedback;
     this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options.fahrenheit;
-
-    // Register a callback function with MideaDevice and then refresh device status.  The callback
-    // is called whenever there is a change in any attribute value from the device.
-    this.device.on('update', this.updateCharacteristics.bind(this));
-    this.device.refresh_status();
   }
 
   /*********************************************************************
    * Callback function called by MideaDevice whenever there is a change to
    * any attribute value.
    */
-  private async updateCharacteristics(attributes: Partial<ACAttributes>) {
+  protected async updateCharacteristics(attributes: Partial<ACAttributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
@@ -317,9 +329,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    */
   async getActive(): Promise<CharacteristicValue> {
     // Show as inactive if device is off or in fan-only mode
-    return this.device.attributes.POWER && this.device.attributes.MODE !== 5
-      ? this.platform.Characteristic.Active.ACTIVE
-      : this.platform.Characteristic.Active.INACTIVE;
+    return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
 
   async setActive(value: CharacteristicValue) {
@@ -469,7 +479,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getDryMode(): CharacteristicValue {
-    return this.device.attributes.MODE === 3;
+    return this.device.attributes.POWER === true && this.device.attributes.MODE === 3;
   }
 
   async setDryMode(value: CharacteristicValue) {

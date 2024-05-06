@@ -80,17 +80,17 @@ export default class MideaA1Device extends MideaDevice {
     this.attributes = {
       POWER: undefined, // invalid
       PROMPT_TONE: false,
-      CHILD_LOCK: undefined, // invalid
-      MODE: 99, // invalid
-      FAN_SPEED: 999, // invalid
+      CHILD_LOCK: undefined,
+      MODE: 0,
+      FAN_SPEED: 0,
       SWING: undefined, // invalid
-      TARGET_HUMIDITY: 999, // invalid
+      TARGET_HUMIDITY: 0,
       ANION: false,
-      TANK_LEVEL: 999, // invalid
+      TANK_LEVEL: 0,
       WATER_LEVEL_SET: 50,
-      TANK_FULL: false, // invalid
-      CURRENT_HUMIDITY: 999, // invalid
-      CURRENT_TEMPERATURE: 999, // invalid
+      TANK_FULL: false,
+      CURRENT_HUMIDITY: 0,
+      CURRENT_TEMPERATURE: 0,
       DEFROSTING: false,
       FILTER_INDICATOR: false,
       PUMP: false,

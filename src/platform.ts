@@ -184,6 +184,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             }
           }
           await device.connect(false);
+          await device.refresh_status();
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
@@ -207,6 +208,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             }
           }
           await device.connect(false);
+          await device.refresh_status();
           // Set serial number and model into the context if they are provided.
           accessory.context.sn = device_info.sn ?? 'unknown';
           accessory.context.model = device_info.model ?? 'unknown';

@@ -103,10 +103,10 @@ export default class MideaACDevice extends MideaDevice {
     super(logger, device_info, config, deviceConfig);
     this.attributes = {
       PROMPT_TONE: false,
-      POWER: undefined, // invalid
-      MODE: 99, // invalid
-      TARGET_TEMPERATURE: 999.0, // invalid
-      FAN_SPEED: 999, // invalid
+      POWER: undefined,
+      MODE: 0,
+      TARGET_TEMPERATURE: 0,
+      FAN_SPEED: 0,
       FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
       SWING_HORIZONTAL: undefined, // invalid

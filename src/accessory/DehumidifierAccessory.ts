@@ -152,18 +152,13 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     } else if (this.waterTankService) {
       this.accessory.removeService(this.waterTankService);
     }
-
-    // Register a callback function with MideaDevice and then refresh device status.  The callback
-    // is called whenever there is a change in any attribute value from the device.
-    this.device.on('update', this.updateCharacteristics.bind(this));
-    this.device.refresh_status();
   }
 
   /*********************************************************************
    * Callback function called by MideaDevice whenever there is a change to
    * any attribute value.
    */
-  private async updateCharacteristics(attributes: Partial<A1Attributes>) {
+  protected async updateCharacteristics(attributes: Partial<A1Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;

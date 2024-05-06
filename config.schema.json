@@ -219,9 +219,14 @@
                   "description": "Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius.",
                   "type": "boolean"
                 },
-                "fanOnlyMode": {
-                  "title": "Fan Only Mode",
-                  "description": "Toggles if the fan only mode is created with the accessory.",
+                "fanOnlyModeSwitch": {
+                  "title": "Fan Only Mode Switch",
+                  "description": "Toggles if the fan only mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "fanAccessory": {
+                  "title": "Fan Accessory",
+                  "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
                 }
               }
@@ -387,7 +392,8 @@
                 "devices[].AC_options.maxTemp",
                 "devices[].AC_options.tempStep",
                 "devices[].AC_options.fahrenheit",
-                "devices[].AC_options.fanOnlyMode"
+                "devices[].AC_options.fanOnlyModeSwitch",
+                "devices[].AC_options.fanAccessory"
               ]
             },
             {
