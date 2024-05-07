@@ -259,10 +259,6 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       let updateState = false;
       switch (k.toLowerCase()) {
         case 'power':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.Active,
-            v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
-          );
           updateState = true;
           break;
         case 'screen_display':
@@ -317,8 +313,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
         this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
         this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+
+        this.fanOnlyService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanOnlyMode());
+        this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+        this.dryModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getDryMode());
+        this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
+        this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
+        this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, this.getBreezeAway());
+        this.auxService?.updateCharacteristic(this.platform.Characteristic.On, this.getAux());
+        this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, this.getAuxHeating());
       }
     }
   }
@@ -327,7 +333,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    * Callback functions for each Homebridge/HomeKit service
    *
    */
-  async getActive(): Promise<CharacteristicValue> {
+  getActive(): CharacteristicValue {
     // Show as inactive if device is off or in fan-only mode
     return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
