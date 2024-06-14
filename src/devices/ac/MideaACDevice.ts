@@ -31,6 +31,7 @@ export interface ACAttributes extends DeviceAttributeBase {
   MODE: number;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
+  FAN_AUTO: boolean;
   SWING_VERTICAL: boolean | undefined;
   SWING_HORIZONTAL: boolean | undefined;
   SMART_EYE: boolean;
@@ -90,6 +91,7 @@ export default class MideaACDevice extends MideaDevice {
   private power_analysis_method?: number;
 
   private alternate_switch_display = false;
+  private last_fan_speed = 0;
 
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
@@ -101,10 +103,11 @@ export default class MideaACDevice extends MideaDevice {
     super(logger, device_info, config, deviceConfig);
     this.attributes = {
       PROMPT_TONE: false,
-      POWER: undefined, // invalid
-      MODE: 99, // invalid
-      TARGET_TEMPERATURE: 999.0, // invalid
-      FAN_SPEED: 999, // invalid
+      POWER: undefined,
+      MODE: 0,
+      TARGET_TEMPERATURE: 0,
+      FAN_SPEED: 0,
+      FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
       SWING_HORIZONTAL: undefined, // invalid
       SMART_EYE: false,
@@ -359,6 +362,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_target_temperature(target_temperature: number, mode?: number) {
+    this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
     const message = this.make_message_unique_set();
     message.target_temperature = target_temperature;
     this.attributes.TARGET_TEMPERATURE = target_temperature;
@@ -373,11 +377,26 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
+    this.logger.info(`[${this.name}] Set swing horizontal to: ${swing_horizontal}, vertical to: ${swing_vertical}`);
     const message = this.make_message_set();
     message.swing_horizontal = swing_horizontal;
     message.swing_vertical = swing_vertical;
     this.attributes.SWING_HORIZONTAL = swing_horizontal;
     this.attributes.SWING_VERTICAL = swing_vertical;
+    await this.build_send(message);
+  }
+
+  async set_fan_auto(fan_auto: boolean) {
+    this.logger.info(`[${this.name}] Set fan auto to: ${fan_auto}`);
+    const message = this.make_message_unique_set();
+    if (fan_auto) {
+      // Save last fan speed before setting to auto
+      this.last_fan_speed = this.attributes.FAN_SPEED;
+    }
+    const fan_speed = fan_auto ? 102 : this.last_fan_speed;
+    message.fan_speed = fan_speed;
+    this.attributes.FAN_SPEED = fan_speed;
+    this.attributes.FAN_AUTO = fan_auto;
     await this.build_send(message);
   }
 

@@ -1,8 +1,8 @@
 import { MideaAccessory, MideaPlatform } from '../platform';
-import MideaDevice from '../core/MideaDevice';
+import MideaDevice, { DeviceAttributeBase } from '../core/MideaDevice';
 import { DeviceConfig } from '../platformUtils';
 
-export default class BaseAccessory<T extends MideaDevice> {
+export default abstract class BaseAccessory<T extends MideaDevice> {
   constructor(
     protected readonly platform: MideaPlatform,
     protected readonly accessory: MideaAccessory,
@@ -15,5 +15,11 @@ export default class BaseAccessory<T extends MideaDevice> {
       .setCharacteristic(this.platform.Characteristic.Model, this.accessory.context.model ?? this.device.model)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.accessory.context.sn ?? this.device.sn)
       .setCharacteristic(this.platform.Characteristic.ProductData, `deviceId: ${this.accessory.context.id ?? this.device.id.toString()}`);
+
+    // Register a callback function with MideaDevice and then refresh device status.  The callback
+    // is called whenever there is a change in any attribute value from the device.
+    this.device.on('update', this.updateCharacteristics.bind(this));
   }
+
+  protected abstract updateCharacteristics(attributes: DeviceAttributeBase): Promise<void>;
 }

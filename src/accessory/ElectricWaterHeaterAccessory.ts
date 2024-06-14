@@ -95,16 +95,13 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
     } else if (this.wholeTankHeatingService) {
       this.accessory.removeService(this.wholeTankHeatingService);
     }
-
-    this.device.on('update', this.updateCharacteristics.bind(this));
-    this.device.refresh_status();
   }
 
   /*********************************************************************
    * Callback function called by MideaDevice whenever there is a change to
    * any attribute value.
    */
-  private async updateCharacteristics(attributes: Partial<E2Attributes>) {
+  protected async updateCharacteristics(attributes: Partial<E2Attributes>) {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;

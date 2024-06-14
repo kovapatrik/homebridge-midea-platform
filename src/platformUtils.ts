@@ -59,7 +59,8 @@ type ACOptions = {
   maxTemp: number;
   tempStep: number;
   fahrenheit: boolean;
-  fanOnlyMode: boolean;
+  fanOnlyModeSwitch: boolean;
+  fanAccessory: boolean;
   breezeAwaySwitch: boolean;
   dryModeSwitch: boolean;
   auxHeatingSwitches: boolean;
@@ -98,7 +99,7 @@ type E3Options = {
 };
 
 export const defaultDeviceConfig: DeviceConfig = {
-  id: -1,
+  id: 0,
   type: '',
   advanced_options: {
     ip: '',
@@ -119,7 +120,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     maxTemp: 30,
     tempStep: 1,
     fahrenheit: false,
-    fanOnlyMode: false,
+    fanOnlyModeSwitch: false,
+    fanAccessory: false,
     ecoSwitch: false,
     outDoorTemp: false,
     breezeAwaySwitch: false,
