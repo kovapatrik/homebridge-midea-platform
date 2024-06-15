@@ -36,7 +36,7 @@ abstract class MessageACBase extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -62,7 +62,7 @@ export class MessagePowerQuery extends MessageACBase {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -117,7 +117,7 @@ export abstract class MessageSubProtocol extends MessageACBase {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     body = Buffer.concat([body, Buffer.from([this.checksum(body)])]);
     return body;

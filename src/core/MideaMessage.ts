@@ -17,7 +17,7 @@ abstract class MessageBase {
 
   protected abstract device_type: DeviceType;
   protected abstract message_type: MessageType;
-  protected abstract body_type: number;
+  protected abstract body_type: number | null;
   protected abstract device_protocol_version: number;
 
   protected abstract body: Buffer;
@@ -34,12 +34,12 @@ abstract class MessageBase {
 export abstract class MessageRequest extends MessageBase {
   device_type: DeviceType;
   message_type: MessageType;
-  body_type: number;
+  body_type: number | null;
   device_protocol_version: number;
 
   protected abstract _body: Buffer;
 
-  constructor(device_type: DeviceType, message_type: MessageType, body_type: number, device_protocol_version: number) {
+  constructor(device_type: DeviceType, message_type: MessageType, body_type: number | null, device_protocol_version: number) {
     super();
     this.device_type = device_type;
     this.message_type = message_type;

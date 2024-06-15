@@ -12,10 +12,12 @@ export const DEVICE_INFO_MESSAGE = new Int8Array([
 ]);
 
 export enum DeviceType {
+  UNKNOWN = 0x00,
   AIR_CONDITIONER = 0xac,
   DEHUMIDIFIER = 0xa1,
   ELECTRIC_WATER_HEATER = 0xe2,
   GAS_WATER_HEATER = 0xe3,
+  FAN = 0xfa,
 }
 
 export enum ParseMessageResult {

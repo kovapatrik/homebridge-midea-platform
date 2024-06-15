@@ -30,7 +30,7 @@ abstract class MessageA1Base extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }

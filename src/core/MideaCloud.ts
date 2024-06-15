@@ -201,8 +201,15 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       version: '0',
     });
 
-    if (response) {
-      return response;
+    if (response && response['url']) {
+      const lua = await axios.get(response['url']);
+      const encrypted_data = Buffer.from(lua.data, 'hex');
+      const file_data = this.security.decryptAESAppKey(encrypted_data).toString('utf8');
+      if (file_data) {
+        return file_data;
+      } else {
+        throw new Error('Failed to decrypt plugin.');
+      }
     } else {
       throw new Error('Failed to get protocol.');
     }
