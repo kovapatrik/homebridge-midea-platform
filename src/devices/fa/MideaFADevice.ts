@@ -82,4 +82,35 @@ export default class MideaFADevice extends MideaDevice {
       this.logger.debug(`[${this.name}] Status unchanged`);
     }
   }
+
+  set_subtype(): void {
+    this.logger.debug('No subtype for FA device');
+  }
+
+  make_message_set(): MessageSet {
+    const message = new MessageSet(this.device_protocol_version, this.sub_type);
+    message.power = this.attributes.POWER;
+    message.lock = this.attributes.CHILD_LOCK;
+    message.mode = this.attributes.MODE;
+    message.fan_speed = this.attributes.FAN_SPEED;
+    message.oscillate = this.attributes.OSCILLATE;
+    message.oscillation_angle = this.attributes.OSCILLATION_ANGLE;
+    message.oscillation_mode = this.attributes.OSCILLATION_MODE;
+    message.tilting_angle = this.attributes.TILTING_ANGLE;
+    return message;
+  }
+
+  async set_attribute(attributes: Partial<FAAttributes>) {
+    try {
+      for (const [k, v] of Object.entries(attributes)) {
+        this.attributes[k] = v;
+        const message = this.make_message_set();
+        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
+        await this.build_send(message);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
+    }
+  }
 }
