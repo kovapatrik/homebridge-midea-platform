@@ -4,12 +4,16 @@ import AirConditionerAccessory from './AirConditionerAccessory';
 import DehumidifierAccessory from './DehumidifierAccessory';
 import ElectricWaterHeaterAccessory from './ElectricWaterHeaterAccessory';
 import GasWaterHeaterAccessory from './GasWaterHeaterAccessory';
+import FanAccessory from './FanAccessory';
+
 import MideaDevice from '../core/MideaDevice';
 import { DeviceConfig } from '../platformUtils';
+
 import MideaACDevice from '../devices/ac/MideaACDevice';
 import MideaA1Device from '../devices/a1/MideaA1Device';
 import MideaE2Device from '../devices/e2/MideaE2Device';
 import MideaE3Device from '../devices/e3/MideaE3Device';
+import MideaFADevice from '../devices/fa/MideaFADevice';
 
 export default class AccessoryFactory {
   public static createAccessory<T extends MideaDevice>(
@@ -27,6 +31,8 @@ export default class AccessoryFactory {
         return new ElectricWaterHeaterAccessory(platform, accessory, device as unknown as MideaE2Device, configDev);
       case DeviceType.GAS_WATER_HEATER:
         return new GasWaterHeaterAccessory(platform, accessory, device as unknown as MideaE3Device, configDev);
+      case DeviceType.FAN:
+        return new FanAccessory(platform, accessory, device as unknown as MideaFADevice, configDev);
     }
   }
 }
