@@ -33,7 +33,11 @@ export interface ACAttributes extends DeviceAttributeBase {
   FAN_SPEED: number;
   FAN_AUTO: boolean;
   SWING_VERTICAL: boolean | undefined;
+  // Vertical swing angle
+  WIND_SWING_UD_ANGLE: number;
   SWING_HORIZONTAL: boolean | undefined;
+  // Horizontal swing angle
+  WIND_SWING_LR_ANGLE: number;
   SMART_EYE: boolean;
   DRY: boolean;
   AUX_HEATING: boolean;
@@ -109,7 +113,9 @@ export default class MideaACDevice extends MideaDevice {
       FAN_SPEED: 0,
       FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
+      WIND_SWING_UD_ANGLE: 0,
       SWING_HORIZONTAL: undefined, // invalid
+      WIND_SWING_LR_ANGLE: 0,
       SMART_EYE: false,
       DRY: false,
       AUX_HEATING: false,
@@ -397,6 +403,25 @@ export default class MideaACDevice extends MideaDevice {
     message.fan_speed = fan_speed;
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;
+    await this.build_send(message);
+  }
+
+  async set_swing_angle(swing_direction: 'horizontal' | 'vertical', swing_angle: number) {
+    this.logger.info(`[${this.name}] Set swing ${swing_direction} angle to: ${swing_angle}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    this.attributes.SWING_HORIZONTAL = false;
+    this.attributes.SWING_VERTICAL = false;
+    switch (swing_direction) {
+      case 'horizontal':
+        message.wind_swing_lr_angle = swing_angle;
+        this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
+        break;
+      case 'vertical':
+        message.wind_swing_ud_angle = swing_angle;
+        this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
+        break;
+    }
+    message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }
 
