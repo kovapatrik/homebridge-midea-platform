@@ -11,7 +11,7 @@
 import { CharacteristicValue, Service } from 'homebridge';
 import { MideaAccessory, MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
-import { DeviceConfig, SwingMode } from '../platformUtils';
+import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils';
 import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
@@ -25,6 +25,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private dryModeService?: Service;
   private auxService?: Service;
   private auxHeatingService?: Service;
+  private swingAngleService?: Service;
+
+  private swingAngleMainControl: SwingAngle;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -91,7 +94,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       .onSet(this.setRotationSpeed.bind(this));
 
     // Swing modes
-    if (this.configDev.AC_options.swingMode !== SwingMode.NONE) {
+    if (this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
       this.service
         .getCharacteristic(this.platform.Characteristic.SwingMode)
         .onGet(this.getSwingMode.bind(this))
@@ -244,6 +247,45 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.auxHeatingService);
     }
 
+    const swingProps = this.configDev.AC_options.swing;
+    this.swingAngleMainControl =
+      swingProps.mode === SwingMode.VERTICAL || (swingProps.mode === SwingMode.BOTH && swingProps.angleMainControl === SwingAngle.VERTICAL)
+        ? SwingAngle.VERTICAL
+        : SwingAngle.HORIZONTAL;
+    // Swing angle accessory
+    this.swingAngleService = this.accessory.getServiceById(this.platform.Service.WindowCovering, 'SwingAngle');
+    if (swingProps.mode !== SwingMode.NONE && swingProps.angleAccessory) {
+      this.swingAngleService ??= this.accessory.addService(this.platform.Service.WindowCovering, `${this.device.name} Swing`, 'SwingAngle');
+      this.swingAngleService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Swing`);
+      this.swingAngleService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Swing`);
+      this.swingAngleService
+        .getCharacteristic(this.platform.Characteristic.CurrentPosition)
+        .onGet(this.getSwingAngleCurrentPosition.bind(this));
+      this.swingAngleService
+        .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .onGet(this.getSwingAngleTargetPosition.bind(this))
+        .onSet(this.setSwingAngleTargetPosition.bind(this));
+      this.swingAngleService
+        .getCharacteristic(this.platform.Characteristic.PositionState)
+        .onGet(this.getSwingAnglePositionState.bind(this));
+
+      if (swingProps.mode === SwingMode.BOTH) {
+        this.swingAngleService
+          .getCharacteristic(this.platform.Characteristic.CurrentHorizontalTiltAngle)
+          .onGet(this.getSwingAngleCurrentHorizontalTiltAngle.bind(this));
+        this.swingAngleService
+          .getCharacteristic(this.platform.Characteristic.TargetHorizontalTiltAngle)
+          .onGet(this.getSwingAngleTargetHorizontalTiltAngle.bind(this))
+          .onSet(this.setSwingAngleTargetHorizontalTiltAngle.bind(this));
+        this.swingAngleService
+          .getCharacteristic(this.platform.Characteristic.CurrentVerticalTiltAngle)
+          .onGet(this.getSwingAngleCurrentVerticalTiltAngle.bind(this));
+        this.swingAngleService
+          .getCharacteristic(this.platform.Characteristic.TargetVerticalTiltAngle)
+          .onGet(this.getSwingAngleTargetVerticalTiltAngle.bind(this))
+          .onSet(this.setSwingAngleTargetVerticalTiltAngle.bind(this));
+      }
+    }
     // Misc
     this.device.attributes.PROMPT_TONE = this.configDev.AC_options.audioFeedback;
     this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options.fahrenheit;
@@ -436,8 +478,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     switch (value) {
       case this.platform.Characteristic.SwingMode.SWING_ENABLED:
         await this.device.set_swing(
-          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swingMode!),
-          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swingMode!),
+          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
+          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
         );
         break;
       case this.platform.Characteristic.SwingMode.SWING_DISABLED:
@@ -518,5 +560,47 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     } else {
       await this.device.set_attribute({ AUX_HEATING: false });
     }
+  }
+
+  getSwingAngleCurrentPosition(): CharacteristicValue {
+    return this.swingAngleMainControl === SwingAngle.VERTICAL
+      ? this.device.attributes.WIND_SWING_UD_ANGLE
+      : this.device.attributes.WIND_SWING_LR_ANGLE;
+  }
+
+  getSwingAngleTargetPosition(): CharacteristicValue {
+    return this.getSwingAngleCurrentPosition();
+  }
+
+  async setSwingAngleTargetPosition(value: CharacteristicValue) {
+    await this.device.set_swing_angle(this.swingAngleMainControl, value as number);
+  }
+
+  getSwingAnglePositionState(): CharacteristicValue {
+    return this.platform.Characteristic.PositionState.STOPPED;
+  }
+
+  getSwingAngleCurrentHorizontalTiltAngle(): CharacteristicValue {
+    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+  }
+
+  getSwingAngleTargetHorizontalTiltAngle(): CharacteristicValue {
+    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+  }
+
+  async setSwingAngleTargetHorizontalTiltAngle(value: CharacteristicValue) {
+    await this.device.set_attribute({ SWING_HORIZONTAL_ANGLE: value as number });
+  }
+
+  getSwingAngleCurrentVerticalTiltAngle(): CharacteristicValue {
+    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+  }
+
+  getSwingAngleTargetVerticalTiltAngle(): CharacteristicValue {
+    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+  }
+
+  async setSwingAngleTargetVerticalTiltAngle(value: CharacteristicValue) {
+    await this.device.set_attribute({ SWING_HORIZONTAL_ANGLE: value as number });
   }
 }

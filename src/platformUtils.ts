@@ -41,6 +41,11 @@ export enum SwingMode {
   BOTH = 'Both',
 }
 
+export enum SwingAngle {
+  VERTICAL = 'Vertical',
+  HORIZONTAL = 'Horizontal',
+}
+
 export enum WaterTankSensor {
   NONE = 'None',
   LEAK_SENSOR = 'Leak Sensor',
@@ -48,7 +53,11 @@ export enum WaterTankSensor {
 }
 
 type ACOptions = {
-  swingMode: SwingMode;
+  swing: {
+    mode: SwingMode;
+    angleAccessory: boolean;
+    angleMainControl: SwingAngle;
+  };
   heatingCapable: boolean;
   ecoSwitch: boolean;
   displaySwitch: {
@@ -110,7 +119,11 @@ export const defaultDeviceConfig: DeviceConfig = {
     registerIfOffline: false,
   },
   AC_options: {
-    swingMode: SwingMode.NONE,
+    swing: {
+      mode: SwingMode.NONE,
+      angleAccessory: false,
+      angleMainControl: SwingAngleMainControl.VERTICAL,
+    },
     heatingCapable: true,
     displaySwitch: {
       flag: true,

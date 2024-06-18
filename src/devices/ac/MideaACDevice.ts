@@ -20,7 +20,7 @@ import {
   MessageSubProtocolSet,
   MessageSwitchDisplay,
 } from './MideaACMessage';
-import { Config, DeviceConfig } from '../../platformUtils';
+import { Config, DeviceConfig, SwingAngle } from '../../platformUtils';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -389,6 +389,8 @@ export default class MideaACDevice extends MideaDevice {
     message.swing_vertical = swing_vertical;
     this.attributes.SWING_HORIZONTAL = swing_horizontal;
     this.attributes.SWING_VERTICAL = swing_vertical;
+    this.attributes.WIND_SWING_LR_ANGLE = 0;
+    this.attributes.WIND_SWING_UD_ANGLE = 0;
     await this.build_send(message);
   }
 
@@ -406,17 +408,17 @@ export default class MideaACDevice extends MideaDevice {
     await this.build_send(message);
   }
 
-  async set_swing_angle(swing_direction: 'horizontal' | 'vertical', swing_angle: number) {
+  async set_swing_angle(swing_direction: SwingAngle, swing_angle: number) {
     this.logger.info(`[${this.name}] Set swing ${swing_direction} angle to: ${swing_angle}`);
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     this.attributes.SWING_HORIZONTAL = false;
     this.attributes.SWING_VERTICAL = false;
     switch (swing_direction) {
-      case 'horizontal':
+      case SwingAngle.HORIZONTAL:
         message.wind_swing_lr_angle = swing_angle;
         this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
         break;
-      case 'vertical':
+      case SwingAngle.VERTICAL:
         message.wind_swing_ud_angle = swing_angle;
         this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
         break;
