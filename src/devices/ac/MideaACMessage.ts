@@ -11,6 +11,8 @@ import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolM
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
+  WIND_SWING_UD_ANGLE = 0x0009,
+  WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
   SCREEN_DISPLAY = 0x0017,
   BREEZELESS = 0x0018,
@@ -88,6 +90,8 @@ export class MessageNewProtocolQuery extends MessageACBase {
 
   get _body() {
     const query_params = [
+      NewProtocolTags.WIND_SWING_UD_ANGLE,
+      NewProtocolTags.WIND_SWING_LR_ANGLE,
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
@@ -329,6 +333,8 @@ export class MessageGeneralSet extends MessageACBase {
 }
 
 export class MessageNewProtocolSet extends MessageACBase {
+  public wind_swing_ud_angle?: number;
+  public wind_swing_lr_angle?: number;
   public indirect_wind?: boolean;
   public prompt_tone = false;
   public breezeless?: boolean;
@@ -343,6 +349,22 @@ export class MessageNewProtocolSet extends MessageACBase {
   get _body() {
     let pack_count = 0;
     let payload = Buffer.from([0x00]);
+
+    if (this.wind_swing_ud_angle !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([
+        payload,
+        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_UD_ANGLE, Buffer.from([this.wind_swing_ud_angle])),
+      ]);
+    }
+
+    if (this.wind_swing_lr_angle !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([
+        payload,
+        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_LR_ANGLE, Buffer.from([this.wind_swing_lr_angle])),
+      ]);
+    }
 
     if (this.breezeless !== undefined) {
       pack_count += 1;
@@ -476,6 +498,8 @@ class XA1MessageBody extends MessageBody {
 }
 
 class XBXMessageBody extends NewProtocolMessageBody {
+  public wind_swing_lr_angle?: number;
+  public wind_swing_ud_angle?: number;
   public indirect_wind?: boolean;
   public indoor_humidity?: number;
   public breezeless?: boolean;
@@ -489,6 +513,13 @@ class XBXMessageBody extends NewProtocolMessageBody {
   constructor(body: Buffer, body_type: number) {
     super(body, body_type);
     const params = this.parse();
+
+    if (NewProtocolTags.WIND_SWING_LR_ANGLE in params) {
+      this.wind_swing_lr_angle = params[NewProtocolTags.WIND_SWING_LR_ANGLE][0];
+    }
+    if (NewProtocolTags.WIND_SWING_UD_ANGLE in params) {
+      this.wind_swing_ud_angle = params[NewProtocolTags.WIND_SWING_UD_ANGLE][0];
+    }
 
     if (NewProtocolTags.INDIRECT_WIND in params) {
       this.indirect_wind = params[NewProtocolTags.INDIRECT_WIND][0] === 0x02;
