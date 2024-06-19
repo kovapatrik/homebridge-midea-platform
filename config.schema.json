@@ -164,7 +164,6 @@
                       "title": "Swing Mode",
                       "description": "Set swing mode of the unit. If your unit does not support this feature then leave it on None.",
                       "type": "string",
-                      "required": true,
                       "enum": [
                         "None",
                         "Vertical",
@@ -181,7 +180,6 @@
                       "title": "Swing Angle Main Control",
                       "description": "If `swingMode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
                       "type": "string",
-                      "required": true,
                       "enum": [
                         "Vertical",
                         "Horizontal"
@@ -271,231 +269,230 @@
                   "type": "boolean"
                 }
               }
-            }
-          },
-          "E2_options": {
-            "title": "Electric Water Heater Options",
-            "type": "object",
-            "condition": {
-              "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Electric Water Heater';"
             },
-            "properties": {
-              "protocol": {
-                "title": "Protocol",
-                "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
-                "type": "string",
-                "enum": [
-                  "auto",
-                  "old",
-                  "new"
-                ]
+            "E2_options": {
+              "title": "Electric Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Electric Water Heater';"
               },
-              "minTemp": {
-                "title": "Minimum Temperature",
-                "type": "number"
-              },
-              "maxTemp": {
-                "title": "Maximum Temperature",
-                "type": "number"
-              },
-              "tempStep": {
-                "title": "Temperature Step",
-                "type": "number",
-                "enum": [
-                  0.5,
-                  1
-                ]
-              },
-              "variableHeatingSwitch": {
-                "title": "Variable Heating Switch",
-                "description": "Toggles if the variable heating switch is created with the accessory.",
-                "type": "boolean"
-              },
-              "wholeTankHeatingSwitch": {
-                "title": "Whole Tank Heating Switch",
-                "description": "Toggles if the whole tank heating switch is created with the accessory.",
-                "type": "boolean"
+              "properties": {
+                "protocol": {
+                  "title": "Protocol",
+                  "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "old",
+                    "new"
+                  ]
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step",
+                  "type": "number",
+                  "enum": [
+                    0.5,
+                    1
+                  ]
+                },
+                "variableHeatingSwitch": {
+                  "title": "Variable Heating Switch",
+                  "description": "Toggles if the variable heating switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "wholeTankHeatingSwitch": {
+                  "title": "Whole Tank Heating Switch",
+                  "description": "Toggles if the whole tank heating switch is created with the accessory.",
+                  "type": "boolean"
+                }
               }
-            }
-          },
-          "E3_options": {
-            "title": "Gas Water Heater Options",
-            "type": "object",
-            "condition": {
-              "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Gas Water Heater';"
             },
-            "properties": {
-              "precisionHalves": {
-                "title": "Precision Halves",
-                "description": "Toggles if the temperature on the unit is displayed in half degrees.",
-                "type": "boolean"
+            "E3_options": {
+              "title": "Gas Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Gas Water Heater';"
               },
-              "minTemp": {
-                "title": "Minimum Temperature",
-                "type": "number"
-              },
-              "maxTemp": {
-                "title": "Maximum Temperature",
-                "type": "number"
-              },
-              "tempStep": {
-                "title": "Temperature Step",
-                "type": "number",
-                "enum": [
-                  0.5,
-                  1
-                ]
-              },
-              "burningStateSensor": {
-                "title": "Burning State Sensor",
-                "description": "Toggles if the burning state sensor is created with the accessory.",
-                "type": "boolean"
-              },
-              "protectionSensor": {
-                "title": "Protection Sensor",
-                "description": "Toggles if the protection sensor is created with the accessory.",
-                "type": "boolean"
-              },
-              "zeroColdWaterSwitch": {
-                "title": "Zero Cold Water Switch",
-                "description": "Toggles if the zero cold water switch is created with the accessory.",
-                "type": "boolean"
-              },
-              "zeroColdPulseSwitch": {
-                "title": "Zero Cold Pulse Switch",
-                "description": "Toggles if the zero cold pulse switch is created with the accessory.",
-                "type": "boolean"
-              },
-              "smartVolumeSwitch": {
-                "title": "Smart Volume Switch",
-                "description": "Toggles if the smart volume switch is created with the accessory.",
-                "type": "boolean"
+              "properties": {
+                "precisionHalves": {
+                  "title": "Precision Halves",
+                  "description": "Toggles if the temperature on the unit is displayed in half degrees.",
+                  "type": "boolean"
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step",
+                  "type": "number",
+                  "enum": [
+                    0.5,
+                    1
+                  ]
+                },
+                "burningStateSensor": {
+                  "title": "Burning State Sensor",
+                  "description": "Toggles if the burning state sensor is created with the accessory.",
+                  "type": "boolean"
+                },
+                "protectionSensor": {
+                  "title": "Protection Sensor",
+                  "description": "Toggles if the protection sensor is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zeroColdWaterSwitch": {
+                  "title": "Zero Cold Water Switch",
+                  "description": "Toggles if the zero cold water switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zeroColdPulseSwitch": {
+                  "title": "Zero Cold Pulse Switch",
+                  "description": "Toggles if the zero cold pulse switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "smartVolumeSwitch": {
+                  "title": "Smart Volume Switch",
+                  "description": "Toggles if the smart volume switch is created with the accessory.",
+                  "type": "boolean"
+                }
               }
             }
           }
         }
       }
     }
-  }
-},
-"layout": [
-  {
-    "items": [
-      {
-        "ref": "optional",
-        "type": "fieldset",
-        "expandable": true,
-        "expanded": false,
-        "title": "Optional Settings",
-        "items": [
-          "refreshInterval",
-          "heartbeatInterval",
-          "verbose",
-          "logRecoverableErrors",
-          "uiDebug"
-        ]
-      },
-      {
-        "key": "devices",
-        "type": "tabarray",
-        "title": "{{ value.name || 'new device' }}",
-        "items": [
-          "devices[].type",
-          "devices[].id",
-          "devices[].name",
-          {
-            "key": "devices[].advanced_options",
-            "title": "Advanced Settings",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-              "devices[].advanced_options.ip",
-              "devices[].advanced_options.token",
-              "devices[].advanced_options.key",
-              "devices[].advanced_options.verbose",
-              "devices[].advanced_options.logRecoverableErrors"
-            ]
-          },
-          {
-            "key": "devices[].A1_options",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-              "devices[].A1_options.temperatureSensor",
-              "devices[].A1_options.pumpSwitch",
-              "devices[].A1_options.waterTankSensor",
-              "devices[].A1_options.minHumidity",
-              "devices[].A1_options.maxHumidity",
-              "devices[].A1_options.humidityStep"
-            ]
-          },
-          {
-            "key": "devices[].AC_options",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-              {
-                "key": "devices[].AC_options.swing",
-                "items": [
-                  "devices[].AC_options.swing.mode",
-                  "devices[].AC_options.swing.angleAccessory",
-                  "devices[].AC_options.swing.angleMainControl"
-                ]
-              },
-              "devices[].AC_options.heatingCapable",
-              "devices[].AC_options.outDoorTemp",
-              "devices[].AC_options.audioFeedback",
-              "devices[].AC_options.ecoSwitch",
-              "devices[].AC_options.breezeAwaySwitch",
-              "devices[].AC_options.dryModeSwitch",
-              "devices[].AC_options.auxHeatingSwitches",
-              {
-                "key": "devices[].AC_options.displaySwitch",
-                "items": [
-                  "devices[].AC_options.displaySwitch.flag",
-                  "devices[].AC_options.displaySwitch.command"
-                ]
-              },
-              "devices[].AC_options.minTemp",
-              "devices[].AC_options.maxTemp",
-              "devices[].AC_options.tempStep",
-              "devices[].AC_options.fahrenheit",
-              "devices[].AC_options.fanOnlyModeSwitch",
-              "devices[].AC_options.fanAccessory"
-            ]
-          },
-          {
-            "key": "devices[].E2_options",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-              "devices[].E2_options.protocol",
-              "devices[].E2_options.variableHeatingSwitch",
-              "devices[].E2_options.wholeTankHeatingSwitch",
-              "devices[].E2_options.minTemp",
-              "devices[].E2_options.maxTemp",
-              "devices[].E2_options.tempStep"
-            ]
-          },
-          {
-            "key": "devices[].E3_options",
-            "expandable": true,
-            "expanded": false,
-            "items": [
-              "devices[].E3_options.precisionHalves",
-              "devices[].E3_options.burningStateSensor",
-              "devices[].E3_options.protectionSensor",
-              "devices[].E3_options.zeroColdWaterSwitch",
-              "devices[].E3_options.zeroColdPulseSwitch",
-              "devices[].E3_options.smartVolumeSwitch",
-              "devices[].E3_options.minTemp",
-              "devices[].E3_options.maxTemp",
-              "devices[].E3_options.tempStep"
-            ]
-          }
-        ]
-      }
-    ]
-  }
-]
+  },
+  "layout": [
+    {
+      "items": [
+        {
+          "ref": "optional",
+          "type": "fieldset",
+          "expandable": true,
+          "expanded": false,
+          "title": "Optional Settings",
+          "items": [
+            "refreshInterval",
+            "heartbeatInterval",
+            "verbose",
+            "logRecoverableErrors",
+            "uiDebug"
+          ]
+        },
+        {
+          "key": "devices",
+          "type": "tabarray",
+          "title": "{{ value.name || 'new device' }}",
+          "items": [
+            "devices[].type",
+            "devices[].id",
+            "devices[].name",
+            {
+              "key": "devices[].advanced_options",
+              "title": "Advanced Settings",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].advanced_options.ip",
+                "devices[].advanced_options.token",
+                "devices[].advanced_options.key",
+                "devices[].advanced_options.verbose",
+                "devices[].advanced_options.logRecoverableErrors"
+              ]
+            },
+            {
+              "key": "devices[].A1_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].A1_options.temperatureSensor",
+                "devices[].A1_options.pumpSwitch",
+                "devices[].A1_options.waterTankSensor",
+                "devices[].A1_options.minHumidity",
+                "devices[].A1_options.maxHumidity",
+                "devices[].A1_options.humidityStep"
+              ]
+            },
+            {
+              "key": "devices[].AC_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                {
+                  "key": "devices[].AC_options.swing",
+                  "items": [
+                    "devices[].AC_options.swing.mode",
+                    "devices[].AC_options.swing.angleAccessory",
+                    "devices[].AC_options.swing.angleMainControl"
+                  ]
+                },
+                "devices[].AC_options.heatingCapable",
+                "devices[].AC_options.outDoorTemp",
+                "devices[].AC_options.audioFeedback",
+                "devices[].AC_options.ecoSwitch",
+                "devices[].AC_options.breezeAwaySwitch",
+                "devices[].AC_options.dryModeSwitch",
+                "devices[].AC_options.auxHeatingSwitches",
+                {
+                  "key": "devices[].AC_options.displaySwitch",
+                  "items": [
+                    "devices[].AC_options.displaySwitch.flag",
+                    "devices[].AC_options.displaySwitch.command"
+                  ]
+                },
+                "devices[].AC_options.minTemp",
+                "devices[].AC_options.maxTemp",
+                "devices[].AC_options.tempStep",
+                "devices[].AC_options.fahrenheit",
+                "devices[].AC_options.fanOnlyModeSwitch",
+                "devices[].AC_options.fanAccessory"
+              ]
+            },
+            {
+              "key": "devices[].E2_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].E2_options.protocol",
+                "devices[].E2_options.variableHeatingSwitch",
+                "devices[].E2_options.wholeTankHeatingSwitch",
+                "devices[].E2_options.minTemp",
+                "devices[].E2_options.maxTemp",
+                "devices[].E2_options.tempStep"
+              ]
+            },
+            {
+              "key": "devices[].E3_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].E3_options.precisionHalves",
+                "devices[].E3_options.burningStateSensor",
+                "devices[].E3_options.protectionSensor",
+                "devices[].E3_options.zeroColdWaterSwitch",
+                "devices[].E3_options.zeroColdPulseSwitch",
+                "devices[].E3_options.smartVolumeSwitch",
+                "devices[].E3_options.minTemp",
+                "devices[].E3_options.maxTemp",
+                "devices[].E3_options.tempStep"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
