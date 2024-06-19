@@ -142,6 +142,7 @@
                 "humidityStep": {
                   "title": "Humidity Step",
                   "type": "number",
+                  "required": true,
                   "enum": [
                     5,
                     10
@@ -164,6 +165,7 @@
                       "title": "Swing Mode",
                       "description": "Set swing mode of the unit. If your unit does not support this feature then leave it on None.",
                       "type": "string",
+                      "required": true,
                       "enum": [
                         "None",
                         "Vertical",
@@ -180,6 +182,7 @@
                       "title": "Swing Angle Main Control",
                       "description": "If `swingMode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
                       "type": "string",
+                      "required": true,
                       "enum": [
                         "Vertical",
                         "Horizontal"
@@ -248,6 +251,7 @@
                 "tempStep": {
                   "title": "Temperature Step",
                   "type": "number",
+                  "required": true,
                   "enum": [
                     0.5,
                     1
@@ -281,6 +285,7 @@
                   "title": "Protocol",
                   "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
                   "type": "string",
+                  "required": true,
                   "enum": [
                     "auto",
                     "old",
@@ -298,6 +303,7 @@
                 "tempStep": {
                   "title": "Temperature Step",
                   "type": "number",
+                  "required": true,
                   "enum": [
                     0.5,
                     1
@@ -338,6 +344,7 @@
                 "tempStep": {
                   "title": "Temperature Step",
                   "type": "number",
+                  "required": true,
                   "enum": [
                     0.5,
                     1
