@@ -122,7 +122,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     swing: {
       mode: SwingMode.NONE,
       angleAccessory: false,
-      angleMainControl: SwingAngleMainControl.VERTICAL,
+      angleMainControl: SwingAngle.VERTICAL,
     },
     heatingCapable: true,
     displaySwitch: {
