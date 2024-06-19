@@ -351,6 +351,27 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'smart_eye':
           this.auxService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
           break;
+        case 'wind_swing_lr_angle':
+        case 'wind_swing_ud_angle':
+          this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.getSwingAngleCurrentPosition());
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentHorizontalTiltAngle,
+            this.getSwingAngleCurrentHorizontalTiltAngle(),
+          );
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentVerticalTiltAngle,
+            this.getSwingAngleCurrentVerticalTiltAngle(),
+          );
+          this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.getSwingAngleTargetPosition());
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.TargetHorizontalTiltAngle,
+            this.getSwingAngleTargetHorizontalTiltAngle(),
+          );
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.TargetVerticalTiltAngle,
+            this.getSwingAngleTargetVerticalTiltAngle(),
+          );
+          break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
@@ -581,26 +602,34 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getSwingAngleCurrentHorizontalTiltAngle(): CharacteristicValue {
-    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+    return this.percentageToAngle(this.device.attributes.WIND_SWING_LR_ANGLE);
   }
 
   getSwingAngleTargetHorizontalTiltAngle(): CharacteristicValue {
-    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+    return this.getSwingAngleCurrentHorizontalTiltAngle();
   }
 
   async setSwingAngleTargetHorizontalTiltAngle(value: CharacteristicValue) {
-    await this.device.set_attribute({ SWING_HORIZONTAL_ANGLE: value as number });
+    await this.device.set_attribute({ WIND_SWING_LR_ANGLE: this.angleToPercentage(value as number) });
   }
 
   getSwingAngleCurrentVerticalTiltAngle(): CharacteristicValue {
-    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+    return this.percentageToAngle(this.device.attributes.WIND_SWING_UD_ANGLE);
   }
 
   getSwingAngleTargetVerticalTiltAngle(): CharacteristicValue {
-    return this.device.attributes.SWING_HORIZONTAL_ANGLE;
+    return this.getSwingAngleCurrentVerticalTiltAngle();
   }
 
   async setSwingAngleTargetVerticalTiltAngle(value: CharacteristicValue) {
-    await this.device.set_attribute({ SWING_HORIZONTAL_ANGLE: value as number });
+    await this.device.set_attribute({ WIND_SWING_UD_ANGLE: this.angleToPercentage(value as number) });
+  }
+
+  angleToPercentage(angle: number): number {
+    return Math.round(((angle + 90) / 180) * 100);
+  }
+
+  percentageToAngle(percentage: number): number {
+    return Math.round((percentage / 100) * 180 - 90);
   }
 }
