@@ -128,7 +128,7 @@
                 },
                 "waterTankSensor": {
                   "title": "Water Tank Sensor",
-                  "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as 'Leak Sensor' or 'Contact Sensor' depending on the type of device.",
+                  "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as `Leak Sensor` or `Contact Sensor` depending on this setting.",
                   "type": "string",
                   "required": true,
                   "enum": [
@@ -185,12 +185,12 @@
                     },
                     "angleAccessory": {
                       "title": "Swing Angle Accessory",
-                      "description": "Toggles if the swing angle accessory is created with the accessory. The accessory can be used to set the angle of the slat to a specified value. The `swingMode` property will be used to determine the direction of the slat. The main position bar will be used to set the angle of the direction which is selected in the `swingMode` property.",
+                      "description": "Toggles if the swing angle accessory is created with the accessory. The accessory can be used to set the angle of the slat to a specified value. The `mode` property will be used to determine the direction of the slat. The main position bar will be used to set the angle of the direction which is selected in the `mode` property.",
                       "type": "boolean"
                     },
                     "angleMainControl": {
                       "title": "Swing Angle Main Control",
-                      "description": "If `swingMode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
+                      "description": "If `mode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
                       "type": "string",
                       "required": true,
                       "enum": [
