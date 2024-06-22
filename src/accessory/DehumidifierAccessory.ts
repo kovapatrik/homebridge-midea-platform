@@ -20,6 +20,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   private temperatureService?: Service;
   private fanService?: Service;
+  private humiditySensorService?: Service;
   private pumpService?: Service;
   private waterTankService?: Service;
   // Increment this every time we make a change to accessory that requires
@@ -136,6 +137,17 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.removeService(this.fanService);
     }
 
+    // Humidity sensor
+    this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, 'Humidity');
+    if (this.configDev.A1_options.humiditySensor) {
+      this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, 'Humidity', 'Humidity');
+      this.humiditySensorService
+        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+        .onGet(this.getCurrentRelativeHumidity.bind(this));
+    } else if (this.humiditySensorService) {
+      this.accessory.removeService(this.humiditySensorService);
+    }
+
     // Pump switch
     this.pumpService = this.accessory.getServiceById(this.platform.Service.Switch, 'Pump');
     if (this.configDev.A1_options.pumpSwitch) {
@@ -196,6 +208,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           break;
         case 'current_humidity':
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
+          this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
           updateState = true;
           break;
         case 'mode':

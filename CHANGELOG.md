@@ -4,6 +4,7 @@
 ## 2024-06-22
 - BREAKING CHANGE: `Air Conditioner` configuration changed: there is now a possibility to create an accessory which can be used to control the slats on the unit. THe configuration structure has changed. Please check [AC docs](/docs/ac.md) for more information (or just save the configuration again in the plugin settings to get the new structure).
 - feat: added support for `Fans` (fixes #74)
+- fix: added option to add a seperate humidity sensor to `Dehumidifiers` (fixes #88)
 - fix: added option to add a fan accessory to `Dehumidifiers` (fixes #89)
 - fix: wait for device response before adding it to Homebridge
 
