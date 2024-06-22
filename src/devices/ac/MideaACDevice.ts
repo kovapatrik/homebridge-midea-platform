@@ -20,7 +20,7 @@ import {
   MessageSubProtocolSet,
   MessageSwitchDisplay,
 } from './MideaACMessage';
-import { Config, DeviceConfig, SwingAngle } from '../../platformUtils';
+import { Config, DeviceConfig, SwingAngle, defaultDeviceConfig } from '../../platformUtils';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -109,7 +109,7 @@ export default class MideaACDevice extends MideaDevice {
       PROMPT_TONE: false,
       POWER: undefined,
       MODE: 0,
-      TARGET_TEMPERATURE: 0,
+      TARGET_TEMPERATURE: defaultDeviceConfig.AC_options.minTemp,
       FAN_SPEED: 0,
       FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid

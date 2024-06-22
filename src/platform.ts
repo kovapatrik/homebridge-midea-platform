@@ -184,7 +184,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             }
           }
           await device.connect(false);
-          await device.refresh_status();
+          await device.refresh_status(true);
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
