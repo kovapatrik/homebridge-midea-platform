@@ -304,33 +304,33 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           updateState = true;
           break;
         case 'screen_display':
-          this.displayService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+        case 'screen_display_new':
+          this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
           break;
         case 'target_temperature':
           // If MODE is 4 then device is heating.  Therefore target temperature value must be heating target? Right?
           if (this.device.attributes.MODE === 4) {
-            this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as CharacteristicValue);
+            this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
           } else {
-            this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, v as CharacteristicValue);
+            this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getTargetTemperature());
           }
           updateState = true;
           break;
         case 'indoor_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
-          updateState = true;
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
           break;
         case 'outdoor_temperature':
-          this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+          this.outDoorTemperatureService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentTemperature,
+            this.getOutdoorTemperature(),
+          );
           break;
         case 'fan_speed':
           this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
           this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
           break;
         case 'fan_auto':
-          this.fanService?.updateCharacteristic(
-            this.platform.Characteristic.TargetFanState,
-            v ? this.platform.Characteristic.TargetFanState.AUTO : this.platform.Characteristic.TargetFanState.MANUAL,
-          );
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getFanState());
           break;
         case 'swing_vertical':
         case 'swing_horizontal':
@@ -340,16 +340,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           updateState = true;
           break;
         case 'eco_mode':
-          this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
           break;
         case 'indirect_wind':
-          this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, this.getBreezeAway());
           break;
         case 'aux_heating':
-          this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, this.getAuxHeating());
           break;
         case 'smart_eye':
-          this.auxService?.updateCharacteristic(this.platform.Characteristic.On, !!v);
+          this.auxService?.updateCharacteristic(this.platform.Characteristic.On, this.getAux());
           break;
         case 'wind_swing_lr_angle':
         case 'wind_swing_ud_angle':
@@ -526,7 +526,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getDisplayActive(): CharacteristicValue {
-    return !!this.device.attributes.SCREEN_DISPLAY; // force boolean
+    return this.device.attributes.SCREEN_DISPLAY === true;
   }
 
   async setDisplayActive(value: CharacteristicValue) {
