@@ -79,6 +79,7 @@ type ACOptions = {
 
 type A1Options = {
   temperatureSensor: boolean;
+  fanAccessory: boolean;
   pumpSwitch: boolean;
   waterTankSensor: WaterTankSensor;
   minHumidity: number;
@@ -144,6 +145,7 @@ export const defaultDeviceConfig: DeviceConfig = {
   },
   A1_options: {
     temperatureSensor: false,
+    fanAccessory: false,
     pumpSwitch: false,
     waterTankSensor: WaterTankSensor.NONE,
     minHumidity: 35,

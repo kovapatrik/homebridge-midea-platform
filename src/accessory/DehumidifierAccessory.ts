@@ -19,6 +19,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private service: Service;
 
   private temperatureService?: Service;
+  private fanService?: Service;
   private pumpService?: Service;
   private waterTankService?: Service;
   // Increment this every time we make a change to accessory that requires
@@ -117,6 +118,24 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.removeService(this.temperatureService);
     }
 
+    // Fan
+    this.fanService = this.accessory.getServiceById(this.platform.Service.Fanv2, 'Fan');
+    if (this.configDev.A1_options.fanAccessory) {
+      this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, 'Fan', 'Fan');
+      this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
+      this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan`);
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.Active)
+        .onGet(this.getActive.bind(this))
+        .onSet(this.setActive.bind(this));
+      this.fanService
+        .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+        .onGet(this.getRotationSpeed.bind(this))
+        .onSet(this.setRotationSpeed.bind(this));
+    } else if (this.fanService) {
+      this.accessory.removeService(this.fanService);
+    }
+
     // Pump switch
     this.pumpService = this.accessory.getServiceById(this.platform.Service.Switch, 'Pump');
     if (this.configDev.A1_options.pumpSwitch) {
@@ -164,10 +183,6 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       let updateState = false;
       switch (k.toLowerCase()) {
         case 'power':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.Active,
-            v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
-          );
           updateState = true;
           break;
         case 'target_humidity':
@@ -176,6 +191,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           break;
         case 'fan_speed':
           this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          updateState = true;
           break;
         case 'current_humidity':
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
@@ -213,6 +230,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
         this.service.updateCharacteristic(
           this.platform.Characteristic.TargetHumidifierDehumidifierState,
           this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
@@ -221,6 +239,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.platform.Characteristic.CurrentHumidifierDehumidifierState,
           this.currentHumidifierDehumidifierState(),
         );
+        this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
       }
     }
   }
@@ -229,7 +248,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
    * Callback functions for each Homebridge/HomeKit service
    *
    */
-  private async getActive(): Promise<CharacteristicValue> {
+  private getActive(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET Active, value: ${this.device.attributes.POWER}`);
     return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
@@ -240,7 +259,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the current value of the "HumidifierDehumidifierState" characteristic
-  private async getCurrentHumidifierDehumidifierState(): Promise<CharacteristicValue> {
+  private getCurrentHumidifierDehumidifierState(): CharacteristicValue {
     this.platform.log.debug(
       `[${this.device.name}] GET CurrentHumidifierDehumidifierState, value: ${this.device.attributes.POWER},${this.device.attributes.MODE}`,
     );
@@ -270,7 +289,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the target value of the "HumidifierDehumidifierState" characteristic
-  private async getTargetHumidifierDehumidifierState(): Promise<CharacteristicValue> {
+  private getTargetHumidifierDehumidifierState(): CharacteristicValue {
     this.platform.log.debug(
       // eslint-disable-next-line max-len
       `[${this.device.name}] GET TargetHumidifierDehumidifierState, value: ${this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER}`,
@@ -288,13 +307,13 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the current value of the "RelativeHumidity" characteristic
-  private async getCurrentRelativeHumidity(): Promise<CharacteristicValue> {
+  private getCurrentRelativeHumidity(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY}`);
     return this.device.attributes.CURRENT_HUMIDITY;
   }
 
   // Handle requests to get the Relative value of the "HumidityDehumidifierThreshold" characteristic
-  private async getRelativeHumidityDehumidifierThreshold(): Promise<CharacteristicValue> {
+  private getRelativeHumidityDehumidifierThreshold(): CharacteristicValue {
     this.platform.log.debug(
       `[${this.device.name}] GET RelativeHumidityDehumidifierThreshold, value: ${this.device.attributes.TARGET_HUMIDITY}`,
     );
@@ -328,7 +347,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the current value of the "RotationSpeed" characteristic
-  private async getRotationSpeed(): Promise<CharacteristicValue> {
+  private getRotationSpeed(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET RotationSpeed, value: ${this.device.attributes.FAN_SPEED}`);
     return this.device.attributes.FAN_SPEED;
   }
@@ -350,7 +369,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the current value of the "WaterLevel" characteristic
-  private async getWaterLevel(): Promise<CharacteristicValue> {
+  private getWaterLevel(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET WaterLevel, value: ${this.device.attributes.TANK_LEVEL}`);
     return this.device.attributes.TANK_LEVEL;
   }
@@ -362,7 +381,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   }
 
   // Handle requests to get the current value of the "Pump" characteristic
-  private async getPump(): Promise<CharacteristicValue> {
+  private getPump(): CharacteristicValue {
     this.platform.log.debug(`[${this.device.name}] GET Pump, value: ${this.device.attributes.PUMP}`);
     return this.device.attributes.POWER === true && this.device.attributes.PUMP;
   }

@@ -111,6 +111,11 @@
                   "description": "Toggles if the temperature sensor is created with the accessory.",
                   "type": "boolean"
                 },
+                "fanAccessory": {
+                  "title": "Fan Accessory",
+                  "description": "Toggles if the fan accessory is created with the accessory.",
+                  "type": "boolean"
+                },
                 "pumpSwitch": {
                   "title": "Pump Switch",
                   "description": "Toggles if the pump switch is created with the accessory.",
@@ -426,6 +431,7 @@
               "expanded": false,
               "items": [
                 "devices[].A1_options.temperatureSensor",
+                "devices[].A1_options.fanAccessory",
                 "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.waterTankSensor",
                 "devices[].A1_options.minHumidity",
