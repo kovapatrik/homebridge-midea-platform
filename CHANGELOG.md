@@ -1,7 +1,7 @@
 # Changelog
 
 # v1.1.0
-## 2024-06-22
+## 2024-07-13
 - BREAKING CHANGE: `Air Conditioner` configuration changed: there is now a possibility to create an accessory which can be used to control the slats on the unit. THe configuration structure has changed. Please check [AC docs](/docs/ac.md) for more information (or just save the configuration again in the plugin settings to get the new structure).
 - feat: added support for `Fans` (fixes #74)
 - feat: added feature to turn off the display by default on power on for `Air Conditioners`
