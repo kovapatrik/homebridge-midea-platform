@@ -50,7 +50,8 @@
                 "Air Conditioner",
                 "Dehumidifier",
                 "Electric Water Heater",
-                "Gas Water Heater"
+                "Gas Water Heater",
+                "Fan"
               ],
               "description": "Select the type of device you are adding."
             },
