@@ -11,6 +11,8 @@ import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolM
 import { calculate } from '../../core/MideaUtils';
 
 enum NewProtocolTags {
+  WIND_SWING_UD_ANGLE = 0x0009,
+  WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
   SCREEN_DISPLAY = 0x0017,
   BREEZELESS = 0x0018,
@@ -36,7 +38,7 @@ abstract class MessageACBase extends MessageRequest {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -62,7 +64,7 @@ export class MessagePowerQuery extends MessageACBase {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
   }
@@ -88,6 +90,8 @@ export class MessageNewProtocolQuery extends MessageACBase {
 
   get _body() {
     const query_params = [
+      NewProtocolTags.WIND_SWING_UD_ANGLE,
+      NewProtocolTags.WIND_SWING_LR_ANGLE,
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
@@ -117,7 +121,7 @@ export abstract class MessageSubProtocol extends MessageACBase {
   }
 
   get body() {
-    let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+    let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     body = Buffer.concat([body, Buffer.from([this.checksum(body)])]);
     return body;
@@ -329,6 +333,8 @@ export class MessageGeneralSet extends MessageACBase {
 }
 
 export class MessageNewProtocolSet extends MessageACBase {
+  public wind_swing_ud_angle?: number;
+  public wind_swing_lr_angle?: number;
   public indirect_wind?: boolean;
   public prompt_tone = false;
   public breezeless?: boolean;
@@ -343,6 +349,22 @@ export class MessageNewProtocolSet extends MessageACBase {
   get _body() {
     let pack_count = 0;
     let payload = Buffer.from([0x00]);
+
+    if (this.wind_swing_ud_angle !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([
+        payload,
+        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_UD_ANGLE, Buffer.from([this.wind_swing_ud_angle])),
+      ]);
+    }
+
+    if (this.wind_swing_lr_angle !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([
+        payload,
+        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_LR_ANGLE, Buffer.from([this.wind_swing_lr_angle])),
+      ]);
+    }
 
     if (this.breezeless !== undefined) {
       pack_count += 1;
@@ -427,7 +449,7 @@ class XA0MessageBody extends MessageBody {
     this.target_temperature = ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
     this.mode = (body[2] & 0xe0) >> 5;
     this.fan_speed = body[3] & 0x7f;
-    this.fan_auto = this.fan_speed === 102;
+    this.fan_auto = this.fan_speed > 100;
     this.swing_vertical = (body[7] & 0xc) > 0;
     this.swing_horizontal = (body[7] & 0x3) > 0;
     this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
@@ -476,6 +498,8 @@ class XA1MessageBody extends MessageBody {
 }
 
 class XBXMessageBody extends NewProtocolMessageBody {
+  public wind_swing_lr_angle?: number;
+  public wind_swing_ud_angle?: number;
   public indirect_wind?: boolean;
   public indoor_humidity?: number;
   public breezeless?: boolean;
@@ -489,6 +513,13 @@ class XBXMessageBody extends NewProtocolMessageBody {
   constructor(body: Buffer, body_type: number) {
     super(body, body_type);
     const params = this.parse();
+
+    if (NewProtocolTags.WIND_SWING_LR_ANGLE in params) {
+      this.wind_swing_lr_angle = params[NewProtocolTags.WIND_SWING_LR_ANGLE][0];
+    }
+    if (NewProtocolTags.WIND_SWING_UD_ANGLE in params) {
+      this.wind_swing_ud_angle = params[NewProtocolTags.WIND_SWING_UD_ANGLE][0];
+    }
 
     if (NewProtocolTags.INDIRECT_WIND in params) {
       this.indirect_wind = params[NewProtocolTags.INDIRECT_WIND][0] === 0x02;
@@ -548,7 +579,7 @@ class XC0MessageBody extends MessageBody {
     this.mode = (body[2] & 0xe0) >> 5;
     this.target_temperature = (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
     this.fan_speed = body[3] & 0x7f;
-    this.fan_auto = this.fan_speed === 102;
+    this.fan_auto = this.fan_speed > 100;
     this.swing_vertical = (body[7] & 0x0c) > 0;
     this.swing_horizontal = (body[7] & 0x03) > 0;
     this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
@@ -660,7 +691,7 @@ class XBBMessageBody extends MessageBody {
       }
       this.target_temperature = (subprotocol_body[6] - 30) / 2;
       this.fan_speed = subprotocol_body[7];
-      this.fan_auto = this.fan_speed === 102;
+      this.fan_auto = this.fan_speed > 100;
       this.timer = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
       this.eco_mode = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
     } else if (data_type === 0x10) {

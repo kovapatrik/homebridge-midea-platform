@@ -20,7 +20,7 @@ import {
   MessageSubProtocolSet,
   MessageSwitchDisplay,
 } from './MideaACMessage';
-import { Config, DeviceConfig } from '../../platformUtils';
+import { Config, DeviceConfig, SwingAngle } from '../../platformUtils';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -33,7 +33,11 @@ export interface ACAttributes extends DeviceAttributeBase {
   FAN_SPEED: number;
   FAN_AUTO: boolean;
   SWING_VERTICAL: boolean | undefined;
+  // Vertical swing angle
+  WIND_SWING_UD_ANGLE: number;
   SWING_HORIZONTAL: boolean | undefined;
+  // Horizontal swing angle
+  WIND_SWING_LR_ANGLE: number;
   SMART_EYE: boolean;
   DRY: boolean;
   AUX_HEATING: boolean;
@@ -93,6 +97,9 @@ export default class MideaACDevice extends MideaDevice {
   private alternate_switch_display = false;
   private last_fan_speed = 0;
 
+  private defaultFahrenheit: boolean;
+  private defaultScreenOff: boolean;
+
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
    * values so that they are detected as "changed" on the first status
@@ -109,7 +116,9 @@ export default class MideaACDevice extends MideaDevice {
       FAN_SPEED: 0,
       FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
+      WIND_SWING_UD_ANGLE: 0,
       SWING_HORIZONTAL: undefined, // invalid
+      WIND_SWING_LR_ANGLE: 0,
       SMART_EYE: false,
       DRY: false,
       AUX_HEATING: false,
@@ -137,6 +146,9 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
     };
+
+    this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
+    this.defaultScreenOff = deviceConfig.AC_options.screenOff;
   }
 
   build_query() {
@@ -268,6 +280,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<ACAttributes>) {
+    let sendScreenCommand = false;
     try {
       for (const [k, v] of Object.entries(attributes)) {
         let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
@@ -344,11 +357,22 @@ export default class MideaACDevice extends MideaDevice {
                 }
               }
             }
+            if (k === 'POWER' && v === true && message instanceof MessageGeneralSet) {
+              message.temp_fahrenheit = this.defaultFahrenheit;
+              this.attributes.TEMP_FAHRENHEIT = this.defaultFahrenheit;
+              if (this.defaultScreenOff) {
+                sendScreenCommand = true;
+              }
+            }
           }
         }
         if (message) {
           this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
           await this.build_send(message);
+
+          if (sendScreenCommand) {
+            await this.build_send(new MessageSwitchDisplay(this.device_protocol_version));
+          }
         }
       }
     } catch (err) {
@@ -383,6 +407,8 @@ export default class MideaACDevice extends MideaDevice {
     message.swing_vertical = swing_vertical;
     this.attributes.SWING_HORIZONTAL = swing_horizontal;
     this.attributes.SWING_VERTICAL = swing_vertical;
+    this.attributes.WIND_SWING_LR_ANGLE = 0;
+    this.attributes.WIND_SWING_UD_ANGLE = 0;
     await this.build_send(message);
   }
 
@@ -397,6 +423,25 @@ export default class MideaACDevice extends MideaDevice {
     message.fan_speed = fan_speed;
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;
+    await this.build_send(message);
+  }
+
+  async set_swing_angle(swing_direction: SwingAngle, swing_angle: number) {
+    this.logger.info(`[${this.name}] Set swing ${swing_direction} angle to: ${swing_angle}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    this.attributes.SWING_HORIZONTAL = false;
+    this.attributes.SWING_VERTICAL = false;
+    switch (swing_direction) {
+      case SwingAngle.HORIZONTAL:
+        message.wind_swing_lr_angle = swing_angle;
+        this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
+        break;
+      case SwingAngle.VERTICAL:
+        message.wind_swing_ud_angle = swing_angle;
+        this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
+        break;
+    }
+    message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }
 

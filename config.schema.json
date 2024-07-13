@@ -46,7 +46,13 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Electric Water Heater", "Gas Water Heater"],
+              "enum": [
+                "Air Conditioner",
+                "Dehumidifier",
+                "Electric Water Heater",
+                "Gas Water Heater",
+                "Fan"
+              ],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -106,6 +112,16 @@
                   "description": "Toggles if the temperature sensor is created with the accessory.",
                   "type": "boolean"
                 },
+                "fanAccessory": {
+                  "title": "Fan Accessory",
+                  "description": "Toggles if the fan accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "humiditySensor": {
+                  "title": "Humidity Sensor",
+                  "description": "Toggles if a seperated humidity sensor is created with the accessory. This sensor can be used for autmations as for some reason the internal humidity sensor is not usable for this.",
+                  "type": "boolean"
+                },
                 "pumpSwitch": {
                   "title": "Pump Switch",
                   "description": "Toggles if the pump switch is created with the accessory.",
@@ -113,10 +129,14 @@
                 },
                 "waterTankSensor": {
                   "title": "Water Tank Sensor",
-                  "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as 'Leak Sensor' or 'Contact Sensor' depending on the type of device.",
+                  "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as `Leak Sensor` or `Contact Sensor` depending on this setting.",
                   "type": "string",
                   "required": true,
-                  "enum": ["None", "Leak Sensor", "Contact Sensor"]
+                  "enum": [
+                    "None",
+                    "Leak Sensor",
+                    "Contact Sensor"
+                  ]
                 },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
@@ -133,7 +153,11 @@
                 "humidityStep": {
                   "title": "Humidity Step",
                   "type": "number",
-                  "enum": [5, 10]
+                  "required": true,
+                  "enum": [
+                    5,
+                    10
+                  ]
                 }
               }
             },
@@ -144,12 +168,38 @@
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Air Conditioner';"
               },
               "properties": {
-                "swingMode": {
-                  "title": "Swing Mode",
-                  "description": "Set swing mode of the unit. If you AC does not support this feature then leave it on None.",
-                  "type": "string",
-                  "required": true,
-                  "enum": ["None", "Vertical", "Horizontal", "Both"]
+                "swing": {
+                  "type": "object",
+                  "title": "Swing Options",
+                  "properties": {
+                    "mode": {
+                      "title": "Swing Mode",
+                      "description": "Set swing mode of the unit. If your unit does not support this feature then leave it on None.",
+                      "type": "string",
+                      "required": true,
+                      "enum": [
+                        "None",
+                        "Vertical",
+                        "Horizontal",
+                        "Both"
+                      ]
+                    },
+                    "angleAccessory": {
+                      "title": "Swing Angle Accessory",
+                      "description": "Toggles if the swing angle accessory is created with the accessory. The accessory can be used to set the angle of the slat to a specified value. The `mode` property will be used to determine the direction of the slat. The main position bar will be used to set the angle of the direction which is selected in the `mode` property.",
+                      "type": "boolean"
+                    },
+                    "angleMainControl": {
+                      "title": "Swing Angle Main Control",
+                      "description": "If `mode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
+                      "type": "string",
+                      "required": true,
+                      "enum": [
+                        "Vertical",
+                        "Horizontal"
+                      ]
+                    }
+                  }
                 },
                 "heatingCapable": {
                   "title": "Heating Capability",
@@ -164,6 +214,11 @@
                 "audioFeedback": {
                   "title": "Audio Feedback",
                   "description": "Toggles if the unit beeps when a command is sent.",
+                  "type": "boolean"
+                },
+                "screenOff": {
+                  "title": "Diplay screen off by default",
+                  "description": "Toggles if the screen is turned off by default when the unit is turned on.",
                   "type": "boolean"
                 },
                 "ecoSwitch": {
@@ -202,17 +257,21 @@
                   "type": "boolean"
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
-                  "enum": [0.5, 1]
+                  "required": true,
+                  "enum": [
+                    0.5,
+                    1
+                  ]
                 },
                 "fahrenheit": {
                   "title": "Fahrenheit",
@@ -242,20 +301,29 @@
                   "title": "Protocol",
                   "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
                   "type": "string",
-                  "enum": ["auto", "old", "new"]
+                  "required": true,
+                  "enum": [
+                    "auto",
+                    "old",
+                    "new"
+                  ]
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
-                  "enum": [0.5, 1]
+                  "required": true,
+                  "enum": [
+                    0.5,
+                    1
+                  ]
                 },
                 "variableHeatingSwitch": {
                   "title": "Variable Heating Switch",
@@ -282,17 +350,21 @@
                   "type": "boolean"
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
-                  "enum": [0.5, 1]
+                  "required": true,
+                  "enum": [
+                    0.5,
+                    1
+                  ]
                 },
                 "burningStateSensor": {
                   "title": "Burning State Sensor",
@@ -335,7 +407,13 @@
           "expandable": true,
           "expanded": false,
           "title": "Optional Settings",
-          "items": ["refreshInterval", "heartbeatInterval", "verbose", "logRecoverableErrors", "uiDebug"]
+          "items": [
+            "refreshInterval",
+            "heartbeatInterval",
+            "verbose",
+            "logRecoverableErrors",
+            "uiDebug"
+          ]
         },
         {
           "key": "devices",
@@ -364,6 +442,8 @@
               "expanded": false,
               "items": [
                 "devices[].A1_options.temperatureSensor",
+                "devices[].A1_options.fanAccessory",
+                "devices[].A1_options.humiditySensor",
                 "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.waterTankSensor",
                 "devices[].A1_options.minHumidity",
@@ -376,17 +456,28 @@
               "expandable": true,
               "expanded": false,
               "items": [
-                "devices[].AC_options.swingMode",
+                {
+                  "key": "devices[].AC_options.swing",
+                  "items": [
+                    "devices[].AC_options.swing.mode",
+                    "devices[].AC_options.swing.angleAccessory",
+                    "devices[].AC_options.swing.angleMainControl"
+                  ]
+                },
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
                 "devices[].AC_options.audioFeedback",
+                "devices[].AC_options.screenOff",
                 "devices[].AC_options.ecoSwitch",
                 "devices[].AC_options.breezeAwaySwitch",
                 "devices[].AC_options.dryModeSwitch",
                 "devices[].AC_options.auxHeatingSwitches",
                 {
                   "key": "devices[].AC_options.displaySwitch",
-                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
+                  "items": [
+                    "devices[].AC_options.displaySwitch.flag",
+                    "devices[].AC_options.displaySwitch.command"
+                  ]
                 },
                 "devices[].AC_options.minTemp",
                 "devices[].AC_options.maxTemp",

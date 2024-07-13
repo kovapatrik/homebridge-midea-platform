@@ -41,6 +41,11 @@ export enum SwingMode {
   BOTH = 'Both',
 }
 
+export enum SwingAngle {
+  VERTICAL = 'Vertical',
+  HORIZONTAL = 'Horizontal',
+}
+
 export enum WaterTankSensor {
   NONE = 'None',
   LEAK_SENSOR = 'Leak Sensor',
@@ -48,7 +53,11 @@ export enum WaterTankSensor {
 }
 
 type ACOptions = {
-  swingMode: SwingMode;
+  swing: {
+    mode: SwingMode;
+    angleAccessory: boolean;
+    angleMainControl: SwingAngle;
+  };
   heatingCapable: boolean;
   ecoSwitch: boolean;
   displaySwitch: {
@@ -66,10 +75,13 @@ type ACOptions = {
   auxHeatingSwitches: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
+  screenOff: boolean;
 };
 
 type A1Options = {
   temperatureSensor: boolean;
+  fanAccessory: boolean;
+  humiditySensor: boolean;
   pumpSwitch: boolean;
   waterTankSensor: WaterTankSensor;
   minHumidity: number;
@@ -110,27 +122,34 @@ export const defaultDeviceConfig: DeviceConfig = {
     registerIfOffline: false,
   },
   AC_options: {
-    swingMode: SwingMode.NONE,
+    swing: {
+      mode: SwingMode.NONE,
+      angleAccessory: false,
+      angleMainControl: SwingAngle.VERTICAL,
+    },
     heatingCapable: true,
+    outDoorTemp: false,
+    audioFeedback: false,
+    screenOff: false,
+    ecoSwitch: false,
+    dryModeSwitch: false,
+    breezeAwaySwitch: false,
     displaySwitch: {
       flag: true,
       command: false,
     },
+    auxHeatingSwitches: false,
     minTemp: 16,
     maxTemp: 30,
     tempStep: 1,
     fahrenheit: false,
     fanOnlyModeSwitch: false,
     fanAccessory: false,
-    ecoSwitch: false,
-    outDoorTemp: false,
-    breezeAwaySwitch: false,
-    auxHeatingSwitches: false,
-    dryModeSwitch: false,
-    audioFeedback: false,
   },
   A1_options: {
     temperatureSensor: false,
+    fanAccessory: false,
+    humiditySensor: false,
     pumpSwitch: false,
     waterTankSensor: WaterTankSensor.NONE,
     minHumidity: 35,
