@@ -215,6 +215,11 @@
                   "description": "Toggles if the unit beeps when a command is sent.",
                   "type": "boolean"
                 },
+                "screenOff": {
+                  "title": "Diplay screen off by default",
+                  "description": "Toggles if the screen is turned off by default when the unit is turned on.",
+                  "type": "boolean"
+                },
                 "ecoSwitch": {
                   "title": "Eco Mode Switch",
                   "description": "Toggles if the ECO mode switch is created with the accessory.",
@@ -251,15 +256,15 @@
                   "type": "boolean"
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
                   "enum": [
@@ -303,15 +308,15 @@
                   ]
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
                   "enum": [
@@ -344,15 +349,15 @@
                   "type": "boolean"
                 },
                 "minTemp": {
-                  "title": "Minimum Temperature",
+                  "title": "Minimum Temperature (°C)",
                   "type": "number"
                 },
                 "maxTemp": {
-                  "title": "Maximum Temperature",
+                  "title": "Maximum Temperature (°C)",
                   "type": "number"
                 },
                 "tempStep": {
-                  "title": "Temperature Step",
+                  "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
                   "enum": [
@@ -461,6 +466,7 @@
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
                 "devices[].AC_options.audioFeedback",
+                "devices[].AC_options.screenOff",
                 "devices[].AC_options.ecoSwitch",
                 "devices[].AC_options.breezeAwaySwitch",
                 "devices[].AC_options.dryModeSwitch",

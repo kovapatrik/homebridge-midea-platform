@@ -49,6 +49,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
     this.service
+      .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+      .onGet(this.getTemperatureDisplayUnits.bind(this))
+      .onSet(this.setTemperatureDisplayUnits.bind(this));
+
+    this.service
       .getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
       .onGet(this.getCurrentHeaterCoolerState.bind(this));
 
@@ -303,6 +308,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'power':
           updateState = true;
           break;
+        case 'temp_fahrenheit':
+          this.service.updateCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits, this.getTemperatureDisplayUnits());
+          break;
         case 'screen_display':
         case 'screen_display_new':
           this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
@@ -326,8 +334,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           );
           break;
         case 'fan_speed':
-          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
-          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+          updateState = true;
           break;
         case 'fan_auto':
           this.fanService?.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getFanState());
@@ -383,9 +390,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
         this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
         this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
 
         this.fanOnlyService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanOnlyMode());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+        this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
         this.dryModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getDryMode());
         this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
         this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
@@ -409,6 +418,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     await this.device.set_attribute({ POWER: !!value });
     this.device.attributes.SCREEN_DISPLAY = !!value;
     this.displayService?.updateCharacteristic(this.platform.Characteristic.On, !!value);
+  }
+
+  getTemperatureDisplayUnits(): CharacteristicValue {
+    return this.device.attributes.TEMP_FAHRENHEIT
+      ? this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT
+      : this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
+  }
+
+  async setTemperatureDisplayUnits(value: CharacteristicValue) {
+    await this.device.set_attribute({ TEMP_FAHRENHEIT: value === this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT });
   }
 
   getCurrentHeaterCoolerState(): CharacteristicValue {

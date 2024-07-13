@@ -75,6 +75,7 @@ type ACOptions = {
   auxHeatingSwitches: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
+  screenOff: boolean;
 };
 
 type A1Options = {
@@ -127,22 +128,23 @@ export const defaultDeviceConfig: DeviceConfig = {
       angleMainControl: SwingAngle.VERTICAL,
     },
     heatingCapable: true,
+    outDoorTemp: false,
+    audioFeedback: false,
+    screenOff: false,
+    ecoSwitch: false,
+    dryModeSwitch: false,
+    breezeAwaySwitch: false,
     displaySwitch: {
       flag: true,
       command: false,
     },
+    auxHeatingSwitches: false,
     minTemp: 16,
     maxTemp: 30,
     tempStep: 1,
     fahrenheit: false,
     fanOnlyModeSwitch: false,
     fanAccessory: false,
-    ecoSwitch: false,
-    outDoorTemp: false,
-    breezeAwaySwitch: false,
-    auxHeatingSwitches: false,
-    dryModeSwitch: false,
-    audioFeedback: false,
   },
   A1_options: {
     temperatureSensor: false,

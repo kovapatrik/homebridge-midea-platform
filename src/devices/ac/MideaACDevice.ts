@@ -97,6 +97,9 @@ export default class MideaACDevice extends MideaDevice {
   private alternate_switch_display = false;
   private last_fan_speed = 0;
 
+  private defaultFahrenheit: boolean;
+  private defaultScreenOff: boolean;
+
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
    * values so that they are detected as "changed" on the first status
@@ -143,6 +146,9 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
     };
+
+    this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
+    this.defaultScreenOff = deviceConfig.AC_options.screenOff;
   }
 
   build_query() {
@@ -274,6 +280,7 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<ACAttributes>) {
+    let sendScreenCommand = false;
     try {
       for (const [k, v] of Object.entries(attributes)) {
         let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
@@ -350,11 +357,22 @@ export default class MideaACDevice extends MideaDevice {
                 }
               }
             }
+            if (k === 'POWER' && v === true && message instanceof MessageGeneralSet) {
+              message.temp_fahrenheit = this.defaultFahrenheit;
+              this.attributes.TEMP_FAHRENHEIT = this.defaultFahrenheit;
+              if (this.defaultScreenOff) {
+                sendScreenCommand = true;
+              }
+            }
           }
         }
         if (message) {
           this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
           await this.build_send(message);
+
+          if (sendScreenCommand) {
+            await this.build_send(new MessageSwitchDisplay(this.device_protocol_version));
+          }
         }
       }
     } catch (err) {

@@ -12,6 +12,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "heatingCapable": true,
     "outDoorTemp": false,
     "audioFeedback": false,
+    "screenOff": false,
     "ecoSwitch": false,
     "dryModeSwitch": false,
     "breezeAwaySwitch": false,
@@ -36,6 +37,7 @@ Providing air conditioner settings is optional and the whole section or individu
 - **heatingCapable** *(optional)*: Toggles if the unit is capable of heating. Default is `true`.
 - **outDoorTemp** *(optional)*: Toggles if the outdoor temperature sensor is created with the accessory. Default is `false`.
 - **audioFeedback** *(optional)*: Toggles if the unit beeps when a command is sent, default is false.
+- **screenOff** *(optional)*: Toggles if the screen is turned off by default when the unit is turned on. Default is `false`.
 - **ecoSwitch** *(optional)*: Toggles if the eco switch is created with the accessory. Default is `false`.
 - **dryModeSwitch** *(optional)*: Toggles if the dry mode switch is created with the accessory. Default is `false`.
 - **breezeAwaySwitch** *(optional)*: Toggles if the breeze away switch is created with the accessory. Default is `false`.
