@@ -14,7 +14,7 @@ enum NewProtocolTags {
   WIND_SWING_UD_ANGLE = 0x0009,
   WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
-  SCREEN_DISPLAY = 0x0017,
+  SCREEN_DISPLAY = 0x0224,
   BREEZELESS = 0x0018,
   PROMPT_TONE = 0x001a,
   INDIRECT_WIND = 0x0042,
@@ -76,7 +76,7 @@ export class MessageSwitchDisplay extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    return Buffer.from([0x61, 0x00, 0xff, 0x02, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -95,10 +95,12 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      this.alternate_display ? NewProtocolTags.SCREEN_DISPLAY : undefined,
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
     ];
+    if (this.alternate_display) {
+      query_params.push(NewProtocolTags.SCREEN_DISPLAY);
+    }
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
       if (param) {

@@ -48,9 +48,14 @@ export abstract class MessageRequest extends MessageBase {
   }
 
   get body() {
-    return Buffer.from(
-      this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : [],
-    );
+    let b = Buffer.alloc(0);
+    if (this.body_type) {
+      b = Buffer.concat([b, Buffer.from([this.body_type])]);
+    }
+    if (this._body) {
+      b = Buffer.concat([b, this._body]);
+    }
+    return b;
   }
 
   get header() {
