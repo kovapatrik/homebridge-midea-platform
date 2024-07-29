@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge Midea Platform",
   "name": "homebridge-midea-platform",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
   "repository": {
@@ -35,11 +35,16 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*.ts": ["prettier --write", "eslint --fix"]
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
-  "keywords": ["homebridge-plugin"],
+  "keywords": [
+    "homebridge-plugin"
+  ],
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "^1.0.0",
+    "@homebridge/plugin-ui-utils": "^1.0.3",
     "axios": "^1.5.0",
     "fast-xml-parser": "^4.2.7",
     "lodash": "^4.17.21",
