@@ -1,5 +1,5 @@
 /***********************************************************************
- * Midea Gas Fan class
+ * Midea Fan class
  *
  * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
  *

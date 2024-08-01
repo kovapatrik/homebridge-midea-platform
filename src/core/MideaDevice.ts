@@ -17,7 +17,7 @@ import { Config, DeviceConfig } from '../platformUtils';
 import EventEmitter from 'events';
 
 export type DeviceAttributeBase = {
-  [key: string]: number | string | boolean | undefined;
+  [key: string]: number | string | boolean | Buffer | undefined;
 };
 
 export default abstract class MideaDevice extends EventEmitter {
@@ -350,8 +350,8 @@ export default abstract class MideaDevice extends EventEmitter {
       }
       await this.build_send(cmd);
     } catch (e) {
-      this.logger.debug(`[${this.name}]  Interface send_command failure: ${e}, 
-                        cmd_type: ${command_type}, 
+      this.logger.debug(`[${this.name}]  Interface send_command failure: ${e},
+                        cmd_type: ${command_type},
                         cmd_body: ${command_body.toString('hex')}`);
     }
   }
