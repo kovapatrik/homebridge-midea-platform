@@ -2,6 +2,7 @@ import { DeviceType } from '../core/MideaConstants';
 import { MideaAccessory, MideaPlatform } from '../platform';
 import AirConditionerAccessory from './AirConditionerAccessory';
 import DehumidifierAccessory from './DehumidifierAccessory';
+import FrontLoadWasherAccessory from './FrontLoadWasherAccessory';
 import ElectricWaterHeaterAccessory from './ElectricWaterHeaterAccessory';
 import GasWaterHeaterAccessory from './GasWaterHeaterAccessory';
 import FanAccessory from './FanAccessory';
@@ -11,6 +12,7 @@ import { DeviceConfig } from '../platformUtils';
 
 import MideaACDevice from '../devices/ac/MideaACDevice';
 import MideaA1Device from '../devices/a1/MideaA1Device';
+import MideaDBDevice from '../devices/db/MideaDBDevice';
 import MideaE2Device from '../devices/e2/MideaE2Device';
 import MideaE3Device from '../devices/e3/MideaE3Device';
 import MideaFADevice from '../devices/fa/MideaFADevice';
@@ -27,6 +29,8 @@ export default class AccessoryFactory {
         return new AirConditionerAccessory(platform, accessory, device as unknown as MideaACDevice, configDev);
       case DeviceType.DEHUMIDIFIER:
         return new DehumidifierAccessory(platform, accessory, device as unknown as MideaA1Device, configDev);
+      case DeviceType.FRONT_LOAD_WASHER:
+        return new FrontLoadWasherAccessory(platform, accessory, device as unknown as MideaDBDevice, configDev);
       case DeviceType.ELECTRIC_WATER_HEATER:
         return new ElectricWaterHeaterAccessory(platform, accessory, device as unknown as MideaE2Device, configDev);
       case DeviceType.GAS_WATER_HEATER:
