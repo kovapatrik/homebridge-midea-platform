@@ -87,6 +87,7 @@ type A1Options = {
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
+  humidityOffset: number;
 };
 
 type E2Options = {
@@ -155,6 +156,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
+    humidityOffset: 0,
   },
   E2_options: {
     protocol: 'auto',

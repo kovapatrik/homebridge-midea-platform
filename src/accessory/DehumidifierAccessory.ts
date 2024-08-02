@@ -315,14 +315,18 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private async setTargetHumidifierDehumidifierState(value: CharacteristicValue): Promise<void> {
     this.platform.log.debug(`[${this.device.name}] SET TargetHumidifierDehumidifierState to: ${value}`);
     if (value !== this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER) {
-      throw new Error(`Device ${this.device.name} (${this.device.id}) can only be a DeHumidifier, illegal value: ${value}`);
+      throw new Error(`Device ${this.device.name} (${this.device.id}) can only be a Dehumidifier, illegal value: ${value}`);
     }
   }
 
   // Handle requests to get the current value of the "RelativeHumidity" characteristic
   private getCurrentRelativeHumidity(): CharacteristicValue {
-    this.platform.log.debug(`[${this.device.name}] GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY}`);
-    return this.device.attributes.CURRENT_HUMIDITY;
+    this.platform.log.debug(
+      `[${this.device.name}] GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY},\
+                                                                   custom offset: ${this.configDev.A1_options.humidityOffset}`,
+    );
+    // Adding custom offset to the humidity value
+    return this.device.attributes.CURRENT_HUMIDITY + this.configDev.A1_options.humidityOffset;
   }
 
   // Handle requests to get the Relative value of the "HumidityDehumidifierThreshold" characteristic

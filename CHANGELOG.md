@@ -1,5 +1,10 @@
 # Changelog
 
+# v1.1.2
+## 2024-08-02
+- feat: added support for `Front Load Washers` (fixes #87)
+- feat: added possibility to add custom humidity offset for `Dehumidifiers` (fixes #98)
+
 # v1.1.0
 ## 2024-07-13
 - BREAKING CHANGE: `Air Conditioner` configuration changed: there is now a possibility to create an accessory which can be used to control the slats on the unit. THe configuration structure has changed. Please check [AC docs](/docs/ac.md) for more information (or just save the configuration again in the plugin settings to get the new structure).
