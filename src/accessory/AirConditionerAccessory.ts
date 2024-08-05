@@ -410,7 +410,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    *
    */
   getActive(): CharacteristicValue {
-    // Show as inactive if device is off or in fan-only mode
+    // Show as inactive if device is off
     return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
 
@@ -465,13 +465,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   async setTargetHeaterCoolerState(value: CharacteristicValue) {
     switch (value) {
       case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        await this.device.set_attribute({ MODE: 1 });
+        await this.device.set_attribute({ POWER: true, MODE: 1 });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
-        await this.device.set_attribute({ MODE: 2 });
+        await this.device.set_attribute({ POWER: true, MODE: 2 });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        await this.device.set_attribute({ MODE: 4 });
+        await this.device.set_attribute({ POWER: true, MODE: 4 });
         break;
     }
   }
