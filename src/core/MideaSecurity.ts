@@ -163,7 +163,7 @@ export class LocalSecurity {
   private request_count = 0;
   private response_count = 0;
 
-  private tcp_key?: Buffer;
+  private tcp_key = Buffer.alloc(0);
 
   private aes_cbc_encrpyt(raw: Buffer, key: Buffer) {
     const cipher = createCipheriv('aes-256-cbc', key, this.iv);
@@ -215,6 +215,13 @@ export class LocalSecurity {
   }
 
   public encode_8370(data: Buffer, message_type: TCPMessageType) {
+    if (
+      message_type !== TCPMessageType.HANDSHAKE_REQUEST &&
+      message_type !== TCPMessageType.HANDSHAKE_RESPONSE &&
+      this.tcp_key.length === 0
+    ) {
+      throw new Error('TCP key is not set.');
+    }
     let header = Buffer.from([0x83, 0x70]);
     let size = data.length;
     let padding = 0;
@@ -238,7 +245,7 @@ export class LocalSecurity {
       const sign = createHash('sha256')
         .update(Buffer.concat([header, data]))
         .digest();
-      data = Buffer.concat([this.aes_cbc_encrpyt(data, this.tcp_key!), sign]);
+      data = Buffer.concat([this.aes_cbc_encrpyt(data, this.tcp_key), sign]);
     }
     return Buffer.concat([header, data]);
   }
@@ -246,6 +253,9 @@ export class LocalSecurity {
   public decode_8370(data: Buffer) {
     if (data.length < 6) {
       return [[], data];
+    }
+    if (this.tcp_key.length === 0) {
+      throw new Error('TCP key is not set.');
     }
     const header = data.subarray(0, 6);
     if (header[0] !== 0x83 || header[1] !== 0x70) {
@@ -268,7 +278,7 @@ export class LocalSecurity {
     if ([TCPMessageType.ENCRYPTED_RESPONSE, TCPMessageType.ENCRYPTED_REQUEST].includes(message_type_received)) {
       const sign = data.subarray(data.length - 32, data.length);
       data = data.subarray(0, data.length - 32);
-      data = this.aes_cbc_decrypt(data, this.tcp_key!);
+      data = this.aes_cbc_decrypt(data, this.tcp_key);
       if (
         createHash('sha256')
           .update(Buffer.concat([header, data]))

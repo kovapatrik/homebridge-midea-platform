@@ -183,8 +183,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             }
           }
-          await device.connect(false);
-          await device.refresh_status(true);
+          await device.connect(true);
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
