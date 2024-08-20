@@ -22,6 +22,7 @@ Currently supports the following devices:
 |--------|----|------|
 | Air Conditioner | AC | [link](/docs/ac.md) |
 | Dehumidifier | A1 | [link](/docs/a1.md) |
+| Front Load Washer | DB | [link](/docs/db.md) |
 | Electric Water Heater | E2 | [link](/docs/e2.md) |
 | Gas Water Heater | E3 | [link](/docs/e3.md) |
 | Fan | FA | [link](/docs/fa.md) |
