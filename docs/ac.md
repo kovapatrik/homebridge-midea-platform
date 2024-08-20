@@ -15,6 +15,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "screenOff": false,
     "ecoSwitch": false,
     "dryModeSwitch": false,
+    "boostModeSwitch": false,
     "breezeAwaySwitch": false,
     "displaySwitch": {
         "flag": true,
@@ -40,6 +41,7 @@ Providing air conditioner settings is optional and the whole section or individu
 - **screenOff** *(optional)*: Toggles if the screen is turned off by default when the unit is turned on. Default is `false`.
 - **ecoSwitch** *(optional)*: Toggles if the eco switch is created with the accessory. Default is `false`.
 - **dryModeSwitch** *(optional)*: Toggles if the dry mode switch is created with the accessory. Default is `false`.
+- **boostModeSwitch** *(optional)*: Toggles if the boost/turbo mode switch is created with the accessory. Default is `false`.
 - **breezeAwaySwitch** *(optional)*: Toggles if the breeze away switch is created with the accessory. Default is `false`.
 - **displaySwitch**:
   - **flag** *(optional)*: Toggles if a switch, which can turn the display on or off will be created or not. Default is `true`.

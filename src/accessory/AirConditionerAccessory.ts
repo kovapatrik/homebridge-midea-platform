@@ -23,6 +23,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
   private dryModeService?: Service;
+  private boostModeService?: Service;
   private auxService?: Service;
   private auxHeatingService?: Service;
   private swingAngleService?: Service;
@@ -225,6 +226,19 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onSet(this.setDryMode.bind(this));
     } else if (this.dryModeService) {
       this.accessory.removeService(this.dryModeService);
+    }
+
+    this.boostModeService = this.accessory.getServiceById(this.platform.Service.Switch, 'BoostMode');
+    if (this.configDev.AC_options.boostModeSwitch) {
+      this.boostModeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Boost`, 'BoostMode');
+      this.boostModeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Boost`);
+      this.boostModeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Boost`);
+      this.boostModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getBoostMode.bind(this))
+        .onSet(this.setBoostMode.bind(this));
+    } else if (this.boostModeService) {
+      this.accessory.removeService(this.boostModeService);
     }
 
     // Aux switch
@@ -579,6 +593,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       await this.device.set_attribute({ POWER: true, MODE: 3 });
     } else {
       await this.device.set_attribute({ POWER: false, MODE: 0 });
+    }
+  }
+
+  getBoostMode(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.BOOST_MODE;
+  }
+
+  async setBoostMode(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, BOOST_MODE: true });
+    } else {
+      await this.device.set_attribute({ BOOST_MODE: false });
     }
   }
 
