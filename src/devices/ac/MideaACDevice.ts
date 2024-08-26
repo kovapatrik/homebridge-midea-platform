@@ -368,15 +368,17 @@ export default class MideaACDevice extends MideaDevice {
       }
       for (const [k, v] of Object.entries(messageToSend)) {
         if (v) {
-          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(this[k])}`);
           switch (k) {
             case 'general':
+              this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(messageGeneralSet)}`);
               await this.build_send(messageGeneralSet);
               break;
             case 'newprotocol':
+              this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(messageNewProtocolSet)}`);
               await this.build_send(messageNewProtocolSet);
               break;
             case 'switchdisplay':
+              this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(messageSwitchDisplay)}`);
               await this.build_send(messageSwitchDisplay);
               break;
           }
