@@ -305,7 +305,7 @@ export default class MideaACDevice extends MideaDevice {
           ].includes(k)
         ) {
           if (v === this.attributes[k]) {
-            this.logger.debug(`[${this.name}] Attribute ${k} already set to ${v}`);
+            this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
             continue;
           }
           this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
