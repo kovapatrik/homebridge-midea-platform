@@ -76,18 +76,18 @@ export class MessageStart extends MessageDBBase {
 export class DBGeneralMessageBody extends MessageBody {
   power: boolean;
   start: boolean;
-  washingData: Buffer;
+  washing_data: Buffer;
   progress: number;
-  timeRemaining?: number;
+  time_remaining?: number;
 
   constructor(body: Buffer) {
     super(body);
 
     this.power = body[1] > 0;
     this.start = [0x2, 0x6].includes(body[2]);
-    this.washingData = body.subarray(3, 16);
+    this.washing_data = body.subarray(3, 16);
     this.progress = 0;
-    this.timeRemaining = 0;
+    this.time_remaining = 0;
 
     for (let i = 0; i < 7; i++) {
       if ((body[16] & (1 << i)) > 0) {
@@ -97,9 +97,9 @@ export class DBGeneralMessageBody extends MessageBody {
     }
 
     if (this.power) {
-      this.timeRemaining = body[17] + (body[18] << 8);
+      this.time_remaining = body[17] + (body[18] << 8);
     } else {
-      this.timeRemaining = undefined;
+      this.time_remaining = undefined;
     }
   }
 }
