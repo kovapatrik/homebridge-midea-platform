@@ -292,7 +292,6 @@ export default class MideaACDevice extends MideaDevice {
 
     try {
       for (const [k, v] of Object.entries(attributes)) {
-        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         // not sensor data
         if (
           ![
@@ -309,6 +308,7 @@ export default class MideaACDevice extends MideaDevice {
             this.logger.debug(`[${this.name}] Attribute ${k} already set to ${v}`);
             continue;
           }
+          this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
           this.attributes[k] = v;
 
           if (k === 'PROMPT_TONE') {
