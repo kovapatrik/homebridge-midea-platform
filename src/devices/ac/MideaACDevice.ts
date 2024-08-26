@@ -305,6 +305,10 @@ export default class MideaACDevice extends MideaDevice {
             'REALTIME_POWER',
           ].includes(k)
         ) {
+          if (v === this.attributes[k]) {
+            this.logger.debug(`[${this.name}] Attribute ${k} already set to ${v}`);
+            continue;
+          }
           this.attributes[k] = v;
 
           if (k === 'PROMPT_TONE') {
