@@ -341,6 +341,7 @@ export default class MideaACDevice extends MideaDevice {
             messageNewProtocolSet[this.fresh_air_version] = fresh_air;
             messageToSend.newprotocol = true;
           } else {
+            messageGeneralSet[k.toLowerCase()] = v;
             if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
               messageGeneralSet.sleep_mode = false;
               messageGeneralSet.boost_mode = false;
@@ -351,9 +352,6 @@ export default class MideaACDevice extends MideaDevice {
                 messageGeneralSet.comfort_mode = false;
               }
               messageGeneralSet[k.toLowerCase()] = !!v;
-              if (k === 'MODE') {
-                messageGeneralSet.power = true;
-              }
             }
             if (k === 'POWER' && v === true && messageGeneralSet instanceof MessageGeneralSet) {
               messageGeneralSet.temp_fahrenheit = this.defaultFahrenheit;
