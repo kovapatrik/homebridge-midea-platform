@@ -87,6 +87,7 @@ export default class MideaDBDevice extends MideaDevice {
         } else if (k === 'START') {
           const message = new MessageStart(this.device_protocol_version);
           message.start = v as boolean;
+          message.washing_data = this.attributes.WASHING_DATA;
           this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
           await this.build_send(message);
           continue;

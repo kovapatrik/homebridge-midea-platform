@@ -55,18 +55,18 @@ export class MessagePower extends MessageDBBase {
 
 export class MessageStart extends MessageDBBase {
   start: boolean;
-  washingData: Buffer;
+  washing_data: Buffer;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0x02);
 
     this.start = false;
-    this.washingData = Buffer.alloc(0);
+    this.washing_data = Buffer.alloc(0);
   }
 
   get _body() {
     if (this.start) {
-      return Buffer.concat([Buffer.from([0xff, 0x01]), this.washingData]);
+      return Buffer.concat([Buffer.from([0xff, 0x01]), this.washing_data]);
     } else {
       return Buffer.from([0xff, 0x00]);
     }
