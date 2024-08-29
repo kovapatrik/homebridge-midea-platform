@@ -243,6 +243,9 @@ class UiServer extends HomebridgePluginUiServer {
           case DeviceType.FRONT_LOAD_WASHER:
             device['displayName'] = 'Front Load Washer';
             break;
+          case DeviceType.DISHWASHER:
+            device['displayName'] = 'Dishwasher';
+            break;
           case DeviceType.ELECTRIC_WATER_HEATER:
             device['displayName'] = 'Electric Water Heater';
             break;

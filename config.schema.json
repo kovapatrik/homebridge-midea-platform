@@ -46,7 +46,7 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Front Load Washer", "Electric Water Heater", "Gas Water Heater", "Fan"],
+              "enum": ["Air Conditioner", "Dehumidifier", "Front Load Washer", "Dishwasher", "Electric Water Heater", "Gas Water Heater", "Fan"],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -277,6 +277,24 @@
                 }
               }
             },
+            "DB_options": {
+              "title": "Front Load Washer Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Front Load Washer';"
+              },
+              "properties": {
+              }
+            },
+            "E1_options": {
+              "title": "Dishwasher Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dishwasher';"
+              },
+              "properties": {
+              }
+            },
             "E2_options": {
               "title": "Electric Water Heater Options",
               "type": "object",
@@ -369,6 +387,15 @@
                   "type": "boolean"
                 }
               }
+            },
+            "FA_options": {
+              "title": "Fan Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fan';"
+              },
+              "properties": {
+              }
             }
           }
         }
@@ -458,6 +485,12 @@
               ]
             },
             {
+              "key": "devices[].E1_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
+            },
+            {
               "key": "devices[].E2_options",
               "expandable": true,
               "expanded": false,
@@ -485,6 +518,12 @@
                 "devices[].E3_options.maxTemp",
                 "devices[].E3_options.tempStep"
               ]
+            },
+            {
+              "key": "devices[].FA_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             }
           ]
         }

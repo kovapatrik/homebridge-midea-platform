@@ -30,8 +30,11 @@ export type DeviceConfig = {
   };
   AC_options: ACOptions;
   A1_options: A1Options;
+  DB_options: DBOptions;
+  E1_options: E1Options;
   E2_options: E2Options;
   E3_options: E3Options;
+  FA_options: FAOptions;
 };
 
 export enum SwingMode {
@@ -91,6 +94,10 @@ type A1Options = {
   humidityOffset: number;
 };
 
+type DBOptions = unknown;
+
+type E1Options = unknown;
+
 type E2Options = {
   protocol: string;
   minTemp: number;
@@ -111,6 +118,8 @@ type E3Options = {
   zeroColdPulseSwitch: boolean;
   smartVolumeSwitch: boolean;
 };
+
+type FAOptions = unknown;
 
 export const defaultDeviceConfig: DeviceConfig = {
   id: 0,
@@ -160,6 +169,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     humidityStep: 5,
     humidityOffset: 0,
   },
+  DB_options: {},
+  E1_options: {},
   E2_options: {
     protocol: 'auto',
     minTemp: 30,
@@ -179,4 +190,5 @@ export const defaultDeviceConfig: DeviceConfig = {
     zeroColdPulseSwitch: false,
     smartVolumeSwitch: false,
   },
+  FA_options: {},
 };
