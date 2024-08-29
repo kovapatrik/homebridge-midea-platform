@@ -1,11 +1,13 @@
 # Changelog
 
-# v1.1.2
-## 2024-08-20
+# v1.2.0
+## 2024-08-29
 - feat: added support for `Front Load Washers` (fixes #87)
+- feat: added support for `Dishwashers` (fixes #104)
 - feat: added possibility to add custom humidity offset for `Dehumidifiers` (fixes #98)
 - feat: added possibility to toggle boost/turbo mode switch creation for `Air Conditioners` (fixes #102)
 - fix: explicitly set the power when changing the mode for `Air Conditioners` (fixes #99)
+- fix: handling of sending out messages to devices, excluding existing state commands (fixes #99, #101)
 - fix: QoL improvements and bug fixes (TCP key error, etc.)
 
 # v1.1.0
