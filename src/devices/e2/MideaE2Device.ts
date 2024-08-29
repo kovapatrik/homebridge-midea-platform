@@ -11,7 +11,6 @@ import { Logger } from 'homebridge';
 import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
 import { DeviceInfo } from '../../core/MideaConstants';
 import { Config, DeviceConfig } from '../../platformUtils';
-import { MessageRequest } from '../../core/MideaMessage';
 import { MessageE2Response, MessageNewProtocolSet, MessagePower, MessageQuery, MessageSet } from './MideaE2Message';
 
 // Object that defines all attributes for air conditioner device.  Not all of
@@ -105,29 +104,45 @@ export default class MideaE2Device extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<E2Attributes>) {
+    const messageToSend: {
+      POWER: MessagePower | undefined;
+      SET: MessageSet | undefined;
+      NEW_PROTOCOL_SET: MessageNewProtocolSet | undefined;
+    } = {
+      POWER: undefined,
+      SET: undefined,
+      NEW_PROTOCOL_SET: undefined,
+    };
+
     try {
       for (const [k, v] of Object.entries(attributes)) {
-        let message: MessageRequest | MessageSet | MessagePower | MessageNewProtocolSet | undefined;
+        if (v === this.attributes[k]) {
+          this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+          continue;
+        }
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+        this.attributes[k] = v;
+
         // not sensor data
         if (!['HEATING', 'KEEP_WARM', 'CURRENT_TEMPERATURE'].includes(k)) {
-          this.attributes[k] = v;
           const old_protocol = this._old_protocol !== 'auto' ? this._old_protocol === 'old' : this.old_protocol;
           if (k === 'POWER') {
-            message = new MessagePower(this.device_protocol_version);
-            if (message instanceof MessagePower) {
-              message.power = v as boolean;
-            }
+            messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+            messageToSend.POWER.power = v as boolean;
           } else if (old_protocol) {
-            message = this.make_message_set();
-            message[k.toLowerCase()] = v;
+            messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+            messageToSend.SET[k.toLowerCase()] = v;
           } else {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
-            message[k.toLowerCase()] = v;
+            messageToSend.NEW_PROTOCOL_SET = messageToSend.NEW_PROTOCOL_SET ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL_SET[k.toLowerCase()] = v;
           }
-          if (message) {
-            this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-            await this.build_send(message);
-          }
+        }
+      }
+
+      for (const [k, v] of Object.entries(messageToSend)) {
+        if (v !== undefined) {
+          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+          await this.build_send(v);
         }
       }
     } catch (err) {

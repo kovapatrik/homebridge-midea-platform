@@ -76,23 +76,39 @@ export default class MideaDBDevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<DBAttributes>) {
+    const messageToSend: {
+      POWER: MessagePower | undefined;
+      START: MessageStart | undefined;
+    } = {
+      POWER: undefined,
+      START: undefined,
+    };
+
     try {
       for (const [k, v] of Object.entries(attributes)) {
+        if (v === this.attributes[k]) {
+          this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+          continue;
+        }
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+        this.attributes[k] = v;
+
         if (k === 'POWER') {
-          const message = new MessagePower(this.device_protocol_version);
-          message.power = v as boolean;
-          this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-          await this.build_send(message);
-          continue;
+          messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+          messageToSend.POWER.power = v as boolean;
         } else if (k === 'START') {
-          const message = new MessageStart(this.device_protocol_version);
-          message.start = v as boolean;
-          message.washing_data = this.attributes.WASHING_DATA;
-          this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-          await this.build_send(message);
-          continue;
+          messageToSend.START = messageToSend.START ?? new MessageStart(this.device_protocol_version);
+          messageToSend.START.start = v as boolean;
+          messageToSend.START.washing_data = this.attributes.WASHING_DATA;
         } else {
           this.logger.debug(`[${this.name}] Attribute '${k}' not supported`);
+        }
+      }
+
+      for (const [k, v] of Object.entries(messageToSend)) {
+        if (v !== undefined) {
+          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+          await this.build_send(v);
         }
       }
     } catch (err) {

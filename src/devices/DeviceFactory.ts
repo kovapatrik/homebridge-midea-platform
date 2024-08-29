@@ -7,6 +7,7 @@ import MideaE2Device from './e2/MideaE2Device';
 import MideaE3Device from './e3/MideaE3Device';
 import MideaFADevice from './fa/MideaFADevice';
 import MideaDBDevice from './db/MideaDBDevice';
+import MideaE1Device from './e1/MideaE1Device';
 
 export default class DeviceFactory {
   public static createDevice(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
@@ -17,6 +18,8 @@ export default class DeviceFactory {
         return new MideaA1Device(logger, device_info, config, deviceConfig);
       case DeviceType.FRONT_LOAD_WASHER:
         return new MideaDBDevice(logger, device_info, config, deviceConfig);
+      case DeviceType.DISHWASHER:
+        return new MideaE1Device(logger, device_info, config, deviceConfig);
       case DeviceType.ELECTRIC_WATER_HEATER:
         return new MideaE2Device(logger, device_info, config, deviceConfig);
       case DeviceType.GAS_WATER_HEATER:

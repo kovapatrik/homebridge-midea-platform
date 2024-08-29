@@ -101,12 +101,30 @@ export default class MideaFADevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<FAAttributes>) {
+    const messageToSend: {
+      SET: MessageSet | undefined;
+    } = {
+      SET: undefined,
+    };
+
     try {
       for (const [k, v] of Object.entries(attributes)) {
+        if (v === this.attributes[k]) {
+          this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+          continue;
+        }
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
-        const message = this.make_message_set();
-        this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-        await this.build_send(message);
+
+        messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+        messageToSend.SET[k.toLowerCase()] = v;
+      }
+
+      for (const [k, v] of Object.entries(messageToSend)) {
+        if (v !== undefined) {
+          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+          await this.build_send(v);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
