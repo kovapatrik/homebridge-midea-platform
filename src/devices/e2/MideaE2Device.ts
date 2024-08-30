@@ -127,13 +127,13 @@ export default class MideaE2Device extends MideaDevice {
         if (!['HEATING', 'KEEP_WARM', 'CURRENT_TEMPERATURE'].includes(k)) {
           const old_protocol = this._old_protocol !== 'auto' ? this._old_protocol === 'old' : this.old_protocol;
           if (k === 'POWER') {
-            messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+            messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
             messageToSend.POWER.power = v as boolean;
           } else if (old_protocol) {
-            messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+            messageToSend.SET ??= this.make_message_set();
             messageToSend.SET[k.toLowerCase()] = v;
           } else {
-            messageToSend.NEW_PROTOCOL_SET = messageToSend.NEW_PROTOCOL_SET ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL_SET ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL_SET[k.toLowerCase()] = v;
           }
         }

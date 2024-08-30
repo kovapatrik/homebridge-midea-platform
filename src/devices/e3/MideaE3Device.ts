@@ -132,13 +132,13 @@ export default class MideaE3Device extends MideaDevice {
         // not sensor data
         if (!['BURNING_STATE', 'CURRENT_TEMPERATURE', 'PROTECTION'].includes(k)) {
           if (k === 'POWER') {
-            messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+            messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
             messageToSend.POWER.power = v as boolean;
           } else if (this._old_subtypes.includes(this.sub_type)) {
-            messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+            messageToSend.SET ??= this.make_message_set();
             messageToSend.SET[k.toLowerCase()] = v;
           } else {
-            messageToSend.NEW_PROTOCOL_SET = messageToSend.NEW_PROTOCOL_SET ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL_SET ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL_SET.key = k as keyof typeof NewProtocolTags;
             messageToSend.NEW_PROTOCOL_SET.value = v as number | boolean;
           }

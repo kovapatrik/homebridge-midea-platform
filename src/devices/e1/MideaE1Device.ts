@@ -139,13 +139,13 @@ export default class MideaE1Device extends MideaDevice {
         this.attributes[k] = v;
 
         if (k === 'POWER') {
-          messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+          messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
           messageToSend.POWER.power = v as boolean;
         } else if (k === 'CHILD_LOCK') {
-          messageToSend.CHILD_LOCK = messageToSend.CHILD_LOCK ?? new MessageLock(this.device_protocol_version);
+          messageToSend.CHILD_LOCK ??= new MessageLock(this.device_protocol_version);
           messageToSend.CHILD_LOCK.lock = v as boolean;
         } else if (k === 'STORAGE') {
-          messageToSend.STORAGE = messageToSend.STORAGE ?? new MessageStorage(this.device_protocol_version);
+          messageToSend.STORAGE ??= new MessageStorage(this.device_protocol_version);
           messageToSend.STORAGE.storage = v as boolean;
         }
       }

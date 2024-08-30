@@ -94,10 +94,10 @@ export default class MideaDBDevice extends MideaDevice {
         this.attributes[k] = v;
 
         if (k === 'POWER') {
-          messageToSend.POWER = messageToSend.POWER ?? new MessagePower(this.device_protocol_version);
+          messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
           messageToSend.POWER.power = v as boolean;
         } else if (k === 'START') {
-          messageToSend.START = messageToSend.START ?? new MessageStart(this.device_protocol_version);
+          messageToSend.START ??= new MessageStart(this.device_protocol_version);
           messageToSend.START.start = v as boolean;
           messageToSend.START.washing_data = this.attributes.WASHING_DATA;
         } else {

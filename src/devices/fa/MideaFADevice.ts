@@ -116,7 +116,7 @@ export default class MideaFADevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+        messageToSend.SET ??= this.make_message_set();
         messageToSend.SET[k.toLowerCase()] = v;
       }
 

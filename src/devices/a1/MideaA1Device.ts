@@ -170,7 +170,7 @@ export default class MideaA1Device extends MideaDevice {
           if (k === 'PROMPT_TONE') {
             this.attributes.PROMPT_TONE = !!v;
           } else {
-            messageToSend.SET = messageToSend.SET ?? this.make_message_set();
+            messageToSend.SET ??= this.make_message_set();
             // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
           }
         }

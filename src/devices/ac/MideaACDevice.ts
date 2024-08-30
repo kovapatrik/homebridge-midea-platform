@@ -322,37 +322,37 @@ export default class MideaACDevice extends MideaDevice {
           } else if (k === 'SCREEN_DISPLAY') {
             // if (this.attributes.SCREEN_DISPLAY_NEW)
             if (this.alternate_switch_display) {
-              messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
               messageToSend.NEW_PROTOCOL.screen_display = !!v;
               messageToSend.NEW_PROTOCOL.prompt_tone = this.attributes.PROMPT_TONE;
             } else {
-              messageToSend.SWITCH_DISPLAY = messageToSend.SWITCH_DISPLAY ?? new MessageSwitchDisplay(this.device_protocol_version);
+              messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
             }
           } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
-            messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL[k.toLowerCase()] = !!v;
             messageToSend.NEW_PROTOCOL.prompt_tone = this.attributes.PROMPT_TONE;
           } else if (k === 'FRESH_AIR_POWER' && this.fresh_air_version !== undefined) {
-            messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
           } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version !== undefined) {
             if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
               const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find((key) => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
               const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-              messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
               messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
             } else if (!v) {
-              messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
               messageToSend.NEW_PROTOCOL[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
             }
           } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version !== undefined) {
             const value = v as number;
             const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-            messageToSend.NEW_PROTOCOL = messageToSend.NEW_PROTOCOL ?? new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
           } else {
-            messageToSend.GENERAL = messageToSend.GENERAL ?? this.make_message_unique_set();
-            messageToSend[k.toLowerCase()] = v;
+            messageToSend.GENERAL ??= this.make_message_unique_set();
+            messageToSend.GENERAL[k.toLowerCase()] = v;
             if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
               messageToSend.GENERAL.sleep_mode = false;
               messageToSend.GENERAL.boost_mode = false;
@@ -362,13 +362,12 @@ export default class MideaACDevice extends MideaDevice {
                 messageToSend.GENERAL.frost_protect = false;
                 messageToSend.GENERAL.comfort_mode = false;
               }
-              messageToSend.GENERAL[k.toLowerCase()] = !!v;
             }
             if (k === 'POWER' && v === true && messageToSend.GENERAL instanceof MessageGeneralSet) {
               messageToSend.GENERAL.temp_fahrenheit = this.defaultFahrenheit;
               this.attributes.TEMP_FAHRENHEIT = this.defaultFahrenheit;
               if (this.defaultScreenOff) {
-                messageToSend.SWITCH_DISPLAY = messageToSend.SWITCH_DISPLAY ?? new MessageSwitchDisplay(this.device_protocol_version);
+                messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
               }
             }
           }
