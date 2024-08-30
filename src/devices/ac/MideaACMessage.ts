@@ -569,12 +569,11 @@ class XBXMessageBody extends NewProtocolMessageBody {
     }
 
     if (NewProtocolTags.SELF_CLEAN in params) {
-      console.log(params[NewProtocolTags.SELF_CLEAN]);
-      this.self_clean = params[NewProtocolTags.SELF_CLEAN][0] === 1;
+      this.self_clean = params[NewProtocolTags.SELF_CLEAN][0] === 0x1;
     }
 
     if (NewProtocolTags.RATE_SELECT in params) {
-      console.log(params[NewProtocolTags.RATE_SELECT]);
+      console.log('RATE_SELECT:', params[NewProtocolTags.RATE_SELECT]);
       this.rate_select = params[NewProtocolTags.RATE_SELECT][0];
     }
   }

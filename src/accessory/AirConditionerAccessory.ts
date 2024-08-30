@@ -26,6 +26,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private boostModeService?: Service;
   private auxService?: Service;
   private auxHeatingService?: Service;
+  private selfCleanService?: Service;
+
   private swingAngleService?: Service;
 
   private swingAngleMainControl: SwingAngle;
@@ -264,6 +266,19 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onSet(this.setAuxHeating.bind(this));
     } else if (this.auxHeatingService) {
       this.accessory.removeService(this.auxHeatingService);
+    }
+
+    this.selfCleanService = this.accessory.getServiceById(this.platform.Service.Switch, 'SelfClean');
+    if (this.configDev.AC_options.selfCleanSwitch) {
+      this.selfCleanService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} SelfClean`, 'SelfClean');
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} SelfClean`);
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} SelfClean`);
+      this.selfCleanService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getSelfCleanState.bind(this))
+        .onSet(this.setSelfCleanState.bind(this));
+    } else if (this.selfCleanService) {
+      this.accessory.removeService(this.selfCleanService);
     }
 
     const swingProps = this.configDev.AC_options.swing;
@@ -629,6 +644,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       await this.device.set_attribute({ AUX_HEATING: true });
     } else {
       await this.device.set_attribute({ AUX_HEATING: false });
+    }
+  }
+
+  getSelfCleanState(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.SELF_CLEAN === true;
+  }
+
+  setSelfCleanState(value: CharacteristicValue) {
+    if (value) {
+      this.device.set_attribute({ SELF_CLEAN: true });
+    } else {
+      this.device.set_attribute({ SELF_CLEAN: false });
     }
   }
 

@@ -77,6 +77,7 @@ type ACOptions = {
   dryModeSwitch: boolean;
   boostModeSwitch: boolean;
   auxHeatingSwitches: boolean;
+  selfCleanSwitch: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
   screenOff: boolean;
@@ -151,6 +152,7 @@ export const defaultDeviceConfig: DeviceConfig = {
       command: false,
     },
     auxHeatingSwitches: false,
+    selfCleanSwitch: false,
     minTemp: 16,
     maxTemp: 30,
     tempStep: 1,
