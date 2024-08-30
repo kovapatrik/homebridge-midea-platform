@@ -410,7 +410,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
               this.getSwingAngleTargetVerticalTiltAngle(),
             );
           }
-
+          break;
+        case 'self_clean':
+          updateState = true;
+          this.selfCleanService?.updateCharacteristic(this.platform.Characteristic.On, this.getSelfCleanState());
           break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
