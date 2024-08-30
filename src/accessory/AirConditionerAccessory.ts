@@ -653,9 +653,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   setSelfCleanState(value: CharacteristicValue) {
     if (value) {
-      this.device.set_attribute({ SELF_CLEAN: true });
+      this.device.set_attribute({ POWER: false, SELF_CLEAN: true });
     } else {
-      this.device.set_attribute({ SELF_CLEAN: false });
+      this.device.set_attribute({ POWER: false, SELF_CLEAN: false });
     }
   }
 
