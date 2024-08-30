@@ -64,6 +64,10 @@ export interface ACAttributes extends DeviceAttributeBase {
   FRESH_AIR_MODE?: string;
   FRESH_AIR_1: boolean;
   FRESH_AIR_2: boolean;
+  // GEAR
+  RATE_SELECT?: number;
+  // ION
+  SELF_CLEAN?: boolean;
 }
 
 export default class MideaACDevice extends MideaDevice {
@@ -145,6 +149,8 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_MODE: undefined, // invalid
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
+      SELF_CLEAN: undefined,
+      RATE_SELECT: undefined,
     };
 
     this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
@@ -440,6 +446,24 @@ export default class MideaACDevice extends MideaDevice {
         this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
         break;
     }
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_self_clean(self_clean: boolean) {
+    this.logger.info(`[${this.name}] Set self clean to: ${self_clean}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.self_clean = self_clean;
+    this.attributes.SELF_CLEAN = self_clean;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_rate_select(rate_select: number) {
+    this.logger.info(`[${this.name}] Set rate select to: ${rate_select}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.rate_select = rate_select;
+    this.attributes.RATE_SELECT = rate_select;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }
