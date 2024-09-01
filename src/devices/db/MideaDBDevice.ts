@@ -21,7 +21,7 @@ export interface DBAttributes extends DeviceAttributeBase {
   START: boolean;
   WASHING_DATA: Buffer;
   PROGRESS: number;
-  TIME_REMAINING: number;
+  TIME_REMAINING: number; // in minutes
 }
 
 export default class MideaDBDevice extends MideaDevice {

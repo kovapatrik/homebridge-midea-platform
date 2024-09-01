@@ -651,15 +651,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getSelfCleanState(): CharacteristicValue {
-    return this.device.attributes.POWER === true && this.device.attributes.SELF_CLEAN === true;
+    return this.device.attributes.SELF_CLEAN === true;
   }
 
-  setSelfCleanState(value: CharacteristicValue) {
-    if (value) {
-      this.device.set_attribute({ POWER: false, SELF_CLEAN: true });
-    } else {
-      this.device.set_attribute({ POWER: false, SELF_CLEAN: false });
-    }
+  async setSelfCleanState(value: CharacteristicValue) {
+    await this.device.set_self_clean(value === true);
   }
 
   getSwingAngleCurrentPosition(): CharacteristicValue {

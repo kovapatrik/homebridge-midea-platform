@@ -32,36 +32,27 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     this.service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
 
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
-
-    // this.service
-    //   .getCharacteristic(this.platform.Characteristic.TargetDishwasherState)
-    //   .onGet(this.getTargetDishwasherState.bind(this))
-    //   .onSet(this.setTargetDishwasherState.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.InUse).onGet(this.getInUse.bind(this));
+    this.service
+      .getCharacteristic(this.platform.Characteristic.ValveType)
+      .onGet(() => this.platform.Characteristic.ValveType.GENERIC_VALVE);
+    this.service
+      .getCharacteristic(this.platform.Characteristic.RemainingDuration)
+      .setProps({ minValue: 0, maxValue: 60 * 60 * 8, minStep: 1 })
+      .onGet(this.getRemainingDuration.bind(this));
   }
 
   async updateCharacteristics(attributes: Partial<E1Attributes>) {
-    const updateState = false;
+    let updateState = false;
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-        // case 'power':
-        //   updateState = true;
-        //   break;
-        // case 'mode':
-        //   this.service.updateCharacteristic(this.platform.Characteristic.TargetDishwasherState, this.getTargetDishwasherState());
-        //   break;
-        // case 'Dishwasher_speed':
-        //   this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
-        //   break;
-        // case 'child_lock':
-        //   this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
-        //   break;
-        // case 'oscillate':
-        // case 'oscillation_angle':
-        // case 'oscillation_mode':
-        // case 'tilting_angle':
-        //   this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
-        //   break;
+        case 'power':
+          updateState = true;
+          break;
+        case 'mode':
+          updateState = true;
+          break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
           break;
@@ -69,6 +60,8 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     }
     if (updateState) {
       this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+      this.service.updateCharacteristic(this.platform.Characteristic.InUse, this.getInUse());
+      this.service.updateCharacteristic(this.platform.Characteristic.RemainingDuration, this.getRemainingDuration());
     }
   }
 
@@ -78,5 +71,13 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
 
   async setActive(value: CharacteristicValue) {
     await this.device.set_attribute({ POWER: value === this.platform.Characteristic.Active.ACTIVE });
+  }
+
+  getInUse(): CharacteristicValue {
+    return this.device.attributes.START ? this.platform.Characteristic.InUse.IN_USE : this.platform.Characteristic.InUse.NOT_IN_USE;
+  }
+
+  getRemainingDuration(): CharacteristicValue {
+    return (this.device.attributes.TIME_REMAINING ?? 0) * 60; // in seconds
   }
 }
