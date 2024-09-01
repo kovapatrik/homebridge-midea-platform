@@ -247,8 +247,18 @@
                   "type": "boolean"
                 },
                 "selfCleanSwitch": {
-                  "title": "Self Clean / ION Switch",
-                  "description": "Toggles if the self clean / ION switch is created with the accessory.",
+                  "title": "Self-cleaning Switch",
+                  "description": "Toggles if the self-cleaning switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "ionSwitch": {
+                  "title": "ION Switch",
+                  "descriptION": "Toggles if the ION switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "rateSelector": {
+                  "title": "Gear / Rate Selector",
+                  "description": "Toggles if the gear / rate selector is created with the accessory.",
                   "type": "boolean"
                 },
                 "minTemp": {
@@ -478,6 +488,8 @@
                 "devices[].AC_options.boostModeSwitch",
                 "devices[].AC_options.auxHeatingSwitches",
                 "devices[].AC_options.selfCleanSwitch",
+                "devices[].AC_options.ionSwitch",
+                "devices[].AC_options.rateSelector",
                 {
                   "key": "devices[].AC_options.displaySwitch",
                   "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]

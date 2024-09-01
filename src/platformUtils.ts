@@ -78,6 +78,8 @@ type ACOptions = {
   boostModeSwitch: boolean;
   auxHeatingSwitches: boolean;
   selfCleanSwitch: boolean;
+  ionSwitch: boolean;
+  rateSelector: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
   screenOff: boolean;
@@ -153,6 +155,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     },
     auxHeatingSwitches: false,
     selfCleanSwitch: false,
+    ionSwitch: false,
+    rateSelector: false,
     minTemp: 16,
     maxTemp: 30,
     tempStep: 1,

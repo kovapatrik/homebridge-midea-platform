@@ -27,6 +27,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private auxService?: Service;
   private auxHeatingService?: Service;
   private selfCleanService?: Service;
+  private ionService?: Service;
+  private rateSelectService?: Service;
 
   private swingAngleService?: Service;
 
@@ -268,17 +270,53 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.auxHeatingService);
     }
 
+    // Self-cleaning switch
     this.selfCleanService = this.accessory.getServiceById(this.platform.Service.Switch, 'SelfClean');
     if (this.configDev.AC_options.selfCleanSwitch) {
-      this.selfCleanService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} SelfClean`, 'SelfClean');
-      this.selfCleanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} SelfClean`);
-      this.selfCleanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} SelfClean`);
+      this.selfCleanService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Self-cleaning`, 'SelfClean');
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Self-cleaning`);
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Self-cleaning`);
       this.selfCleanService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getSelfCleanState.bind(this))
         .onSet(this.setSelfCleanState.bind(this));
     } else if (this.selfCleanService) {
       this.accessory.removeService(this.selfCleanService);
+    }
+
+    // ION switch
+    this.ionService = this.accessory.getServiceById(this.platform.Service.Switch, 'ION');
+    if (this.configDev.AC_options.ionSwitch) {
+      this.ionService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} ION`, 'ION');
+      this.ionService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} ION`);
+      this.ionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} ION`);
+      this.ionService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getIonState.bind(this))
+        .onSet(this.setIonState.bind(this));
+    } else if (this.ionService) {
+      this.accessory.removeService(this.ionService);
+    }
+
+    // Rate select slider
+    this.rateSelectService = this.accessory.getServiceById(this.platform.Service.Lightbulb, 'Gear');
+    if (this.configDev.AC_options.rateSelector) {
+      this.rateSelectService ??= this.accessory.addService(this.platform.Service.Lightbulb, `${this.device.name} Gear`, 'Gear');
+      this.rateSelectService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Gear`);
+      this.rateSelectService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Gear`);
+      this.rateSelectService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getActive.bind(this))
+        .onSet(this.setActive.bind(this));
+      this.rateSelectService
+        .getCharacteristic(this.platform.Characteristic.Brightness)
+        .setProps({
+          validValues: [0, 50, 75, 100],
+        })
+        .onGet(this.getRateSelect.bind(this))
+        .onSet(this.setRateSelect.bind(this));
+    } else if (this.rateSelectService) {
+      this.accessory.removeService(this.rateSelectService);
     }
 
     const swingProps = this.configDev.AC_options.swing;
@@ -414,6 +452,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'self_clean':
           updateState = true;
           this.selfCleanService?.updateCharacteristic(this.platform.Characteristic.On, this.getSelfCleanState());
+          break;
+        case 'ion':
+          this.ionService?.updateCharacteristic(this.platform.Characteristic.On, this.getIonState());
+          break;
+        case 'rate_select':
+          this.rateSelectService?.updateCharacteristic(this.platform.Characteristic.Brightness, this.getRateSelect());
           break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
@@ -656,6 +700,22 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setSelfCleanState(value: CharacteristicValue) {
     await this.device.set_self_clean(value === true);
+  }
+
+  getIonState(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.ION === true;
+  }
+
+  async setIonState(value: CharacteristicValue) {
+    await this.device.set_ion(value === true);
+  }
+
+  getRateSelect(): CharacteristicValue {
+    return this.device.attributes.RATE_SELECT ?? 100;
+  }
+
+  async setRateSelect(value: CharacteristicValue) {
+    await this.device.set_rate_select(value as number);
   }
 
   getSwingAngleCurrentPosition(): CharacteristicValue {

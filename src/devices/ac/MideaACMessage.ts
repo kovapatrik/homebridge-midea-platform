@@ -20,8 +20,9 @@ enum NewProtocolTags {
   INDIRECT_WIND = 0x0042, // prevent_straight_wind
   FRESH_AIR_1 = 0x0233,
   FRESH_AIR_2 = 0x004b,
-  SELF_CLEAN = 0x0039, // ION
+  SELF_CLEAN = 0x0039,
   RATE_SELECT = 0x0048, // GEAR
+  ION = 0x001e, // anion
 }
 
 const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
@@ -97,11 +98,12 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      this.alternate_display ? NewProtocolTags.SCREEN_DISPLAY : undefined,
+      NewProtocolTags.SCREEN_DISPLAY,
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
       NewProtocolTags.SELF_CLEAN,
       NewProtocolTags.RATE_SELECT,
+      NewProtocolTags.ION,
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
@@ -347,6 +349,7 @@ export class MessageNewProtocolSet extends MessageACBase {
   public fresh_air_2?: Buffer;
   public self_clean?: boolean;
   public rate_select?: number;
+  public ion?: boolean;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0xb0);
@@ -430,6 +433,11 @@ export class MessageNewProtocolSet extends MessageACBase {
     if (this.rate_select !== undefined) {
       pack_count += 1;
       payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.RATE_SELECT, Buffer.from([this.rate_select]))]);
+    }
+
+    if (this.ion !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.ION, Buffer.from([this.ion ? 0x01 : 0x00]))]);
     }
 
     pack_count += 1;
@@ -529,7 +537,8 @@ class XBXMessageBody extends NewProtocolMessageBody {
   public fresh_air_power?: boolean;
   public fresh_air_fan_speed?: number;
   public self_clean?: boolean;
-  public rate_select?: number;
+  public rate_select?: number; // 50% 75% 100%
+  public ion?: boolean;
 
   constructor(body: Buffer, body_type: number) {
     super(body, body_type);
@@ -573,8 +582,11 @@ class XBXMessageBody extends NewProtocolMessageBody {
     }
 
     if (NewProtocolTags.RATE_SELECT in params) {
-      console.log('RATE_SELECT:', params[NewProtocolTags.RATE_SELECT]);
       this.rate_select = params[NewProtocolTags.RATE_SELECT][0];
+    }
+
+    if (NewProtocolTags.ION in params) {
+      this.ion = params[NewProtocolTags.ION][0] === 0x1;
     }
   }
 }

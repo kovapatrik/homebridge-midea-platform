@@ -64,10 +64,9 @@ export interface ACAttributes extends DeviceAttributeBase {
   FRESH_AIR_MODE?: string;
   FRESH_AIR_1: boolean;
   FRESH_AIR_2: boolean;
-  // GEAR
-  RATE_SELECT?: number;
-  // ION
+  RATE_SELECT?: number; // GEAR
   SELF_CLEAN?: boolean;
+  ION?: boolean;
 }
 
 export default class MideaACDevice extends MideaDevice {
@@ -151,6 +150,7 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_2: false,
       SELF_CLEAN: undefined,
       RATE_SELECT: undefined,
+      ION: undefined,
     };
 
     this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
@@ -454,6 +454,24 @@ export default class MideaACDevice extends MideaDevice {
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     message.self_clean = self_clean;
     this.attributes.SELF_CLEAN = self_clean;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_ion(ion: boolean) {
+    this.logger.info(`[${this.name}] Set ion to: ${ion}`);
+
+    // If ion is enabled, we need to turn on the device first
+    if (ion === true) {
+      this.logger.info(`[${this.name}] Powering on device to enable ion`);
+      this.attributes.POWER = true;
+      const message = this.make_message_unique_set();
+      await this.build_send(message);
+    }
+
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.ion = ion;
+    this.attributes.ION = ion;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }
