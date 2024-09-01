@@ -12,10 +12,10 @@ import MideaE1Device from './e1/MideaE1Device';
 export default class DeviceFactory {
   public static createDevice(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     switch (device_info.type) {
-      case DeviceType.AIR_CONDITIONER:
-        return new MideaACDevice(logger, device_info, config, deviceConfig);
       case DeviceType.DEHUMIDIFIER:
         return new MideaA1Device(logger, device_info, config, deviceConfig);
+      case DeviceType.AIR_CONDITIONER:
+        return new MideaACDevice(logger, device_info, config, deviceConfig);
       case DeviceType.FRONT_LOAD_WASHER:
         return new MideaDBDevice(logger, device_info, config, deviceConfig);
       case DeviceType.DISHWASHER:
@@ -26,6 +26,7 @@ export default class DeviceFactory {
         return new MideaE3Device(logger, device_info, config, deviceConfig);
       case DeviceType.FAN:
         return new MideaFADevice(logger, device_info, config, deviceConfig);
+      case DeviceType.UNKNOWN:
       default:
         return null;
     }
