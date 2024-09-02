@@ -14,7 +14,7 @@ enum NewProtocolTags {
   WIND_SWING_UD_ANGLE = 0x0009,
   WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
-  SCREEN_DISPLAY = 0x0017,
+  SCREEN_DISPLAY = 0x0024,
   BREEZELESS = 0x0018,
   PROMPT_TONE = 0x001a,
   INDIRECT_WIND = 0x0042, // prevent_straight_wind
@@ -79,7 +79,9 @@ export class MessageSwitchDisplay extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    return Buffer.concat([Buffer.from([0x00, 0xff, 0x02, 0x00, 0x02, 0x00]), Buffer.alloc(12)]);
+    // eslint-disable-next-line max-len
+    // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -656,7 +658,7 @@ class XC0MessageBody extends MessageBody {
     }
 
     this.full_dust = (body[13] & 0x20) > 0;
-    this.screen_display = (body[14] & 0x70) >> 4 !== 0x07 && this.power;
+    this.screen_display = (body[14] & 0x70) >> 4 !== 0x07;
     this.frost_protect = body.length > 23 ? (body[21] & 0x80) > 0 : false;
     this.comfort_mode = body.length > 24 ? (body[22] & 0x1) > 0 : false;
   }
