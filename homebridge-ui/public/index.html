@@ -72,6 +72,10 @@
           </button>
         </form>
         <div class="text-center device-table" style="display: none" id="discoverTableWrapper">
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            If your device is not supported, you can download the Lua file (by clicking on the model number in the table)
+            which is used to control the device and attach it to a GitHub issue.
+          </div>
           <table class="table table-sm" id="discoverTable">
             <thead>
               <tr>
@@ -82,7 +86,6 @@
                 <th scope="col">Ver.</th>
                 <th scope="col">Token&nbsp;/&nbsp;Key</th>
                 <th scope="col">Local&nbsp;Ip</th>
-                <th scope="col">Lua</th>
                 <th scope="col">Add&nbsp;/&nbsp;Update</th>
               </tr>
             </thead>
@@ -299,7 +302,30 @@
           td.setAttribute('scope', 'row');
 
           tr.insertCell().appendChild(document.createTextNode(device.displayName));
-          tr.insertCell().appendChild(document.createTextNode(device.model));
+
+          // model with lua download link
+          const modelCell = tr.insertCell();
+
+          const download_btn = document.createElement('button');
+          download_btn.innerText = device.model;
+          download_btn.className = 'btn btn-outline-secondary btn-sm';
+          download_btn.addEventListener('click', async () => {
+            try {
+              const file_data_str = await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn });
+              const a = document.createElement('a');
+              a.setAttribute('download', `${device.type.toString(16)}_${device.model}.lua`);
+              const blob = new Blob([file_data_str], { type: 'text/plain' });
+              const url = window.URL.createObjectURL(blob);
+              a.href = url
+              a.click();
+              window.URL.revokeObjectURL(url);
+            } catch (e) {
+              homebridge.toast.error(e.message);
+            } 
+          });
+
+          modelCell.appendChild(download_btn);
+
           tr.insertCell().appendChild(document.createTextNode(device.id));
           tr.insertCell().appendChild(document.createTextNode(device.version));
           if (device.version === 3) {
@@ -312,24 +338,6 @@
           }
           tr.insertCell().appendChild(document.createTextNode(device.ip));
 
-
-          const luaCell = tr.insertCell()
-
-          // lua download button
-          const download_btn = document.createElement('button');
-          download_btn.innerText = 'Download';
-          download_btn.className = 'btn btn-outline-secondary btn-sm';
-          download_btn.addEventListener('click', async () => {
-            const blob = await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn });
-            const a = document.createElement('a');
-            a.setAttribute('download', `${device.type}.lua`);
-            const url = window.URL.createObjectURL(blob);
-            a.href = url
-            a.click();
-            window.URL.revokeObjectURL(url);
-          });
-
-          luaCell.appendChild(download_btn);
 
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {

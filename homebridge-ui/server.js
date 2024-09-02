@@ -144,9 +144,14 @@ class UiServer extends HomebridgePluginUiServer {
 
     this.onRequest('/downloadLua', async ({ deviceType, deviceSn }) => {
       try {
-        if (!(this.cloud instanceof ProxiedSecurity)) {
-          throw new RequestError(`Cloud provider doesn't support Lua download.`);  
-        }
+        if (!this.cloud || !(this.cloud instanceof ProxiedSecurity)) {
+          this.pushEvent('showToast', { success: true, msg: 'Currently used cloud provider doesn\'t support Lua downloading, using the default profile now...' });
+          const registeredApp = 'Midea SmartHome (MSmartHome)';
+          const username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
+          const password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
+          this.cloud = CloudFactory.createCloud(username, password, registeredApp);
+          await this.cloud.login();
+        } 
         const lua = await this.cloud.getProtocolLua(deviceType, deviceSn);
         return lua;
       } catch (e) {
