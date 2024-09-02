@@ -82,6 +82,7 @@
                 <th scope="col">Ver.</th>
                 <th scope="col">Token&nbsp;/&nbsp;Key</th>
                 <th scope="col">Local&nbsp;Ip</th>
+                <th scope="col">Lua</th>
                 <th scope="col">Add&nbsp;/&nbsp;Update</th>
               </tr>
             </thead>
@@ -311,9 +312,28 @@
           }
           tr.insertCell().appendChild(document.createTextNode(device.ip));
 
+
+          const luaCell = tr.insertCell()
+
+          // lua download button
+          const download_btn = document.createElement('button');
+          download_btn.innerText = 'Download';
+          download_btn.className = 'btn btn-outline-secondary btn-sm';
+          download_btn.addEventListener('click', async () => {
+            const blob = await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn });
+            const a = document.createElement('a');
+            a.setAttribute('download', `${device.type}.lua`);
+            const url = window.URL.createObjectURL(blob);
+            a.href = url
+            a.click();
+            window.URL.revokeObjectURL(url);
+          });
+
+          luaCell.appendChild(download_btn);
+
           const addCell = tr.insertCell();
           if (device.displayName === 'Unknown') {
-            addCell.appendChild(document.createTextNode('Not supported'));
+            addCell.appendChild(document.createTextNode('Not supported!\nDownload the Lua file and attach it to a GitHub issue.'));
           } else if (!validAuth) {
             addCell.appendChild(document.createTextNode('No credentials'));
           } else if (currentConfig.devices.find((d) => d.id === device.id)) {

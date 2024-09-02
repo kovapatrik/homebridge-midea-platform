@@ -11,7 +11,7 @@ const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-u
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
 const { DeviceType, TCPMessageType, ProtocolVersion, Endianness } = require('../dist/core/MideaConstants.js');
-const { LocalSecurity } = require('../dist/core/MideaSecurity.js');
+const { LocalSecurity, ProxiedSecurity } = require('../dist/core/MideaSecurity.js');
 const { PromiseSocket } = require('../dist/core/MideaUtils.js');
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
 
@@ -139,6 +139,19 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         throw new RequestError(`Device discovery failed:\n${msg}`);
+      }
+    });
+
+    this.onRequest('/downloadLua', async ({ deviceType, deviceSn }) => {
+      try {
+        if (!(this.cloud instanceof ProxiedSecurity)) {
+          throw new RequestError(`Cloud provider doesn't support Lua download.`);  
+        }
+        const lua = await this.cloud.getProtocolLua(deviceType, deviceSn);
+        return lua;
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        throw new RequestError(`Download Lua failed:\n${msg}`);
       }
     });
 
