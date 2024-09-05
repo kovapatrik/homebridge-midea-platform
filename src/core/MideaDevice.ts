@@ -17,7 +17,7 @@ import { Config, DeviceConfig } from '../platformUtils';
 import EventEmitter from 'events';
 
 export type DeviceAttributeBase = {
-  [key: string]: number | string | boolean | Buffer | undefined;
+  [key: string]: number | number[] | string | boolean | boolean[] | Buffer | undefined;
 };
 
 export default abstract class MideaDevice extends EventEmitter {

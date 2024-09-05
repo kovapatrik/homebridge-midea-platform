@@ -8,6 +8,7 @@ import MideaE3Device from './e3/MideaE3Device';
 import MideaFADevice from './fa/MideaFADevice';
 import MideaDBDevice from './db/MideaDBDevice';
 import MideaE1Device from './e1/MideaE1Device';
+import MideaC3Device from './c3/MideaC3Device';
 
 export default class DeviceFactory {
   public static createDevice(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
@@ -16,6 +17,8 @@ export default class DeviceFactory {
         return new MideaA1Device(logger, device_info, config, deviceConfig);
       case DeviceType.AIR_CONDITIONER:
         return new MideaACDevice(logger, device_info, config, deviceConfig);
+      case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
+        return new MideaC3Device(logger, device_info, config, deviceConfig);
       case DeviceType.FRONT_LOAD_WASHER:
         return new MideaDBDevice(logger, device_info, config, deviceConfig);
       case DeviceType.DISHWASHER:

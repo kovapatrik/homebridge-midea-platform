@@ -1,23 +1,32 @@
 import { DeviceType } from '../core/MideaConstants';
 import { MideaAccessory, MideaPlatform } from '../platform';
+
 import AirConditionerAccessory from './AirConditionerAccessory';
+import MideaACDevice from '../devices/ac/MideaACDevice';
+
 import DehumidifierAccessory from './DehumidifierAccessory';
+import MideaA1Device from '../devices/a1/MideaA1Device';
+
 import FrontLoadWasherAccessory from './FrontLoadWasherAccessory';
+import MideaDBDevice from '../devices/db/MideaDBDevice';
+
 import ElectricWaterHeaterAccessory from './ElectricWaterHeaterAccessory';
+import MideaE2Device from '../devices/e2/MideaE2Device';
+
 import GasWaterHeaterAccessory from './GasWaterHeaterAccessory';
+import MideaE3Device from '../devices/e3/MideaE3Device';
+
 import FanAccessory from './FanAccessory';
+import MideaFADevice from '../devices/fa/MideaFADevice';
+
 import DishwasherAccessory from './DishwasherAccessory';
+import MideaE1Device from '../devices/e1/MideaE1Device';
+
+import HeatPumpWiFiControllerAccessory from './HeatPumpWifiControllerAccessory';
+import MideaC3Device from '../devices/c3/MideaC3Device';
 
 import MideaDevice from '../core/MideaDevice';
 import { DeviceConfig } from '../platformUtils';
-
-import MideaACDevice from '../devices/ac/MideaACDevice';
-import MideaA1Device from '../devices/a1/MideaA1Device';
-import MideaDBDevice from '../devices/db/MideaDBDevice';
-import MideaE2Device from '../devices/e2/MideaE2Device';
-import MideaE3Device from '../devices/e3/MideaE3Device';
-import MideaFADevice from '../devices/fa/MideaFADevice';
-import MideaE1Device from '../devices/e1/MideaE1Device';
 
 export default class AccessoryFactory {
   public static createAccessory<T extends MideaDevice>(
@@ -31,6 +40,8 @@ export default class AccessoryFactory {
         return new DehumidifierAccessory(platform, accessory, device as unknown as MideaA1Device, configDev);
       case DeviceType.AIR_CONDITIONER:
         return new AirConditionerAccessory(platform, accessory, device as unknown as MideaACDevice, configDev);
+      case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
+        return new HeatPumpWiFiControllerAccessory(platform, accessory, device as unknown as MideaC3Device, configDev);
       case DeviceType.FRONT_LOAD_WASHER:
         return new FrontLoadWasherAccessory(platform, accessory, device as unknown as MideaDBDevice, configDev);
       case DeviceType.DISHWASHER:
