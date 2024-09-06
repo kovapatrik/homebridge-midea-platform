@@ -30,6 +30,7 @@ export type DeviceConfig = {
   };
   AC_options: ACOptions;
   A1_options: A1Options;
+  C3_options: C3Options;
   DB_options: DBOptions;
   E1_options: E1Options;
   E2_options: E2Options;
@@ -95,6 +96,15 @@ type A1Options = {
   maxHumidity: number;
   humidityStep: number;
   humidityOffset: number;
+};
+
+type C3Options = {
+  zone1: boolean;
+  zone2: boolean;
+  waterHeater: boolean;
+  ecoSwitch: boolean;
+  silentSwitch: boolean;
+  tbhSwitch: boolean;
 };
 
 type DBOptions = unknown;
@@ -174,6 +184,14 @@ export const defaultDeviceConfig: DeviceConfig = {
     maxHumidity: 85,
     humidityStep: 5,
     humidityOffset: 0,
+  },
+  C3_options: {
+    zone1: false,
+    zone2: false,
+    waterHeater: false,
+    ecoSwitch: false,
+    silentSwitch: false,
+    tbhSwitch: false,
   },
   DB_options: {},
   E1_options: {},

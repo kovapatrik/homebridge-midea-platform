@@ -46,7 +46,7 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Front Load Washer", "Dishwasher", "Electric Water Heater", "Gas Water Heater", "Fan"],
+              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller"],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -292,6 +292,50 @@
                 }
               }
             },
+            "C3_options": {
+              "title": "Heat Pump WiFi Controller Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Heat Pump WiFi Controller';"
+              },
+              "properties": {
+                "zone1": {
+                  "title": "Zone 1 accessory",
+                  "description": "Toggles if the zone 1 accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zone2": {
+                  "title": "Zone 2 accessory",
+                  "description": "Toggles if the zone 2 accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "waterHeater": {
+                  "title": "Water Heater accessory",
+                  "description": "Toggles if the water heater accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "ecoSwitch": {
+                  "title": "Eco Mode Switch",
+                  "description": "Toggles if the ECO mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "silentSwitch": {
+                  "title": "Silent Mode Switch",
+                  "description": "Toggles if the silent mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "tbhSwitch": {
+                  "title": "TBH Mode Switch",
+                  "description": "Toggles if the TBH mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "disinfectSwitch": {
+                  "title": "Disinfect Mode Switch",
+                  "description": "Toggles if the disinfect mode switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
+            },
             "DB_options": {
               "title": "Front Load Washer Options",
               "type": "object",
@@ -501,6 +545,26 @@
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory"
               ]
+            },
+            {
+              "key": "devices[].C3_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].C3_options.zone1",
+                "devices[].C3_options.zone2",
+                "devices[].C3_options.waterHeater",
+                "devices[].C3_options.ecoSwitch",
+                "devices[].C3_options.silentSwitch",
+                "devices[].C3_options.tbhSwitch",
+                "devices[].C3_options.disinfectSwitch"
+              ]
+            },
+            {
+              "key": "devices[].DB_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             },
             {
               "key": "devices[].E1_options",

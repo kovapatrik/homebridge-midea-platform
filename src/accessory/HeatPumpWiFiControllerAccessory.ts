@@ -15,7 +15,32 @@ import { DeviceConfig } from '../platformUtils';
 import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
-  private service: Service;
+  // Zone1 related
+  private zone1Service?: Service;
+  private zone1CurveSwitchService?: Service;
+  private zone1PowerSwitchService?: Service;
+  private zone1WaterTemperatureModeSensorService?: Service;
+  private zone1RoomTemperatureModeService?: Service;
+
+  // Zone2 related
+  private zone2Service?: Service;
+  private zone2CurveSwitchService?: Service;
+  private zone2PowerSwitchService?: Service;
+  private zone2WaterTemperatureModeSensorService?: Service;
+  private zone2RoomTemperatureModeService?: Service;
+
+  // Water heater related
+  private waterHeaterService?: Service;
+  private dhwPowerSwitchService?: Service;
+  private tbhPowerSwitchService?: Service;
+  private dhwSensorService?: Service;
+  private tbhSensorService?: Service;
+  private ibhSensorService?: Service;
+  private heatingSensorService?: Service;
+
+  private disinfectSwitchService?: Service;
+  private ecoSwitchService?: Service;
+  private silentModeSwitchService?: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -29,7 +54,7 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
   ) {
     super(platform, accessory, device, configDev);
 
-    this.service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
+    this.zone1Service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
   }
 
   async updateCharacteristics(attributes: Partial<C3Attributes>) {
