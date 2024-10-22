@@ -43,6 +43,7 @@ export default abstract class MideaDevice extends EventEmitter {
   protected heartbeat_interval: number;
   protected verbose: boolean;
   protected logRecoverableErrors: boolean;
+  protected logRefreshStatusErrors: boolean;
 
   private _sub_type?: number;
 
@@ -81,6 +82,7 @@ export default abstract class MideaDevice extends EventEmitter {
 
     this.verbose = configDev.advanced_options.verbose;
     this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
+    this.logRefreshStatusErrors = configDev.advanced_options.logRecoverableErrors;
 
     this.logger.debug(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
     this.logger.debug(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
@@ -250,7 +252,11 @@ export default abstract class MideaDevice extends EventEmitter {
               error_cnt++;
               // TODO: handle connection error
               // this.unsupported_protocol.push(cmd.constructor.name);
-              this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              if (this.logRefreshStatusErrors) {
+                this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              } else {
+                this.logger.debug(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              }
             }
           }
         } else {
@@ -259,7 +265,11 @@ export default abstract class MideaDevice extends EventEmitter {
       }
 
       if (error_cnt === commands.length) {
-        this.logger.error(`[${this.name}] Refresh failed.`);
+        if (this.logRefreshStatusErrors) {
+          this.logger.error(`[${this.name}] Refresh failed.`);
+        } else {
+          this.logger.debug(`[${this.name}] Refresh failed.`);
+        }
         return false;
       }
     } catch (err) {

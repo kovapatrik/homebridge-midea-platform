@@ -22,18 +22,8 @@
         "maximum": 120,
         "description": "Frequency that the plugin sends a message to Midea devices to keep the network socket open. The default and minimum is 10 seconds, you can increase this up to a maximum of 120 (2 minutes). If you see socket closed messages in the log reduce this value."
       },
-      "verbose": {
-        "title": "Enable verbose logging",
-        "type": "boolean",
-        "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support. Homebridge must be running with debug enabled for any debug logging to be visible."
-      },
-      "logRecoverableErrors": {
-        "title": "Log recoverable errors",
-        "type": "boolean",
-        "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
-      },
       "uiDebug": {
-        "title": "Enable debug for custom UI",
+        "title": "Enable debug for the custom UI (including device discovery)",
         "type": "boolean",
         "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
@@ -85,12 +75,17 @@
                 "verbose": {
                   "title": "Enable verbose logging",
                   "type": "boolean",
-                  "description": "Override global setting for this one device."
+                  "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support. Homebridge must be running with debug enabled for any debug logging to be visible."
                 },
                 "logRecoverableErrors": {
                   "title": "Log recoverable errors",
                   "type": "boolean",
-                  "description": "Override global setting for this one device."
+                  "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
+                },
+                "logRefreshStatusErrors": {
+                  "title": "Log refresh status errors",
+                  "type": "boolean",
+                  "description": "If you see warning and errors which are related to the refresh status process you can suppress these messages by disabling this setting. (e.g.: `Does not supports the protocol..l`"
                 }
               }
             },
@@ -470,7 +465,7 @@
           "expandable": true,
           "expanded": false,
           "title": "Optional Settings",
-          "items": ["refreshInterval", "heartbeatInterval", "verbose", "logRecoverableErrors", "uiDebug"]
+          "items": ["refreshInterval", "heartbeatInterval", "uiDebug"]
         },
         {
           "key": "devices",
@@ -490,7 +485,8 @@
                 "devices[].advanced_options.token",
                 "devices[].advanced_options.key",
                 "devices[].advanced_options.verbose",
-                "devices[].advanced_options.logRecoverableErrors"
+                "devices[].advanced_options.logRecoverableErrors",
+                "devices[].advanced_options.logRefreshStatusErrors"
               ]
             },
             {
