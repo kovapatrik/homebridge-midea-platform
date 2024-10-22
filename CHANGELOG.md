@@ -7,9 +7,11 @@
 - feat: added possibility to add custom humidity offset for `Dehumidifiers` (fixes #98)
 - feat: added possibility to toggle boost/turbo mode switch creation for `Air Conditioners` (fixes #102)
 - feat: possibilty to download Lua files using the config UI (fixes #69)
+- feat: `logRefreshStatusErrors` flag per device is added for hiding errors in the logs (fixes #93)
 - fix: explicitly set the power when changing the mode for `Air Conditioners` (fixes #99)
 - fix: handling of sending out messages to devices, excluding existing state commands (fixes #99, #101)
 - fix: QoL improvements and bug fixes (TCP key error, etc.)
+- chore: deleted unnecessary flags
 
 # v1.1.0
 ## 2024-07-13
