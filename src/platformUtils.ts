@@ -20,8 +20,8 @@ export type DeviceConfig = {
     ip: string;
     token: string;
     key: string;
-    verbose: boolean; // override global setting
-    logRecoverableErrors: boolean; // override global setting
+    verbose: boolean;
+    logRecoverableErrors: boolean;
     logRefreshStatusErrors: boolean;
     registerIfOffline: boolean;
   };
