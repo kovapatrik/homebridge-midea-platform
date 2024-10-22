@@ -85,7 +85,7 @@
                 "logRefreshStatusErrors": {
                   "title": "Log refresh status errors",
                   "type": "boolean",
-                  "description": "If you see warning and errors which are related to the refresh status process you can suppress these messages by disabling this setting. (e.g.: `Does not supports the protocol..l`"
+                  "description": "If you see warning and errors which are related to the refresh status process you can suppress these messages by disabling this setting. (e.g.: `Does not supports the protocol...`)"
                 }
               }
             },
