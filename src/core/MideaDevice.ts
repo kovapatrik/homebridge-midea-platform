@@ -82,7 +82,7 @@ export default abstract class MideaDevice extends EventEmitter {
 
     this.verbose = configDev.advanced_options.verbose;
     this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
-    this.logRefreshStatusErrors = configDev.advanced_options.logRecoverableErrors;
+    this.logRefreshStatusErrors = configDev.advanced_options.logRefreshStatusErrors;
 
     this.logger.debug(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
     this.logger.debug(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
