@@ -229,7 +229,6 @@ export default abstract class MideaDevice extends EventEmitter {
           await this.build_send(cmd);
           if (wait_response) {
             try {
-              // eslint-disable-next-line no-constant-condition
               while (true) {
                 const message = await this.promiseSocket.read();
                 if (message.length === 0) {
