@@ -14,7 +14,8 @@ import { DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import AccessoryFactory from './accessory/AccessoryFactory.js';
 import DeviceFactory from './devices/DeviceFactory.js';
 import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
-import { defaultsDeep } from 'lodash';
+import lodash from 'lodash';
+const { defaultsDeep } = lodash;
 
 type MideaContext = {
   token: string;
@@ -165,12 +166,12 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
 
     // Delete not existing, but cached accessories
-    for (const [uuid, accessory] of this.accessories) {
-      if (!this.discoveredCacheUUIDs.includes(uuid)) {
-        this.log.info('Removing existing accessory from cache:', accessory.displayName);
-        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      }
-    }
+    // for (const [uuid, accessory] of this.accessories) {
+    //   if (!this.discoveredCacheUUIDs.includes(uuid)) {
+    //     this.log.info('Removing existing accessory from cache:', accessory.displayName);
+    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    //   }
+    // }
   }
 
   /*********************************************************************
