@@ -29,7 +29,7 @@ Currently supports the following devices:
 
 ### Unsupported Devices
 
-If you have a device not supported by the plugin then useful information will be logged as warnings. If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues).
+If you have a device not supported by the plugin then useful information will be logged as warnings. If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues). Please attach the `lua` file to the issue, if possible. Here is the [guide](/docs/download_lua.md) on how to download the `lua` file.
 
 ## Installation
 
@@ -51,7 +51,7 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest and **strongly recommended** way to configure this plugin.
 
-You should use the UI to discover and add devices. More information on the settings can be found in the [Settings](#settings) section below.
+You should use the UI to discover and add devices. More information on the settings can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki#device-discovery).
 
 ## License
 
