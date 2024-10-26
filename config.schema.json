@@ -22,18 +22,8 @@
         "maximum": 120,
         "description": "Frequency that the plugin sends a message to Midea devices to keep the network socket open. The default and minimum is 10 seconds, you can increase this up to a maximum of 120 (2 minutes). If you see socket closed messages in the log reduce this value."
       },
-      "verbose": {
-        "title": "Enable verbose logging",
-        "type": "boolean",
-        "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support. Homebridge must be running with debug enabled for any debug logging to be visible."
-      },
-      "logRecoverableErrors": {
-        "title": "Log recoverable errors",
-        "type": "boolean",
-        "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
-      },
       "uiDebug": {
-        "title": "Enable debug for custom UI",
+        "title": "Enable debug for the custom UI (including device discovery)",
         "type": "boolean",
         "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
@@ -46,13 +36,7 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": [
-                "Air Conditioner",
-                "Dehumidifier",
-                "Electric Water Heater",
-                "Gas Water Heater",
-                "Fan"
-              ],
+              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller"],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -91,12 +75,17 @@
                 "verbose": {
                   "title": "Enable verbose logging",
                   "type": "boolean",
-                  "description": "Override global setting for this one device."
+                  "description": "Enables additional debug logging that may help a developer identify problems when working on Midea device support. Homebridge must be running with debug enabled for any debug logging to be visible."
                 },
                 "logRecoverableErrors": {
                   "title": "Log recoverable errors",
                   "type": "boolean",
-                  "description": "Override global setting for this one device."
+                  "description": "If you see frequent warning or error messages in the log that the plugin recovers from you can suppress these messages by disabling this setting."
+                },
+                "logRefreshStatusErrors": {
+                  "title": "Log refresh status errors",
+                  "type": "boolean",
+                  "description": "If you see warning and errors which are related to the refresh status process you can suppress these messages by disabling this setting. (e.g.: `Does not supports the protocol...`)"
                 }
               }
             },
@@ -132,11 +121,7 @@
                   "description": "Creates a water tank sensor accessory which can be used to trigger automations when the tank is full. The sensor will show as `Leak Sensor` or `Contact Sensor` depending on this setting.",
                   "type": "string",
                   "required": true,
-                  "enum": [
-                    "None",
-                    "Leak Sensor",
-                    "Contact Sensor"
-                  ]
+                  "enum": ["None", "Leak Sensor", "Contact Sensor"]
                 },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
@@ -154,10 +139,13 @@
                   "title": "Humidity Step",
                   "type": "number",
                   "required": true,
-                  "enum": [
-                    5,
-                    10
-                  ]
+                  "enum": [5, 10]
+                },
+                "humidityOffset": {
+                  "title": "Humidity Offset",
+                  "description": "Offset for the humidity sensor. This is useful if the humidity sensor is not accurate or if you want to adjust the humidity value.",
+                  "type": "number",
+                  "required": true
                 }
               }
             },
@@ -177,12 +165,7 @@
                       "description": "Set swing mode of the unit. If your unit does not support this feature then leave it on None.",
                       "type": "string",
                       "required": true,
-                      "enum": [
-                        "None",
-                        "Vertical",
-                        "Horizontal",
-                        "Both"
-                      ]
+                      "enum": ["None", "Vertical", "Horizontal", "Both"]
                     },
                     "angleAccessory": {
                       "title": "Swing Angle Accessory",
@@ -194,10 +177,7 @@
                       "description": "If `mode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
                       "type": "string",
                       "required": true,
-                      "enum": [
-                        "Vertical",
-                        "Horizontal"
-                      ]
+                      "enum": ["Vertical", "Horizontal"]
                     }
                   }
                 },
@@ -231,6 +211,11 @@
                   "description": "Toggles if the dry mode switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "boostModeSwitch": {
+                  "title": "Boost/Turbo Mode Switch",
+                  "description": "Toggles if the boost/turbo mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "breezeAwaySwitch": {
                   "title": "Breeze Away Mode",
                   "description": "Toggles if the breeze away mode swtich is created with the accessory.",
@@ -256,6 +241,21 @@
                   "description": "Toggles if the aux and aux+heat switches are created with the accessory.",
                   "type": "boolean"
                 },
+                "selfCleanSwitch": {
+                  "title": "Self-cleaning Switch",
+                  "description": "Toggles if the self-cleaning switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "ionSwitch": {
+                  "title": "ION Switch",
+                  "descriptION": "Toggles if the ION switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "rateSelector": {
+                  "title": "Gear / Rate Selector",
+                  "description": "Toggles if the gear / rate selector is created with the accessory.",
+                  "type": "boolean"
+                },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
                   "type": "number"
@@ -268,10 +268,7 @@
                   "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
-                  "enum": [
-                    0.5,
-                    1
-                  ]
+                  "enum": [0.5, 1]
                 },
                 "fahrenheit": {
                   "title": "Fahrenheit",
@@ -290,6 +287,68 @@
                 }
               }
             },
+            "C3_options": {
+              "title": "Heat Pump WiFi Controller Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Heat Pump WiFi Controller';"
+              },
+              "properties": {
+                "zone1": {
+                  "title": "Zone 1 accessory",
+                  "description": "Toggles if the zone 1 accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "zone2": {
+                  "title": "Zone 2 accessory",
+                  "description": "Toggles if the zone 2 accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "waterHeater": {
+                  "title": "Water Heater accessory",
+                  "description": "Toggles if the water heater accessory is created with the accessory.",
+                  "type": "boolean"
+                },
+                "ecoSwitch": {
+                  "title": "Eco Mode Switch",
+                  "description": "Toggles if the ECO mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "silentSwitch": {
+                  "title": "Silent Mode Switch",
+                  "description": "Toggles if the silent mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "tbhSwitch": {
+                  "title": "TBH Mode Switch",
+                  "description": "Toggles if the TBH mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "disinfectSwitch": {
+                  "title": "Disinfect Mode Switch",
+                  "description": "Toggles if the disinfect mode switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "DB_options": {
+              "title": "Front Load Washer Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Front Load Washer';"
+              },
+              "properties": {
+              }
+            },
+            "E1_options": {
+              "title": "Dishwasher Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dishwasher';"
+              },
+              "properties": {
+              }
+            },
             "E2_options": {
               "title": "Electric Water Heater Options",
               "type": "object",
@@ -302,11 +361,7 @@
                   "description": "Selects the protocol type of the water heater. Default to 'auto' which will try to detect the protocol automatically. Try to set this to 'old' or 'new' if the plugin is unable to communicate with the water heater.",
                   "type": "string",
                   "required": true,
-                  "enum": [
-                    "auto",
-                    "old",
-                    "new"
-                  ]
+                  "enum": ["auto", "old", "new"]
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
@@ -320,10 +375,7 @@
                   "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
-                  "enum": [
-                    0.5,
-                    1
-                  ]
+                  "enum": [0.5, 1]
                 },
                 "variableHeatingSwitch": {
                   "title": "Variable Heating Switch",
@@ -361,10 +413,7 @@
                   "title": "Temperature Step (°C)",
                   "type": "number",
                   "required": true,
-                  "enum": [
-                    0.5,
-                    1
-                  ]
+                  "enum": [0.5, 1]
                 },
                 "burningStateSensor": {
                   "title": "Burning State Sensor",
@@ -392,6 +441,15 @@
                   "type": "boolean"
                 }
               }
+            },
+            "FA_options": {
+              "title": "Fan Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fan';"
+              },
+              "properties": {
+              }
             }
           }
         }
@@ -407,13 +465,7 @@
           "expandable": true,
           "expanded": false,
           "title": "Optional Settings",
-          "items": [
-            "refreshInterval",
-            "heartbeatInterval",
-            "verbose",
-            "logRecoverableErrors",
-            "uiDebug"
-          ]
+          "items": ["refreshInterval", "heartbeatInterval", "uiDebug"]
         },
         {
           "key": "devices",
@@ -433,7 +485,8 @@
                 "devices[].advanced_options.token",
                 "devices[].advanced_options.key",
                 "devices[].advanced_options.verbose",
-                "devices[].advanced_options.logRecoverableErrors"
+                "devices[].advanced_options.logRecoverableErrors",
+                "devices[].advanced_options.logRefreshStatusErrors"
               ]
             },
             {
@@ -448,7 +501,8 @@
                 "devices[].A1_options.waterTankSensor",
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
-                "devices[].A1_options.humidityStep"
+                "devices[].A1_options.humidityStep",
+                "devices[].A1_options.humidityOffset"
               ]
             },
             {
@@ -471,13 +525,14 @@
                 "devices[].AC_options.ecoSwitch",
                 "devices[].AC_options.breezeAwaySwitch",
                 "devices[].AC_options.dryModeSwitch",
+                "devices[].AC_options.boostModeSwitch",
                 "devices[].AC_options.auxHeatingSwitches",
+                "devices[].AC_options.selfCleanSwitch",
+                "devices[].AC_options.ionSwitch",
+                "devices[].AC_options.rateSelector",
                 {
                   "key": "devices[].AC_options.displaySwitch",
-                  "items": [
-                    "devices[].AC_options.displaySwitch.flag",
-                    "devices[].AC_options.displaySwitch.command"
-                  ]
+                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
                 },
                 "devices[].AC_options.minTemp",
                 "devices[].AC_options.maxTemp",
@@ -486,6 +541,32 @@
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory"
               ]
+            },
+            {
+              "key": "devices[].C3_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].C3_options.zone1",
+                "devices[].C3_options.zone2",
+                "devices[].C3_options.waterHeater",
+                "devices[].C3_options.ecoSwitch",
+                "devices[].C3_options.silentSwitch",
+                "devices[].C3_options.tbhSwitch",
+                "devices[].C3_options.disinfectSwitch"
+              ]
+            },
+            {
+              "key": "devices[].DB_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
+            },
+            {
+              "key": "devices[].E1_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             },
             {
               "key": "devices[].E2_options",
@@ -515,6 +596,12 @@
                 "devices[].E3_options.maxTemp",
                 "devices[].E3_options.tempStep"
               ]
+            },
+            {
+              "key": "devices[].FA_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             }
           ]
         }

@@ -10,16 +10,16 @@
 const { HomebridgePluginUiServer, RequestError } = require('@homebridge/plugin-ui-utils');
 const Discover = require('../dist/core/MideaDiscover.js').default;
 const CloudFactory = require('../dist/core/MideaCloud.js').default;
-const { DeviceType, TCPMessageType, ProtocolVersion, Endianness } = require("../dist/core/MideaConstants.js");
-const { LocalSecurity } = require("../dist/core/MideaSecurity.js");
-const { PromiseSocket } = require("../dist/core/MideaUtils.js");
+const { DeviceType, TCPMessageType, ProtocolVersion, Endianness } = require('../dist/core/MideaConstants.js');
+const { LocalSecurity, ProxiedSecurity } = require('../dist/core/MideaSecurity.js');
+const { PromiseSocket } = require('../dist/core/MideaUtils.js');
 const { defaultConfig, defaultDeviceConfig } = require('../dist/platformUtils.js');
 
 const DEFAULT_ACCOUNT = [
-  BigInt("39182118275972017797890111985649342047468653967530949796945843010512"),
-  BigInt("29406100301096535908214728322278519471982973450672552249652548883645"),
-  BigInt("39182118275972017797890111985649342050088014265865102175083010656997")
-]
+  BigInt('39182118275972017797890111985649342047468653967530949796945843010512'),
+  BigInt('29406100301096535908214728322278519471982973450672552249652548883645'),
+  BigInt('39182118275972017797890111985649342050088014265865102175083010656997'),
+];
 
 var _ = require('lodash');
 
@@ -29,19 +29,19 @@ var _ = require('lodash');
  */
 class Logger {
   _debug;
-  _Reset = "\x1b[0m";
-  _Bright = "\x1b[1m";
-  _Dim = "\x1b[2m";
+  _Reset = '\x1b[0m';
+  _Bright = '\x1b[1m';
+  _Dim = '\x1b[2m';
 
-  _FgBlack = "\x1b[30m";
-  _FgRed = "\x1b[31m";
-  _FgGreen = "\x1b[32m";
-  _FgYellow = "\x1b[33m";
-  _FgBlue = "\x1b[34m";
-  _FgMagenta = "\x1b[35m";
-  _FgCyan = "\x1b[36m";
-  _FgWhite = "\x1b[37m";
-  _FgGray = "\x1b[90m";
+  _FgBlack = '\x1b[30m';
+  _FgRed = '\x1b[31m';
+  _FgGreen = '\x1b[32m';
+  _FgYellow = '\x1b[33m';
+  _FgBlue = '\x1b[34m';
+  _FgMagenta = '\x1b[35m';
+  _FgCyan = '\x1b[36m';
+  _FgWhite = '\x1b[37m';
+  _FgGray = '\x1b[90m';
 
   constructor(uiDebug = false) {
     this._debug = uiDebug;
@@ -70,7 +70,6 @@ class Logger {
  * Main server-side script called when Custom UI client sends requests
  */
 class UiServer extends HomebridgePluginUiServer {
-
   cloud;
   promiseSocket;
   security;
@@ -81,19 +80,19 @@ class UiServer extends HomebridgePluginUiServer {
     super();
     // Obtain the plugin configuration from homebridge config JSON file.
     const config = require(this.homebridgeConfigPath).platforms.find((obj) => obj.platform === 'midea-platform');
-    this.logger = new Logger(config?.uiDebug ? config.uiDebug : false);
-    this.logger.info(`Custom UI created.`);
+    this.logger = new Logger(config?.uiDebug ?? false);
+    this.logger.info('Custom UI created.');
     this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket(this.logger, config?.logRecoverableErrors ? config.logRecoverableErrors : false);
+    this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
 
     this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
         if (useDefaultProfile) {
-          this.logger.debug(`Using default profile.`);
+          this.logger.debug('Using default profile.');
           registeredApp = 'Midea SmartHome (MSmartHome)';
-          username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii')
-          password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii')
+          username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
+          password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
         }
         this.cloud = CloudFactory.createCloud(username, password, registeredApp);
         if (username && password && registeredApp) {
@@ -102,7 +101,7 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
-        throw new RequestError(`Login failed! Check the logs for more information.`);
+        throw new RequestError('Login failed! Check the logs for more information.');
       }
     });
 
@@ -136,12 +135,28 @@ class UiServer extends HomebridgePluginUiServer {
           }
         }
         this.logger.debug(`All devices:\n${JSON.stringify(devices, null, 2)}`);
-        return devices
-          .filter((a) => Object.keys(a).length > 0)
-          .sort((a, b) => a.ip.localeCompare(b.ip));
+        return devices.filter((a) => Object.keys(a).length > 0).sort((a, b) => a.ip.localeCompare(b.ip));
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         throw new RequestError(`Device discovery failed:\n${msg}`);
+      }
+    });
+
+    this.onRequest('/downloadLua', async ({ deviceType, deviceSn }) => {
+      try {
+        if (!this.cloud || !(this.cloud instanceof ProxiedSecurity)) {
+          this.pushEvent('showToast', { success: true, msg: 'Currently used cloud provider doesn\'t support Lua downloading, using the default profile now...' });
+          const registeredApp = 'Midea SmartHome (MSmartHome)';
+          const username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
+          const password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
+          this.cloud = CloudFactory.createCloud(username, password, registeredApp);
+          await this.cloud.login();
+        } 
+        const lua = await this.cloud.getProtocolLua(deviceType, deviceSn);
+        return lua;
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        throw new RequestError(`Download Lua failed:\n${msg}`);
       }
     });
 
@@ -199,7 +214,11 @@ class UiServer extends HomebridgePluginUiServer {
       const response = await this.promiseSocket.read();
       if (response) {
         if (response.length < 20) {
-          this.logger.debug(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length: ${response.length})\n${JSON.stringify(response)}`);
+          this.logger.debug(
+            `[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length: ${
+              response.length
+            })\n${JSON.stringify(response)}`,
+          );
           throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}. (Data length mismatch)`);
         }
         const resp = response.subarray(8, 72);
@@ -233,24 +252,33 @@ class UiServer extends HomebridgePluginUiServer {
 
       discover.on('device', async (device) => {
         switch (device.type) {
-          case DeviceType.AIR_CONDITIONER:
-            device['displayName'] = 'Air Conditioner';
-            break;
-          case DeviceType.DEHUMIDIFIER:
-            device['displayName'] = 'Dehumidifier';
-            break;
-          case DeviceType.ELECTRIC_WATER_HEATER:
-            device['displayName'] = 'Electric Water Heater';
-            break;
-          case DeviceType.GAS_WATER_HEATER:
-            device['displayName'] = 'Gas Water Heater';
-            break;
-          case DeviceType.FAN:
-            device['displayName'] = 'Fan';
-            break;
-          default:
-            device['displayName'] = 'Unknown';
-            break;
+        case DeviceType.AIR_CONDITIONER:
+          device.displayName = 'Air Conditioner';
+          break;
+        case DeviceType.DEHUMIDIFIER:
+          device.displayName = 'Dehumidifier';
+          break;
+        case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
+          device.displayName = 'Heat Pump WiFi Controller';
+        case DeviceType.FRONT_LOAD_WASHER:
+          device.displayName = 'Front Load Washer';
+          break;
+        case DeviceType.DISHWASHER:
+          device.displayName = 'Dishwasher';
+          break;
+        case DeviceType.ELECTRIC_WATER_HEATER:
+          device.displayName = 'Electric Water Heater';
+          break;
+        case DeviceType.GAS_WATER_HEATER:
+          device.displayName = 'Gas Water Heater';
+          break;
+        case DeviceType.FAN:
+          device.displayName = 'Fan';
+          break;
+        case DeviceType.UNKNOWN:
+        default:
+          device.displayName = 'Unknown';
+          break;
         }
         devices.push(device);
         // too verbose to post every device as found...

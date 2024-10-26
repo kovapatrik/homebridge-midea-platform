@@ -8,16 +8,16 @@
  *
  */
 import { Logger } from 'homebridge';
-import { KeyToken, LocalSecurity } from './MideaSecurity';
-import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants';
-import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
-import PacketBuilder from './MideaPacketBuilder';
-import { PromiseSocket } from './MideaUtils';
-import { Config, DeviceConfig } from '../platformUtils';
+import { KeyToken, LocalSecurity } from './MideaSecurity.js';
+import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants.js';
+import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage.js';
+import PacketBuilder from './MideaPacketBuilder.js';
+import { Config, DeviceConfig } from '../platformUtils.js';
 import EventEmitter from 'events';
+import { PromiseSocket } from './MideaUtils.js';
 
 export type DeviceAttributeBase = {
-  [key: string]: number | string | boolean | undefined;
+  [key: string]: number | number[] | string | boolean | boolean[] | Buffer | undefined;
 };
 
 export default abstract class MideaDevice extends EventEmitter {
@@ -43,6 +43,7 @@ export default abstract class MideaDevice extends EventEmitter {
   protected heartbeat_interval: number;
   protected verbose: boolean;
   protected logRecoverableErrors: boolean;
+  protected logRefreshStatusErrors: boolean;
 
   private _sub_type?: number;
 
@@ -81,6 +82,7 @@ export default abstract class MideaDevice extends EventEmitter {
 
     this.verbose = configDev.advanced_options.verbose;
     this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
+    this.logRefreshStatusErrors = configDev.advanced_options.logRefreshStatusErrors;
 
     this.logger.debug(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
     this.logger.debug(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
@@ -227,7 +229,6 @@ export default abstract class MideaDevice extends EventEmitter {
           await this.build_send(cmd);
           if (wait_response) {
             try {
-              // eslint-disable-next-line no-constant-condition
               while (true) {
                 const message = await this.promiseSocket.read();
                 if (message.length === 0) {
@@ -250,7 +251,11 @@ export default abstract class MideaDevice extends EventEmitter {
               error_cnt++;
               // TODO: handle connection error
               // this.unsupported_protocol.push(cmd.constructor.name);
-              this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              if (this.logRefreshStatusErrors) {
+                this.logger.warn(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              } else {
+                this.logger.debug(`[${this.name}] Does not supports the protocol ${cmd.constructor.name}, ignored, error: ${err}`);
+              }
             }
           }
         } else {
@@ -259,7 +264,11 @@ export default abstract class MideaDevice extends EventEmitter {
       }
 
       if (error_cnt === commands.length) {
-        this.logger.error(`[${this.name}] Refresh failed.`);
+        if (this.logRefreshStatusErrors) {
+          this.logger.error(`[${this.name}] Refresh failed.`);
+        } else {
+          this.logger.debug(`[${this.name}] Refresh failed.`);
+        }
         return false;
       }
     } catch (err) {
@@ -350,8 +359,8 @@ export default abstract class MideaDevice extends EventEmitter {
       }
       await this.build_send(cmd);
     } catch (e) {
-      this.logger.debug(`[${this.name}]  Interface send_command failure: ${e}, 
-                        cmd_type: ${command_type}, 
+      this.logger.debug(`[${this.name}]  Interface send_command failure: ${e},
+                        cmd_type: ${command_type},
                         cmd_body: ${command_body.toString('hex')}`);
     }
   }

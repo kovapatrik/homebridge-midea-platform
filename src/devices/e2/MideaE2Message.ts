@@ -6,8 +6,8 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 
 abstract class MessageE2Base extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
@@ -44,6 +44,8 @@ export class MessagePower extends MessageE2Base {
 }
 
 export class MessageNewProtocolSet extends MessageE2Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   target_temperature?: number;
   variable_heating?: boolean;
   whole_tank_heating?: boolean;
@@ -70,6 +72,8 @@ export class MessageNewProtocolSet extends MessageE2Base {
 }
 
 export class MessageSet extends MessageE2Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   target_temperature: number;
   variable_heating: boolean;
   whole_tank_heating: boolean;

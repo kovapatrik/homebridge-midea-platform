@@ -28,6 +28,10 @@ Show your Homebridge config.json here, remove any sensitive information.
 
 <!-- If applicable, add screenshots to help explain your problem. -->
 
+**Attach the lua file, if you think it's needed:**
+
+<!-- You can download the lua file from the plugin settings. This script contains the logic on how the device in controlled. Here is the documentation on how to do it: [Download Lua Script](/docs/download_lua.md) -->
+
 **Environment:**
 
 - **Plugin Version**:

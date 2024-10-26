@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 /***********************************************************************
  * Homebridge-midea-platform miscellaneous support functions.
  *
@@ -8,7 +9,7 @@
  *
  */
 import { Logger } from 'homebridge';
-import { Endianness } from './MideaConstants';
+import { Endianness } from './MideaConstants.js';
 import { Socket } from 'net';
 
 export function numberToUint8Array(num: number, byte_length: number, endianness: Endianness) {

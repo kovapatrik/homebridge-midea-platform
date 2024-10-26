@@ -9,10 +9,10 @@
  *
  */
 import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import BaseAccessory from './BaseAccessory';
-import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils';
-import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import BaseAccessory from './BaseAccessory.js';
+import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
+import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice.js';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   private service: Service;
@@ -23,8 +23,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
   private dryModeService?: Service;
+  private boostModeService?: Service;
   private auxService?: Service;
   private auxHeatingService?: Service;
+  private selfCleanService?: Service;
+  private ionService?: Service;
+  private rateSelectService?: Service;
+
   private swingAngleService?: Service;
 
   private swingAngleMainControl: SwingAngle;
@@ -64,10 +69,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       .setProps({
         validValues: this.configDev.AC_options.heatingCapable
           ? [
-              this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
-              this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
-              this.platform.Characteristic.TargetHeaterCoolerState.COOL,
-            ]
+            this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
+            this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
+            this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+          ]
           : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
       });
 
@@ -227,6 +232,19 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.dryModeService);
     }
 
+    this.boostModeService = this.accessory.getServiceById(this.platform.Service.Switch, 'BoostMode');
+    if (this.configDev.AC_options.boostModeSwitch) {
+      this.boostModeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Boost`, 'BoostMode');
+      this.boostModeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Boost`);
+      this.boostModeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Boost`);
+      this.boostModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getBoostMode.bind(this))
+        .onSet(this.setBoostMode.bind(this));
+    } else if (this.boostModeService) {
+      this.accessory.removeService(this.boostModeService);
+    }
+
     // Aux switch
     this.auxService = this.accessory.getServiceById(this.platform.Service.Switch, 'Aux');
     if (this.configDev.AC_options.auxHeatingSwitches) {
@@ -250,6 +268,55 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onSet(this.setAuxHeating.bind(this));
     } else if (this.auxHeatingService) {
       this.accessory.removeService(this.auxHeatingService);
+    }
+
+    // Self-cleaning switch
+    this.selfCleanService = this.accessory.getServiceById(this.platform.Service.Switch, 'SelfClean');
+    if (this.configDev.AC_options.selfCleanSwitch) {
+      this.selfCleanService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Self-cleaning`, 'SelfClean');
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Self-cleaning`);
+      this.selfCleanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Self-cleaning`);
+      this.selfCleanService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getSelfCleanState.bind(this))
+        .onSet(this.setSelfCleanState.bind(this));
+    } else if (this.selfCleanService) {
+      this.accessory.removeService(this.selfCleanService);
+    }
+
+    // ION switch
+    this.ionService = this.accessory.getServiceById(this.platform.Service.Switch, 'ION');
+    if (this.configDev.AC_options.ionSwitch) {
+      this.ionService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} ION`, 'ION');
+      this.ionService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} ION`);
+      this.ionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} ION`);
+      this.ionService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getIonState.bind(this))
+        .onSet(this.setIonState.bind(this));
+    } else if (this.ionService) {
+      this.accessory.removeService(this.ionService);
+    }
+
+    // Rate select slider
+    this.rateSelectService = this.accessory.getServiceById(this.platform.Service.Lightbulb, 'Gear');
+    if (this.configDev.AC_options.rateSelector) {
+      this.rateSelectService ??= this.accessory.addService(this.platform.Service.Lightbulb, `${this.device.name} Gear`, 'Gear');
+      this.rateSelectService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Gear`);
+      this.rateSelectService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Gear`);
+      this.rateSelectService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getActive.bind(this))
+        .onSet(this.setActive.bind(this));
+      this.rateSelectService
+        .getCharacteristic(this.platform.Characteristic.Brightness)
+        .setProps({
+          validValues: [0, 50, 75, 100],
+        })
+        .onGet(this.getRateSelect.bind(this))
+        .onSet(this.setRateSelect.bind(this));
+    } else if (this.rateSelectService) {
+      this.accessory.removeService(this.rateSelectService);
     }
 
     const swingProps = this.configDev.AC_options.swing;
@@ -305,86 +372,95 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
-        case 'power':
-          updateState = true;
-          break;
-        case 'temp_fahrenheit':
-          this.service.updateCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits, this.getTemperatureDisplayUnits());
-          break;
-        case 'screen_display':
-        case 'screen_display_new':
-          this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
-          break;
-        case 'target_temperature':
-          // If MODE is 4 then device is heating.  Therefore target temperature value must be heating target? Right?
-          if (this.device.attributes.MODE === 4) {
-            this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
-          } else {
-            this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getTargetTemperature());
-          }
-          updateState = true;
-          break;
-        case 'indoor_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
-          break;
-        case 'outdoor_temperature':
-          this.outDoorTemperatureService?.updateCharacteristic(
-            this.platform.Characteristic.CurrentTemperature,
-            this.getOutdoorTemperature(),
+      case 'power':
+        updateState = true;
+        break;
+      case 'temp_fahrenheit':
+        this.service.updateCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits, this.getTemperatureDisplayUnits());
+        break;
+      case 'screen_display':
+      case 'screen_display_new':
+        this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
+        break;
+      case 'target_temperature':
+        // If MODE is 4 then device is heating.  Therefore target temperature value must be heating target? Right?
+        if (this.device.attributes.MODE === 4) {
+          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
+        } else {
+          this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getTargetTemperature());
+        }
+        updateState = true;
+        break;
+      case 'indoor_temperature':
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+        break;
+      case 'outdoor_temperature':
+        this.outDoorTemperatureService?.updateCharacteristic(
+          this.platform.Characteristic.CurrentTemperature,
+          this.getOutdoorTemperature(),
+        );
+        break;
+      case 'fan_speed':
+        updateState = true;
+        break;
+      case 'fan_auto':
+        this.fanService?.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getFanState());
+        break;
+      case 'swing_vertical':
+      case 'swing_horizontal':
+        this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
+        break;
+      case 'mode':
+        updateState = true;
+        break;
+      case 'eco_mode':
+        this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
+        break;
+      case 'indirect_wind':
+        this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, this.getBreezeAway());
+        break;
+      case 'aux_heating':
+        this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, this.getAuxHeating());
+        break;
+      case 'smart_eye':
+        this.auxService?.updateCharacteristic(this.platform.Characteristic.On, this.getAux());
+        break;
+      case 'wind_swing_lr_angle':
+      case 'wind_swing_ud_angle':
+        this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.getSwingAngleCurrentPosition());
+        this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.getSwingAngleTargetPosition());
+
+        if (this.configDev.AC_options.swing.mode === SwingMode.BOTH) {
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentHorizontalTiltAngle,
+            this.getSwingAngleCurrentHorizontalTiltAngle(),
           );
-          break;
-        case 'fan_speed':
-          updateState = true;
-          break;
-        case 'fan_auto':
-          this.fanService?.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getFanState());
-          break;
-        case 'swing_vertical':
-        case 'swing_horizontal':
-          this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
-          break;
-        case 'mode':
-          updateState = true;
-          break;
-        case 'eco_mode':
-          this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
-          break;
-        case 'indirect_wind':
-          this.breezeAwayService?.updateCharacteristic(this.platform.Characteristic.On, this.getBreezeAway());
-          break;
-        case 'aux_heating':
-          this.auxHeatingService?.updateCharacteristic(this.platform.Characteristic.On, this.getAuxHeating());
-          break;
-        case 'smart_eye':
-          this.auxService?.updateCharacteristic(this.platform.Characteristic.On, this.getAux());
-          break;
-        case 'wind_swing_lr_angle':
-        case 'wind_swing_ud_angle':
-          this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, this.getSwingAngleCurrentPosition());
-          this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, this.getSwingAngleTargetPosition());
-
-          if (this.configDev.AC_options.swing.mode === SwingMode.BOTH) {
-            this.swingAngleService?.updateCharacteristic(
-              this.platform.Characteristic.CurrentHorizontalTiltAngle,
-              this.getSwingAngleCurrentHorizontalTiltAngle(),
-            );
-            this.swingAngleService?.updateCharacteristic(
-              this.platform.Characteristic.CurrentVerticalTiltAngle,
-              this.getSwingAngleCurrentVerticalTiltAngle(),
-            );
-            this.swingAngleService?.updateCharacteristic(
-              this.platform.Characteristic.TargetHorizontalTiltAngle,
-              this.getSwingAngleTargetHorizontalTiltAngle(),
-            );
-            this.swingAngleService?.updateCharacteristic(
-              this.platform.Characteristic.TargetVerticalTiltAngle,
-              this.getSwingAngleTargetVerticalTiltAngle(),
-            );
-          }
-
-          break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.CurrentVerticalTiltAngle,
+            this.getSwingAngleCurrentVerticalTiltAngle(),
+          );
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.TargetHorizontalTiltAngle,
+            this.getSwingAngleTargetHorizontalTiltAngle(),
+          );
+          this.swingAngleService?.updateCharacteristic(
+            this.platform.Characteristic.TargetVerticalTiltAngle,
+            this.getSwingAngleTargetVerticalTiltAngle(),
+          );
+        }
+        break;
+      case 'self_clean':
+        updateState = true;
+        this.selfCleanService?.updateCharacteristic(this.platform.Characteristic.On, this.getSelfCleanState());
+        break;
+      case 'ion':
+        this.ionService?.updateCharacteristic(this.platform.Characteristic.On, this.getIonState());
+        break;
+      case 'rate_select':
+        this.rateSelectService?.updateCharacteristic(this.platform.Characteristic.Brightness, this.getRateSelect());
+        break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
@@ -410,7 +486,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    *
    */
   getActive(): CharacteristicValue {
-    // Show as inactive if device is off or in fan-only mode
+    // Show as inactive if device is off
     return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
 
@@ -464,15 +540,15 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setTargetHeaterCoolerState(value: CharacteristicValue) {
     switch (value) {
-      case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        await this.device.set_attribute({ MODE: 1 });
-        break;
-      case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
-        await this.device.set_attribute({ MODE: 2 });
-        break;
-      case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        await this.device.set_attribute({ MODE: 4 });
-        break;
+    case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
+      await this.device.set_attribute({ POWER: true, MODE: 1 });
+      break;
+    case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
+      await this.device.set_attribute({ POWER: true, MODE: 2 });
+      break;
+    case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
+      await this.device.set_attribute({ POWER: true, MODE: 4 });
+      break;
     }
   }
 
@@ -520,15 +596,15 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setSwingMode(value: CharacteristicValue) {
     switch (value) {
-      case this.platform.Characteristic.SwingMode.SWING_ENABLED:
-        await this.device.set_swing(
-          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
-          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
-        );
-        break;
-      case this.platform.Characteristic.SwingMode.SWING_DISABLED:
-        await this.device.set_swing(false, false);
-        break;
+    case this.platform.Characteristic.SwingMode.SWING_ENABLED:
+      await this.device.set_swing(
+        [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
+        [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
+      );
+      break;
+    case this.platform.Characteristic.SwingMode.SWING_DISABLED:
+      await this.device.set_swing(false, false);
+      break;
     }
   }
 
@@ -582,6 +658,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
   }
 
+  getBoostMode(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.BOOST_MODE;
+  }
+
+  async setBoostMode(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, BOOST_MODE: true });
+    } else {
+      await this.device.set_attribute({ BOOST_MODE: false });
+    }
+  }
+
   getAux(): CharacteristicValue {
     return this.device.attributes.POWER === true && this.device.attributes.SMART_EYE === true;
   }
@@ -604,6 +692,30 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     } else {
       await this.device.set_attribute({ AUX_HEATING: false });
     }
+  }
+
+  getSelfCleanState(): CharacteristicValue {
+    return this.device.attributes.SELF_CLEAN === true;
+  }
+
+  async setSelfCleanState(value: CharacteristicValue) {
+    await this.device.set_self_clean(value === true);
+  }
+
+  getIonState(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.ION === true;
+  }
+
+  async setIonState(value: CharacteristicValue) {
+    await this.device.set_ion(value === true);
+  }
+
+  getRateSelect(): CharacteristicValue {
+    return this.device.attributes.RATE_SELECT ?? 100;
+  }
+
+  async setRateSelect(value: CharacteristicValue) {
+    await this.device.set_rate_select(value as number);
   }
 
   getSwingAngleCurrentPosition(): CharacteristicValue {

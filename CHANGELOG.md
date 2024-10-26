@@ -1,5 +1,21 @@
 # Changelog
 
+# v1.2.0
+## 2024-10-26
+- BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.
+- BREAKING CHANGE: Node version support is now `^18.20.4 || ^20.18.0 || ^22.10.0`.
+- feat: added support for `Front Load Washers` (fixes #87)
+- feat: added support for `Dishwashers` (fixes #104)
+- feat: added possibility to add custom humidity offset for `Dehumidifiers` (fixes #98)
+- feat: added possibility to toggle boost/turbo mode switch creation for `Air Conditioners` (fixes #102)
+- feat: possibilty to download Lua files using the config UI (fixes #69)
+- feat: `logRefreshStatusErrors` flag per device is added for hiding errors in the logs (fixes #93)
+- feat: partial support for `Heat Pump WiFi Controller`
+- fix: explicitly set the power when changing the mode for `Air Conditioners` (fixes #99)
+- fix: handling of sending out messages to devices, excluding existing state commands (fixes #99, #101)
+- fix: QoL improvements and bug fixes (TCP key error, etc.)
+- chore: deleted unnecessary flags
+
 # v1.1.0
 ## 2024-07-13
 - BREAKING CHANGE: `Air Conditioner` configuration changed: there is now a possibility to create an accessory which can be used to control the slats on the unit. THe configuration structure has changed. Please check [AC docs](/docs/ac.md) for more information (or just save the configuration again in the plugin settings to get the new structure).

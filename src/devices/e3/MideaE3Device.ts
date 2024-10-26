@@ -8,11 +8,11 @@
  */
 
 import { Logger } from 'homebridge';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
-import { DeviceInfo } from '../../core/MideaConstants';
-import { Config, DeviceConfig } from '../../platformUtils';
-import { MessageRequest } from '../../core/MideaMessage';
-import { MessageE3Response, MessageNewProtocolSet, MessagePower, MessageQuery, MessageSet, NewProtocolTags } from './MideaE3Message';
+import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
+import { DeviceInfo } from '../../core/MideaConstants.js';
+import { Config, DeviceConfig } from '../../platformUtils.js';
+import { MessageRequest } from '../../core/MideaMessage.js';
+import { MessageE3Response, MessageNewProtocolSet, MessagePower, MessageQuery, MessageSet, NewProtocolTags } from './MideaE3Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -104,33 +104,51 @@ export default class MideaE3Device extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<E3Attributes>) {
+    const messageToSend: {
+      POWER: MessagePower | undefined;
+      SET: MessageSet | undefined;
+      NEW_PROTOCOL_SET: MessageNewProtocolSet | undefined;
+    } = {
+      POWER: undefined,
+      SET: undefined,
+      NEW_PROTOCOL_SET: undefined,
+    };
+
     try {
       for (const [k, v] of Object.entries(attributes)) {
-        let message: MessagePower | MessageNewProtocolSet | MessageSet | undefined;
+        if (v === this.attributes[k]) {
+          this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+          continue;
+        }
+        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+
+        if (this.precision_halves && k === 'TARGET_TEMPERATURE') {
+          const value = ((v as number) * 2) | 0;
+          this.attributes[k] = value;
+        } else {
+          this.attributes[k] = v;
+        }
+
         // not sensor data
         if (!['BURNING_STATE', 'CURRENT_TEMPERATURE', 'PROTECTION'].includes(k)) {
-          let value = v;
-          if (this.precision_halves && k === 'TARGET_TEMPERATURE') {
-            value = ((v as number) * 2) | 0;
-          }
-          this.attributes[k] = value;
           if (k === 'POWER') {
-            message = new MessagePower(this.device_protocol_version);
-            if (message instanceof MessagePower) {
-              message.power = value as boolean;
-            }
+            messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
+            messageToSend.POWER.power = v as boolean;
           } else if (this._old_subtypes.includes(this.sub_type)) {
-            message = this.make_message_set();
-            message[k.toLowerCase()] = value;
+            messageToSend.SET ??= this.make_message_set();
+            messageToSend.SET[k.toLowerCase()] = v;
           } else {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
-            message.key = k as keyof typeof NewProtocolTags;
-            message.value = value as number | boolean;
+            messageToSend.NEW_PROTOCOL_SET ??= new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL_SET.key = k as keyof typeof NewProtocolTags;
+            messageToSend.NEW_PROTOCOL_SET.value = v as number | boolean;
           }
-          if (message) {
-            this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-            await this.build_send(message);
-          }
+        }
+      }
+
+      for (const [k, v] of Object.entries(messageToSend)) {
+        if (v !== undefined) {
+          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+          await this.build_send(v);
         }
       }
     } catch (err) {

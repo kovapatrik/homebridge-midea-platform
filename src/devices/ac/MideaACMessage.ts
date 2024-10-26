@@ -6,20 +6,23 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
-import { calculate } from '../../core/MideaUtils';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage.js';
+import { calculate } from '../../core/MideaUtils.js';
 
 enum NewProtocolTags {
   WIND_SWING_UD_ANGLE = 0x0009,
   WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
-  SCREEN_DISPLAY = 0x0017,
+  SCREEN_DISPLAY = 0x0024,
   BREEZELESS = 0x0018,
   PROMPT_TONE = 0x001a,
-  INDIRECT_WIND = 0x0042,
+  INDIRECT_WIND = 0x0042, // prevent_straight_wind
   FRESH_AIR_1 = 0x0233,
   FRESH_AIR_2 = 0x004b,
+  SELF_CLEAN = 0x0039,
+  RATE_SELECT = 0x0048, // GEAR
+  ION = 0x001e, // anion
 }
 
 const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
@@ -76,7 +79,9 @@ export class MessageSwitchDisplay extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    return Buffer.concat([Buffer.from([0x00, 0x00, 0xff, 0x02, 0x00, 0x02, 0x00]), Buffer.alloc(12)]);
+
+    // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
 
@@ -95,9 +100,12 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      this.alternate_display ? NewProtocolTags.SCREEN_DISPLAY : undefined,
+      NewProtocolTags.SCREEN_DISPLAY,
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
+      NewProtocolTags.SELF_CLEAN,
+      NewProtocolTags.RATE_SELECT,
+      NewProtocolTags.ION,
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
@@ -150,6 +158,8 @@ export class MessageSubProtocolQuery extends MessageSubProtocol {
 }
 
 export class MessageSubProtocolSet extends MessageSubProtocol {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   public power: boolean;
   public mode: number;
   public target_temperature: number;
@@ -237,6 +247,8 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
 }
 
 export class MessageGeneralSet extends MessageACBase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
   public power: boolean;
   public prompt_tone: boolean;
   public mode: number;
@@ -333,6 +345,8 @@ export class MessageGeneralSet extends MessageACBase {
 }
 
 export class MessageNewProtocolSet extends MessageACBase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [k: string]: any;
   public wind_swing_ud_angle?: number;
   public wind_swing_lr_angle?: number;
   public indirect_wind?: boolean;
@@ -341,6 +355,9 @@ export class MessageNewProtocolSet extends MessageACBase {
   public screen_display?: boolean;
   public fresh_air_1?: Buffer;
   public fresh_air_2?: Buffer;
+  public self_clean?: boolean;
+  public rate_select?: number;
+  public ion?: boolean;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0xb0);
@@ -411,6 +428,24 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(NewProtocolTags.FRESH_AIR_2, Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff])),
       ]);
+    }
+
+    if (this.self_clean !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([
+        payload,
+        NewProtocolMessageBody.packet(NewProtocolTags.SELF_CLEAN, Buffer.from([this.self_clean ? 0x01 : 0x00])),
+      ]);
+    }
+
+    if (this.rate_select !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.RATE_SELECT, Buffer.from([this.rate_select]))]);
+    }
+
+    if (this.ion !== undefined) {
+      pack_count += 1;
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.ION, Buffer.from([this.ion ? 0x01 : 0x00]))]);
     }
 
     pack_count += 1;
@@ -509,6 +544,9 @@ class XBXMessageBody extends NewProtocolMessageBody {
   public fresh_air_2?: boolean;
   public fresh_air_power?: boolean;
   public fresh_air_fan_speed?: number;
+  public self_clean?: boolean;
+  public rate_select?: number; // 50% 75% 100%
+  public ion?: boolean;
 
   constructor(body: Buffer, body_type: number) {
     super(body, body_type);
@@ -545,6 +583,18 @@ class XBXMessageBody extends NewProtocolMessageBody {
       const data = params[NewProtocolTags.FRESH_AIR_2];
       this.fresh_air_power = data[0] > 0;
       this.fresh_air_fan_speed = data[1];
+    }
+
+    if (NewProtocolTags.SELF_CLEAN in params) {
+      this.self_clean = params[NewProtocolTags.SELF_CLEAN][0] === 0x1;
+    }
+
+    if (NewProtocolTags.RATE_SELECT in params) {
+      this.rate_select = params[NewProtocolTags.RATE_SELECT][0];
+    }
+
+    if (NewProtocolTags.ION in params) {
+      this.ion = params[NewProtocolTags.ION][0] === 0x1;
     }
   }
 }
@@ -614,7 +664,7 @@ class XC0MessageBody extends MessageBody {
     }
 
     this.full_dust = (body[13] & 0x20) > 0;
-    this.screen_display = ((body[14] >> 4) & 0x7) !== 0x07 && this.power;
+    this.screen_display = (body[14] & 0x70) >> 4 !== 0x07;
     this.frost_protect = body.length > 23 ? (body[21] & 0x80) > 0 : false;
     this.comfort_mode = body.length > 24 ? (body[22] & 0x1) > 0 : false;
   }

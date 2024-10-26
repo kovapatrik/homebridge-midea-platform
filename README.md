@@ -22,13 +22,14 @@ Currently supports the following devices:
 |--------|----|------|
 | Air Conditioner | AC | [link](/docs/ac.md) |
 | Dehumidifier | A1 | [link](/docs/a1.md) |
+| Front Load Washer | DB | [link](/docs/db.md) |
 | Electric Water Heater | E2 | [link](/docs/e2.md) |
 | Gas Water Heater | E3 | [link](/docs/e3.md) |
 | Fan | FA | [link](/docs/fa.md) |
 
 ### Unsupported Devices
 
-If you have a device not supported by the plugin then useful information will be logged as warnings. If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues).
+If you have a device not supported by the plugin then useful information will be logged as warnings. If you are interested in developing support for a device please contact the authors by opening an [issue](https://github.com/kovapatrik/homebridge-midea-platform/issues). Please attach the `lua` file to the issue, if possible. Here is the [guide](/docs/download_lua.md) on how to download the `lua` file.
 
 ## Installation
 
@@ -50,7 +51,7 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest and **strongly recommended** way to configure this plugin.
 
-You should use the UI to discover and add devices. More information on the settings can be found in the [Settings](#settings) section below.
+You should use the UI to discover and add devices. More information on the settings can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki#device-discovery).
 
 ## License
 

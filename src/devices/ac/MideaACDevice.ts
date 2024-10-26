@@ -7,8 +7,8 @@
  *
  */
 import { Logger } from 'homebridge';
-import { DeviceInfo } from '../../core/MideaConstants';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
+import { DeviceInfo } from '../../core/MideaConstants.js';
+import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
 import {
   MessageACResponse,
   MessageGeneralSet,
@@ -19,8 +19,8 @@ import {
   MessageSubProtocolQuery,
   MessageSubProtocolSet,
   MessageSwitchDisplay,
-} from './MideaACMessage';
-import { Config, DeviceConfig, SwingAngle } from '../../platformUtils';
+} from './MideaACMessage.js';
+import { Config, DeviceConfig, SwingAngle } from '../../platformUtils.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -64,6 +64,9 @@ export interface ACAttributes extends DeviceAttributeBase {
   FRESH_AIR_MODE?: string;
   FRESH_AIR_1: boolean;
   FRESH_AIR_2: boolean;
+  RATE_SELECT?: number; // GEAR
+  SELF_CLEAN?: boolean;
+  ION?: boolean;
 }
 
 export default class MideaACDevice extends MideaDevice {
@@ -145,6 +148,9 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_MODE: undefined, // invalid
       FRESH_AIR_1: false,
       FRESH_AIR_2: false,
+      SELF_CLEAN: undefined,
+      RATE_SELECT: undefined,
+      ION: undefined,
     };
 
     this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
@@ -280,12 +286,18 @@ export default class MideaACDevice extends MideaDevice {
   }
 
   async set_attribute(attributes: Partial<ACAttributes>) {
-    let sendScreenCommand = false;
+    const messageToSend: {
+      GENERAL: MessageGeneralSet | MessageSubProtocolSet | undefined;
+      NEW_PROTOCOL: MessageNewProtocolSet | undefined;
+      SWITCH_DISPLAY: MessageSwitchDisplay | undefined;
+    } = {
+      GENERAL: undefined,
+      NEW_PROTOCOL: undefined,
+      SWITCH_DISPLAY: undefined,
+    };
+
     try {
       for (const [k, v] of Object.entries(attributes)) {
-        let message: MessageGeneralSet | MessageSubProtocolSet | MessageNewProtocolSet | MessageSwitchDisplay | undefined = undefined;
-        this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
-
         // not sensor data
         if (
           ![
@@ -298,6 +310,11 @@ export default class MideaACDevice extends MideaDevice {
             'REALTIME_POWER',
           ].includes(k)
         ) {
+          if (v === this.attributes[k]) {
+            this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+            continue;
+          }
+          this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
           this.attributes[k] = v;
 
           if (k === 'PROMPT_TONE') {
@@ -305,74 +322,80 @@ export default class MideaACDevice extends MideaDevice {
           } else if (k === 'SCREEN_DISPLAY') {
             // if (this.attributes.SCREEN_DISPLAY_NEW)
             if (this.alternate_switch_display) {
-              message = new MessageNewProtocolSet(this.device_protocol_version);
-              if (message instanceof MessageNewProtocolSet) {
-                message.screen_display = !!v;
-                message.prompt_tone = this.attributes.PROMPT_TONE;
-              }
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL.screen_display = !!v;
+              messageToSend.NEW_PROTOCOL.prompt_tone = this.attributes.PROMPT_TONE;
             } else {
-              message = new MessageSwitchDisplay(this.device_protocol_version);
+              messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
             }
           } else if (['INDIRECT_WIND', 'BREEZELESS'].includes(k)) {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
-            if (message instanceof MessageNewProtocolSet) {
-              message[k.toLowerCase()] = !!v;
-              message.prompt_tone = this.attributes.PROMPT_TONE;
-            }
-          } else if (k === 'FRESH_AIR_POWER') {
-            if (this.fresh_air_version) {
-              message = new MessageNewProtocolSet(this.device_protocol_version);
-              message[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
-            }
-          } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version) {
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL[k.toLowerCase()] = !!v;
+            messageToSend.NEW_PROTOCOL.prompt_tone = this.attributes.PROMPT_TONE;
+          } else if (k === 'FRESH_AIR_POWER' && this.fresh_air_version !== undefined) {
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL[this.fresh_air_version] = [!!v, this.attributes.FRESH_AIR_FAN_SPEED];
+          } else if (k === 'FRESH_AIR_MODE' && this.fresh_air_version !== undefined) {
             if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
-              const speed = Number.parseInt(Object.keys(this.FRESH_AIR_FAN_SPEEDS).find((key) => this.FRESH_AIR_FAN_SPEEDS[key] === v)!);
+              let speed: number;
+              switch (v) {
+              case 'Silent':
+                speed = 20;
+                break;
+              case 'Low':
+                speed = 40;
+                break;
+              case 'Medium':
+                speed = 60;
+                break;
+              case 'High':
+                speed = 80;
+                break;
+              case 'Full':
+                speed = 100;
+                break;
+              default:
+                speed = 0;
+              }
               const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-              message = new MessageNewProtocolSet(this.device_protocol_version);
-              message[this.fresh_air_version] = fresh_air;
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
             } else if (!v) {
-              message = new MessageNewProtocolSet(this.device_protocol_version);
-              message[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
+              messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+              messageToSend.NEW_PROTOCOL[this.fresh_air_version] = [false, this.attributes.FRESH_AIR_FAN_SPEED];
             }
-          } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version) {
-            message = new MessageNewProtocolSet(this.device_protocol_version);
+          } else if (k === 'FRESH_AIR_FAN_SPEED' && this.fresh_air_version !== undefined) {
             const value = v as number;
             const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
-            message[this.fresh_air_version] = fresh_air;
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
           } else {
-            message = this.make_message_unique_set();
+            messageToSend.GENERAL ??= this.make_message_unique_set();
+            messageToSend.GENERAL[k.toLowerCase()] = v;
             if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
-              if (message instanceof MessageGeneralSet || message instanceof MessageSubProtocolSet) {
-                message.sleep_mode = false;
-                message.boost_mode = false;
-                message.eco_mode = false;
+              messageToSend.GENERAL.sleep_mode = false;
+              messageToSend.GENERAL.boost_mode = false;
+              messageToSend.GENERAL.eco_mode = false;
 
-                if (message instanceof MessageGeneralSet) {
-                  message.frost_protect = false;
-                  message.comfort_mode = false;
-                }
-                message[k.toLowerCase()] = !!v;
-                if (k === 'MODE') {
-                  message.power = true;
-                }
+              if (messageToSend.GENERAL instanceof MessageGeneralSet) {
+                messageToSend.GENERAL.frost_protect = false;
+                messageToSend.GENERAL.comfort_mode = false;
               }
             }
-            if (k === 'POWER' && v === true && message instanceof MessageGeneralSet) {
-              message.temp_fahrenheit = this.defaultFahrenheit;
+            if (k === 'POWER' && v === true && messageToSend.GENERAL instanceof MessageGeneralSet) {
+              messageToSend.GENERAL.temp_fahrenheit = this.defaultFahrenheit;
               this.attributes.TEMP_FAHRENHEIT = this.defaultFahrenheit;
               if (this.defaultScreenOff) {
-                sendScreenCommand = true;
+                messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
               }
             }
           }
         }
-        if (message) {
-          this.logger.debug(`[${this.name}] Set message:\n${JSON.stringify(message)}`);
-          await this.build_send(message);
-
-          if (sendScreenCommand) {
-            await this.build_send(new MessageSwitchDisplay(this.device_protocol_version));
-          }
+      }
+      for (const [k, v] of Object.entries(messageToSend)) {
+        if (v !== undefined) {
+          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+          await this.build_send(v);
         }
       }
     } catch (err) {
@@ -432,15 +455,51 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes.SWING_HORIZONTAL = false;
     this.attributes.SWING_VERTICAL = false;
     switch (swing_direction) {
-      case SwingAngle.HORIZONTAL:
-        message.wind_swing_lr_angle = swing_angle;
-        this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
-        break;
-      case SwingAngle.VERTICAL:
-        message.wind_swing_ud_angle = swing_angle;
-        this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
-        break;
+    case SwingAngle.HORIZONTAL:
+      message.wind_swing_lr_angle = swing_angle;
+      this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
+      break;
+    case SwingAngle.VERTICAL:
+      message.wind_swing_ud_angle = swing_angle;
+      this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
+      break;
     }
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_self_clean(self_clean: boolean) {
+    this.logger.info(`[${this.name}] Set self clean to: ${self_clean}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.self_clean = self_clean;
+    this.attributes.SELF_CLEAN = self_clean;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_ion(ion: boolean) {
+    this.logger.info(`[${this.name}] Set ion to: ${ion}`);
+
+    // If ion is enabled, we need to turn on the device first
+    if (ion === true) {
+      this.logger.info(`[${this.name}] Powering on device to enable ion`);
+      this.attributes.POWER = true;
+      const message = this.make_message_unique_set();
+      await this.build_send(message);
+    }
+
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.ion = ion;
+    this.attributes.ION = ion;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_rate_select(rate_select: number) {
+    this.logger.info(`[${this.name}] Set rate select to: ${rate_select}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.rate_select = rate_select;
+    this.attributes.RATE_SELECT = rate_select;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }

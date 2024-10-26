@@ -15,12 +15,16 @@ Providing air conditioner settings is optional and the whole section or individu
     "screenOff": false,
     "ecoSwitch": false,
     "dryModeSwitch": false,
+    "boostModeSwitch": false,
     "breezeAwaySwitch": false,
     "displaySwitch": {
         "flag": true,
         "command": false
     },
     "auxHeatingSwitches": false,
+    "selfCleanSwitch": false,
+    "ionSwitch": false,
+    "rateSelector": false,
     "minTemp": 16,
     "maxTemp": 30,
     "tempStep": 1,
@@ -40,11 +44,15 @@ Providing air conditioner settings is optional and the whole section or individu
 - **screenOff** *(optional)*: Toggles if the screen is turned off by default when the unit is turned on. Default is `false`.
 - **ecoSwitch** *(optional)*: Toggles if the eco switch is created with the accessory. Default is `false`.
 - **dryModeSwitch** *(optional)*: Toggles if the dry mode switch is created with the accessory. Default is `false`.
+- **boostModeSwitch** *(optional)*: Toggles if the boost/turbo mode switch is created with the accessory. Default is `false`.
 - **breezeAwaySwitch** *(optional)*: Toggles if the breeze away switch is created with the accessory. Default is `false`.
 - **displaySwitch**:
   - **flag** *(optional)*: Toggles if a switch, which can turn the display on or off will be created or not. Default is `true`.
   - **command** *(optional)*: Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature. Default is `false`. 
 - **auxHeatingSwitches** *(optional)*: Toggles if the aux heating switches are created with the accessory. Default is `false`.
+- **selfCleanSwitch** *(optional)*: Toggles if the self-cleaning switch is created with the accessory. Default is `false`.
+- **ionSwitch** *(optional)*: Toggles if the ION switch is created with the accessory. Default is `false`.
+- **rateSelector** *(optional)*: Toggles if the gear selector is created with the accessory. Default is `false`.
 - **minTemp** *(optional)*: The minimum temperature that the unit can be set for.  Default is `16 celsius`
 - **maxTemp** *(optional)*: The maximum temperature that the unit can be set for.  Default is `30 celsius`
 - **tempStep** *(optional)*: Increment in which the temperature setting can be changed, may be set to either 0.5 or 1 degree celsius. The default is `1 degree`.

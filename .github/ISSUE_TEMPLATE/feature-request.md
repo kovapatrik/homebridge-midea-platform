@@ -18,6 +18,10 @@ assignees: ''
 
 <!-- A clear and concise description of any alternative solutions or features you've considered. -->
 
+**Attach the lua file, if you think it's needed:**
+
+<!-- You can download the lua file from the plugin settings. This script contains the logic on how the device in controlled. Here is the documentation on how to do it: [Download Lua Script](/docs/download_lua.md) -->
+
 **Additional context:**
 
 <!-- Add any other context or screenshots about the feature request here. -->

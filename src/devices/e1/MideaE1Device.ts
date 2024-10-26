@@ -1,5 +1,5 @@
 /***********************************************************************
- * Midea Electric Water Heater Device class
+ * Midea Dishwasher Device class
  *
  * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
  *
@@ -11,28 +11,41 @@ import { Logger } from 'homebridge';
 import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
 import { DeviceInfo } from '../../core/MideaConstants.js';
 import { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageE2Response, MessageNewProtocolSet, MessagePower, MessageQuery, MessageSet } from './MideaE2Message.js';
+import { MessageE1Response, MessageLock, MessagePower, MessageQuery, MessageStorage } from './MideaE1Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
-export interface E2Attributes extends DeviceAttributeBase {
+export interface E1Attributes extends DeviceAttributeBase {
   POWER: boolean;
-  HEATING: boolean;
-  KEEP_WARM: boolean;
-  PROTECTION: boolean;
-  CURRENT_TEMPERATURE?: number;
-  TARGET_TEMPERATURE: number;
-  WHOLE_TANK_HEATING: boolean;
-  VARIABLE_HEATING: boolean;
-  HEATING_TIME_REMAINING: number;
-  WATER_CONSUMPTION?: number;
-  HEATING_POWER?: number;
+  STATUS?: number;
+  MODE: number;
+  ADDITIONAL: number;
+  DOOR: boolean;
+  RINSE_AID: boolean;
+  SALT: boolean;
+  START_PAUSE: boolean;
+  START: boolean;
+  CHILD_LOCK: boolean;
+  UV: boolean;
+  DRY: boolean;
+  DRY_STATUS: boolean;
+  STORAGE: boolean;
+  STORAGE_STATUS: boolean;
+  TIME_REMAINING?: number;
+  PROGRESS?: number;
+  STORAGE_REMAINING?: number;
+  TEMPERATURE?: number;
+  HUMIDITY?: number;
+  WATERSWITCH: boolean;
+  WATER_LACK: boolean;
+  ERROR_CODE?: number;
+  SOFTWATER: number;
+  WRONG_OPERATION?: number;
+  BRIGHT?: number;
 }
 
-export default class MideaE2Device extends MideaDevice {
-  public attributes: E2Attributes;
-
-  private _old_protocol: string;
+export default class MideaE1Device extends MideaDevice {
+  public attributes: E1Attributes;
 
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
@@ -42,24 +55,35 @@ export default class MideaE2Device extends MideaDevice {
    */
   constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
+
     this.attributes = {
       POWER: false,
-      HEATING: false,
-      KEEP_WARM: false,
-      PROTECTION: false,
-      CURRENT_TEMPERATURE: undefined,
-      TARGET_TEMPERATURE: 40,
-      WHOLE_TANK_HEATING: false,
-      VARIABLE_HEATING: false,
-      HEATING_TIME_REMAINING: 0,
-      WATER_CONSUMPTION: undefined,
-      HEATING_POWER: undefined,
+      STATUS: undefined,
+      MODE: 0,
+      ADDITIONAL: 0,
+      DOOR: false,
+      RINSE_AID: false,
+      SALT: false,
+      START_PAUSE: false,
+      START: false,
+      CHILD_LOCK: false,
+      UV: false,
+      DRY: false,
+      DRY_STATUS: false,
+      STORAGE: false,
+      STORAGE_STATUS: false,
+      TIME_REMAINING: undefined,
+      PROGRESS: undefined,
+      STORAGE_REMAINING: undefined,
+      TEMPERATURE: undefined,
+      HUMIDITY: undefined,
+      WATERSWITCH: false,
+      WATER_LACK: false,
+      ERROR_CODE: undefined,
+      SOFTWATER: 0,
+      WRONG_OPERATION: undefined,
+      BRIGHT: undefined,
     };
-    this._old_protocol = deviceConfig.E2_options.protocol;
-  }
-
-  get old_protocol() {
-    return this.sub_type <= 82 || this.sub_type === 85 || this.sub_type === 36353;
   }
 
   build_query() {
@@ -67,7 +91,7 @@ export default class MideaE2Device extends MideaDevice {
   }
 
   process_message(msg: Buffer) {
-    const message = new MessageE2Response(msg);
+    const message = new MessageE1Response(msg);
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
@@ -94,24 +118,15 @@ export default class MideaE2Device extends MideaDevice {
     }
   }
 
-  make_message_set() {
-    const message = new MessageSet(this.device_protocol_version);
-    message.protection = this.attributes.PROTECTION;
-    message.whole_tank_heating = this.attributes.WHOLE_TANK_HEATING;
-    message.target_temperature = this.attributes.TARGET_TEMPERATURE;
-    message.variable_heating = this.attributes.VARIABLE_HEATING;
-    return message;
-  }
-
-  async set_attribute(attributes: Partial<E2Attributes>) {
+  async set_attribute(attributes: Partial<E1Attributes>) {
     const messageToSend: {
       POWER: MessagePower | undefined;
-      SET: MessageSet | undefined;
-      NEW_PROTOCOL_SET: MessageNewProtocolSet | undefined;
+      CHILD_LOCK: MessageLock | undefined;
+      STORAGE: MessageStorage | undefined;
     } = {
       POWER: undefined,
-      SET: undefined,
-      NEW_PROTOCOL_SET: undefined,
+      CHILD_LOCK: undefined,
+      STORAGE: undefined,
     };
 
     try {
@@ -123,19 +138,15 @@ export default class MideaE2Device extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        // not sensor data
-        if (!['HEATING', 'KEEP_WARM', 'CURRENT_TEMPERATURE'].includes(k)) {
-          const old_protocol = this._old_protocol !== 'auto' ? this._old_protocol === 'old' : this.old_protocol;
-          if (k === 'POWER') {
-            messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
-            messageToSend.POWER.power = v as boolean;
-          } else if (old_protocol) {
-            messageToSend.SET ??= this.make_message_set();
-            messageToSend.SET[k.toLowerCase()] = v;
-          } else {
-            messageToSend.NEW_PROTOCOL_SET ??= new MessageNewProtocolSet(this.device_protocol_version);
-            messageToSend.NEW_PROTOCOL_SET[k.toLowerCase()] = v;
-          }
+        if (k === 'POWER') {
+          messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
+          messageToSend.POWER.power = v as boolean;
+        } else if (k === 'CHILD_LOCK') {
+          messageToSend.CHILD_LOCK ??= new MessageLock(this.device_protocol_version);
+          messageToSend.CHILD_LOCK.lock = v as boolean;
+        } else if (k === 'STORAGE') {
+          messageToSend.STORAGE ??= new MessageStorage(this.device_protocol_version);
+          messageToSend.STORAGE.storage = v as boolean;
         }
       }
 
@@ -152,6 +163,6 @@ export default class MideaE2Device extends MideaDevice {
   }
 
   protected set_subtype(): void {
-    this.logger.debug('No subtype for E2 device');
+    this.logger.debug('No subtype for E1 device');
   }
 }

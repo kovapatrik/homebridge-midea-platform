@@ -1,7 +1,8 @@
 {
   "displayName": "Homebridge Midea Platform",
   "name": "homebridge-midea-platform",
-  "version": "1.1.1",
+  "type": "module",
+  "version": "1.2.0",
   "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
   "repository": {
@@ -22,51 +23,40 @@
     }
   ],
   "engines": {
-    "node": "^18.17.0 || ^20.9.0",
-    "homebridge": "^1.6.0"
+    "node": "^18.20.4 || ^20.18.0 || ^22.10.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
   "scripts": {
-    "lint": "eslint . --cache --ext .ts",
+    "lint": "eslint . --max-warnings=0",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run lint && npm run build",
-    "format": "prettier --log-level warn --write \"**/*.ts\" && npm run lint -- --fix",
-    "prepare": "husky install"
-  },
-  "lint-staged": {
-    "*.ts": [
-      "prettier --write",
-      "eslint --fix"
-    ]
+    "format": "npm run lint -- --fix"
   },
   "keywords": [
     "homebridge-plugin"
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
-    "axios": "^1.5.0",
-    "fast-xml-parser": "^4.2.7",
+    "axios": "^1.7.7",
+    "fast-xml-parser": "^4.5.0",
     "lodash": "^4.17.21",
-    "luxon": "^3.4.2",
+    "luxon": "^3.5.0",
     "semaphore-promise": "^1.4.2"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.200",
-    "@types/luxon": "^3.3.1",
-    "@types/node": "^18.16.20",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
-    "eslint": "^8.45.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.1",
-    "homebridge": "^1.6.0",
-    "husky": "^8.0.0",
-    "lint-staged": "^15.2.2",
-    "nodemon": "^3.0.1",
-    "prettier": "^3.0.3",
-    "rimraf": "^3.0.2",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.5"
+    "@eslint/js": "^9.13.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/lodash": "^4.17.12",
+    "@types/luxon": "^3.4.2",
+    "@types/node": "^22.8.1",
+    "eslint": "^9.13.0",
+    "homebridge": "^2.0.0-beta.0",
+    "nodemon": "^3.1.7",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.11.0"
   }
 }

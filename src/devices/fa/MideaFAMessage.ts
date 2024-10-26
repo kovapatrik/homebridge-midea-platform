@@ -1,5 +1,5 @@
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 
 abstract class MessageFABase extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number | null) {
@@ -22,6 +22,8 @@ export class MessageQuery extends MessageFABase {
 }
 
 export class MessageSet extends MessageFABase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   private subtype: number;
 
   power?: boolean;

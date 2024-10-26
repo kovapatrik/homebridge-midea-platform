@@ -1,8 +1,6 @@
 export type Config = {
   refreshInterval: number;
   heartbeatInterval: number;
-  verbose: boolean;
-  logRecoverableErrors: boolean;
   uiDebug: boolean;
   devices: DeviceConfig[];
 };
@@ -10,8 +8,6 @@ export type Config = {
 export const defaultConfig: Config = {
   refreshInterval: 30,
   heartbeatInterval: 10,
-  verbose: false,
-  logRecoverableErrors: true,
   uiDebug: false,
   devices: [],
 };
@@ -24,14 +20,19 @@ export type DeviceConfig = {
     ip: string;
     token: string;
     key: string;
-    verbose: boolean; // override global setting
-    logRecoverableErrors: boolean; // override global setting
+    verbose: boolean;
+    logRecoverableErrors: boolean;
+    logRefreshStatusErrors: boolean;
     registerIfOffline: boolean;
   };
   AC_options: ACOptions;
   A1_options: A1Options;
+  C3_options: C3Options;
+  DB_options: DBOptions;
+  E1_options: E1Options;
   E2_options: E2Options;
   E3_options: E3Options;
+  FA_options: FAOptions;
 };
 
 export enum SwingMode {
@@ -72,7 +73,11 @@ type ACOptions = {
   fanAccessory: boolean;
   breezeAwaySwitch: boolean;
   dryModeSwitch: boolean;
+  boostModeSwitch: boolean;
   auxHeatingSwitches: boolean;
+  selfCleanSwitch: boolean;
+  ionSwitch: boolean;
+  rateSelector: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
   screenOff: boolean;
@@ -87,7 +92,21 @@ type A1Options = {
   minHumidity: number;
   maxHumidity: number;
   humidityStep: number;
+  humidityOffset: number;
 };
+
+type C3Options = {
+  zone1: boolean;
+  zone2: boolean;
+  waterHeater: boolean;
+  ecoSwitch: boolean;
+  silentSwitch: boolean;
+  tbhSwitch: boolean;
+};
+
+type DBOptions = unknown;
+
+type E1Options = unknown;
 
 type E2Options = {
   protocol: string;
@@ -110,6 +129,8 @@ type E3Options = {
   smartVolumeSwitch: boolean;
 };
 
+type FAOptions = unknown;
+
 export const defaultDeviceConfig: DeviceConfig = {
   id: 0,
   type: '',
@@ -119,6 +140,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     key: '',
     verbose: false,
     logRecoverableErrors: true,
+    logRefreshStatusErrors: true,
     registerIfOffline: false,
   },
   AC_options: {
@@ -133,12 +155,16 @@ export const defaultDeviceConfig: DeviceConfig = {
     screenOff: false,
     ecoSwitch: false,
     dryModeSwitch: false,
+    boostModeSwitch: false,
     breezeAwaySwitch: false,
     displaySwitch: {
       flag: true,
       command: false,
     },
     auxHeatingSwitches: false,
+    selfCleanSwitch: false,
+    ionSwitch: false,
+    rateSelector: false,
     minTemp: 16,
     maxTemp: 30,
     tempStep: 1,
@@ -155,7 +181,18 @@ export const defaultDeviceConfig: DeviceConfig = {
     minHumidity: 35,
     maxHumidity: 85,
     humidityStep: 5,
+    humidityOffset: 0,
   },
+  C3_options: {
+    zone1: false,
+    zone2: false,
+    waterHeater: false,
+    ecoSwitch: false,
+    silentSwitch: false,
+    tbhSwitch: false,
+  },
+  DB_options: {},
+  E1_options: {},
   E2_options: {
     protocol: 'auto',
     minTemp: 30,
@@ -175,4 +212,5 @@ export const defaultDeviceConfig: DeviceConfig = {
     zeroColdPulseSwitch: false,
     smartVolumeSwitch: false,
   },
+  FA_options: {},
 };
