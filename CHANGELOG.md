@@ -2,6 +2,8 @@
 
 # v1.2.0
 ## 2024-10-26
+- BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.
+- BREAKING CHANGE: Node version support is now `^18.20.4 || ^20.18.0 || ^22.10.0`.
 - feat: added support for `Front Load Washers` (fixes #87)
 - feat: added support for `Dishwashers` (fixes #104)
 - feat: added possibility to add custom humidity offset for `Dehumidifiers` (fixes #98)
