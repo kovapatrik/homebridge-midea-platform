@@ -1,7 +1,7 @@
 import { API } from 'homebridge';
 
-import { PLATFORM_NAME } from './settings';
-import { MideaPlatform } from './platform';
+import { PLATFORM_NAME } from './settings.js';
+import { MideaPlatform } from './platform.js';
 
 /**
  * This method registers the platform with Homebridge

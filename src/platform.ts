@@ -8,12 +8,12 @@
  *
  */
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import Discover from './core/MideaDiscover';
 import { DeviceInfo, ProtocolVersion } from './core/MideaConstants';
 import AccessoryFactory from './accessory/AccessoryFactory';
 import DeviceFactory from './devices/DeviceFactory';
-import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils';
+import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import { defaultsDeep } from 'lodash';
 
 type MideaContext = {
