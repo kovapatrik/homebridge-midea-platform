@@ -1,5 +1,5 @@
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 
 abstract class MessageDBBase extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {

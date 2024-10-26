@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
-import { Endianness, TCPMessageType } from './MideaConstants';
-import { numberToUint8Array, strxor } from './MideaUtils';
+import { Endianness, TCPMessageType } from './MideaConstants.js';
+import { numberToUint8Array, strxor } from './MideaUtils.js';
 import { unescape } from 'querystring';
 
 function unescape_plus(str: string) {

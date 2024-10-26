@@ -1,6 +1,6 @@
-import { MideaAccessory, MideaPlatform } from '../platform';
-import MideaDevice, { DeviceAttributeBase } from '../core/MideaDevice';
-import { DeviceConfig } from '../platformUtils';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import MideaDevice, { DeviceAttributeBase } from '../core/MideaDevice.js';
+import { DeviceConfig } from '../platformUtils.js';
 
 export default abstract class BaseAccessory<T extends MideaDevice> {
   constructor(

@@ -8,11 +8,11 @@
  */
 
 import { Logger } from 'homebridge';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
-import { DeviceInfo } from '../../core/MideaConstants';
-import { Config, DeviceConfig } from '../../platformUtils';
-import { MessageRequest } from '../../core/MideaMessage';
-import { MessageC3Response, MessageQuery, MessageSet, MessageSetECO, MessageSetSilent } from './MideaC3Message';
+import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
+import { DeviceInfo } from '../../core/MideaConstants.js';
+import { Config, DeviceConfig } from '../../platformUtils.js';
+import { MessageRequest } from '../../core/MideaMessage.js';
+import { MessageC3Response, MessageQuery, MessageSet, MessageSetECO, MessageSetSilent } from './MideaC3Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.

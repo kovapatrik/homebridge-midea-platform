@@ -8,13 +8,13 @@
  *
  */
 import { Logger } from 'homebridge';
-import { KeyToken, LocalSecurity } from './MideaSecurity';
-import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants';
-import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
-import PacketBuilder from './MideaPacketBuilder';
-import { Config, DeviceConfig } from '../platformUtils';
+import { KeyToken, LocalSecurity } from './MideaSecurity.js';
+import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants.js';
+import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage.js';
+import PacketBuilder from './MideaPacketBuilder.js';
+import { Config, DeviceConfig } from '../platformUtils.js';
 import EventEmitter from 'events';
-import { PromiseSocket } from './MideaUtils';
+import { PromiseSocket } from './MideaUtils.js';
 
 export type DeviceAttributeBase = {
   [key: string]: number | number[] | string | boolean | boolean[] | Buffer | undefined;

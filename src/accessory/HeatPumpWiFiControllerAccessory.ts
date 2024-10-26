@@ -9,10 +9,10 @@
  *
  */
 import { Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import BaseAccessory from './BaseAccessory';
-import { DeviceConfig } from '../platformUtils';
-import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import BaseAccessory from './BaseAccessory.js';
+import { DeviceConfig } from '../platformUtils.js';
+import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
   // Zone1 related

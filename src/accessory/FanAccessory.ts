@@ -9,10 +9,10 @@
  *
  */
 import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import BaseAccessory from './BaseAccessory';
-import { DeviceConfig } from '../platformUtils';
-import MideaFADevice, { FAAttributes } from '../devices/fa/MideaFADevice';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import BaseAccessory from './BaseAccessory.js';
+import { DeviceConfig } from '../platformUtils.js';
+import MideaFADevice, { FAAttributes } from '../devices/fa/MideaFADevice.js';
 
 export default class FanAccessory extends BaseAccessory<MideaFADevice> {
   private service: Service;

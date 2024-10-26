@@ -9,10 +9,10 @@
  *
  */
 import { CharacteristicValue, Service } from 'homebridge';
-import MideaE2Device, { E2Attributes } from '../devices/e2/MideaE2Device';
-import BaseAccessory from './BaseAccessory';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import { DeviceConfig } from '../platformUtils';
+import MideaE2Device, { E2Attributes } from '../devices/e2/MideaE2Device.js';
+import BaseAccessory from './BaseAccessory.js';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import { DeviceConfig } from '../platformUtils.js';
 
 export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2Device> {
   private service: Service;

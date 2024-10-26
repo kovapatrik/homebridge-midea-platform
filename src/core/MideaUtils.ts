@@ -9,7 +9,7 @@
  *
  */
 import { Logger } from 'homebridge';
-import { Endianness } from './MideaConstants';
+import { Endianness } from './MideaConstants.js';
 import { Socket } from 'net';
 
 export function numberToUint8Array(num: number, byte_length: number, endianness: Endianness) {

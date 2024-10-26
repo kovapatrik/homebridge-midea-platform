@@ -7,9 +7,9 @@
  * And https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage';
-import { calculate } from '../../core/MideaUtils';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage.js';
+import { calculate } from '../../core/MideaUtils.js';
 
 enum NewProtocolTags {
   LIGHT = 0x005b,

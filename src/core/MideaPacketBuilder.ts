@@ -1,7 +1,7 @@
-import { LocalSecurity } from './MideaSecurity';
+import { LocalSecurity } from './MideaSecurity.js';
 import { DateTime } from 'luxon';
-import { numberToUint8Array } from './MideaUtils';
-import { Endianness } from './MideaConstants';
+import { numberToUint8Array } from './MideaUtils.js';
+import { Endianness } from './MideaConstants.js';
 
 export default class PacketBuilder {
   private readonly security: LocalSecurity;

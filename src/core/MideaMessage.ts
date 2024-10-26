@@ -1,4 +1,4 @@
-import { DeviceType } from './MideaConstants';
+import { DeviceType } from './MideaConstants.js';
 
 export enum MessageType {
   UNKNOWN = 0x00,

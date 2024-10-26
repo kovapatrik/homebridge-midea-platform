@@ -6,8 +6,8 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { DeviceType } from '../../core/MideaConstants';
-import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage';
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 
 export enum NewProtocolTags {
   ZERO_COLD_WATER = 0x03,

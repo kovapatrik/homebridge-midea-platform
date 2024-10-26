@@ -1,32 +1,32 @@
-import { DeviceType } from '../core/MideaConstants';
-import { MideaAccessory, MideaPlatform } from '../platform';
+import { DeviceType } from '../core/MideaConstants.js';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
 
-import AirConditionerAccessory from './AirConditionerAccessory';
-import MideaACDevice from '../devices/ac/MideaACDevice';
+import AirConditionerAccessory from './AirConditionerAccessory.js';
+import MideaACDevice from '../devices/ac/MideaACDevice.js';
 
-import DehumidifierAccessory from './DehumidifierAccessory';
-import MideaA1Device from '../devices/a1/MideaA1Device';
+import DehumidifierAccessory from './DehumidifierAccessory.js';
+import MideaA1Device from '../devices/a1/MideaA1Device.js';
 
-import FrontLoadWasherAccessory from './FrontLoadWasherAccessory';
-import MideaDBDevice from '../devices/db/MideaDBDevice';
+import FrontLoadWasherAccessory from './FrontLoadWasherAccessory.js';
+import MideaDBDevice from '../devices/db/MideaDBDevice.js';
 
-import ElectricWaterHeaterAccessory from './ElectricWaterHeaterAccessory';
-import MideaE2Device from '../devices/e2/MideaE2Device';
+import ElectricWaterHeaterAccessory from './ElectricWaterHeaterAccessory.js';
+import MideaE2Device from '../devices/e2/MideaE2Device.js';
 
-import GasWaterHeaterAccessory from './GasWaterHeaterAccessory';
-import MideaE3Device from '../devices/e3/MideaE3Device';
+import GasWaterHeaterAccessory from './GasWaterHeaterAccessory.js';
+import MideaE3Device from '../devices/e3/MideaE3Device.js';
 
-import FanAccessory from './FanAccessory';
-import MideaFADevice from '../devices/fa/MideaFADevice';
+import FanAccessory from './FanAccessory.js';
+import MideaFADevice from '../devices/fa/MideaFADevice.js';
 
-import DishwasherAccessory from './DishwasherAccessory';
-import MideaE1Device from '../devices/e1/MideaE1Device';
+import DishwasherAccessory from './DishwasherAccessory.js';
+import MideaE1Device from '../devices/e1/MideaE1Device.js';
 
-import HeatPumpWiFiControllerAccessory from './HeatPumpWiFiControllerAccessory';
-import MideaC3Device from '../devices/c3/MideaC3Device';
+import HeatPumpWiFiControllerAccessory from './HeatPumpWiFiControllerAccessory.js';
+import MideaC3Device from '../devices/c3/MideaC3Device.js';
 
-import MideaDevice from '../core/MideaDevice';
-import { DeviceConfig } from '../platformUtils';
+import MideaDevice from '../core/MideaDevice.js';
+import { DeviceConfig } from '../platformUtils.js';
 
 export default class AccessoryFactory {
   public static createAccessory<T extends MideaDevice>(

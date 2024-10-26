@@ -9,10 +9,10 @@
  *
  */
 import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import BaseAccessory from './BaseAccessory';
-import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils';
-import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import BaseAccessory from './BaseAccessory.js';
+import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
+import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice.js';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   private service: Service;

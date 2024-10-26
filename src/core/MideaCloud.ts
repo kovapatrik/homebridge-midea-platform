@@ -12,7 +12,7 @@ import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import { Semaphore } from 'semaphore-promise';
-import { Endianness } from './MideaConstants';
+import { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
   CloudSecurity,
@@ -21,8 +21,8 @@ import {
   NetHomePlusSecurity,
   ProxiedSecurity,
   SimpleSecurity,
-} from './MideaSecurity';
-import { numberToUint8Array } from './MideaUtils';
+} from './MideaSecurity.js';
+import { numberToUint8Array } from './MideaUtils.js';
 
 abstract class CloudBase<S extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;

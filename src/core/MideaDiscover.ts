@@ -10,10 +10,10 @@
  */
 import dgram from 'dgram';
 import { Logger } from 'homebridge';
-import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants';
+import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants.js';
 import { XMLParser } from 'fast-xml-parser';
 import EventEmitter from 'events';
-import { LocalSecurity } from './MideaSecurity';
+import { LocalSecurity } from './MideaSecurity.js';
 
 // To access network interface detail...
 import os from 'os';

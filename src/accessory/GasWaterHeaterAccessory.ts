@@ -9,10 +9,10 @@
  *
  */
 import { CharacteristicValue, Service } from 'homebridge';
-import MideaE3Device, { E3Attributes } from '../devices/e3/MideaE3Device';
-import BaseAccessory from './BaseAccessory';
-import { MideaAccessory, MideaPlatform } from '../platform';
-import { DeviceConfig } from '../platformUtils';
+import MideaE3Device, { E3Attributes } from '../devices/e3/MideaE3Device.js';
+import BaseAccessory from './BaseAccessory.js';
+import { MideaAccessory, MideaPlatform } from '../platform.js';
+import { DeviceConfig } from '../platformUtils.js';
 
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
   private service: Service;

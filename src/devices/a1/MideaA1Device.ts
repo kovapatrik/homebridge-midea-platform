@@ -10,10 +10,10 @@
  *
  */
 import { Logger } from 'homebridge';
-import { DeviceInfo } from '../../core/MideaConstants';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice';
-import { MessageQuery, MessageA1Response, MessageSet } from './MideaA1Message';
-import { Config, DeviceConfig } from '../../platformUtils';
+import { DeviceInfo } from '../../core/MideaConstants.js';
+import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
+import { MessageQuery, MessageA1Response, MessageSet } from './MideaA1Message.js';
+import { Config, DeviceConfig } from '../../platformUtils.js';
 
 // Object that defines all attributes for dehumidifier device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
