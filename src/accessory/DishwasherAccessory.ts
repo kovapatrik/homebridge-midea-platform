@@ -47,15 +47,15 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-        case 'power':
-          updateState = true;
-          break;
-        case 'mode':
-          updateState = true;
-          break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-          break;
+      case 'power':
+        updateState = true;
+        break;
+      case 'mode':
+        updateState = true;
+        break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        break;
       }
     }
     if (updateState) {

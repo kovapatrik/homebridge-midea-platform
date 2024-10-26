@@ -26,6 +26,8 @@ export class MessageQuery extends MessageC3Base {
 }
 
 export class MessageSet extends MessageC3Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   zone1_power: boolean;
   zone2_power: boolean;
   dhw_power: boolean;
@@ -83,6 +85,8 @@ export class MessageSet extends MessageC3Base {
 }
 
 export class MessageSetSilent extends MessageC3Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   silent_mode: boolean;
   super_silent: boolean;
 
@@ -101,6 +105,8 @@ export class MessageSetSilent extends MessageC3Base {
 }
 
 export class MessageSetECO extends MessageC3Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   eco_mode: boolean;
 
   constructor(device_protocol_version: number) {

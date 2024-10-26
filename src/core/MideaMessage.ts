@@ -106,7 +106,9 @@ export class MessageQuestCustom extends MessageRequest {
   }
 }
 
-export class MessageBody {
+export class MessageBody{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [k: string]: any;
   constructor(public readonly data: Buffer) {}
 
   get body_type() {
@@ -158,7 +160,6 @@ export class NewProtocolMessageBody extends MessageBody {
         offset += 3 + length;
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error(e);
     }
     return result;

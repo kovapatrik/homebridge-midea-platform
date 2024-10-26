@@ -44,6 +44,8 @@ export class MessagePower extends MessageE2Base {
 }
 
 export class MessageNewProtocolSet extends MessageE2Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   target_temperature?: number;
   variable_heating?: boolean;
   whole_tank_heating?: boolean;
@@ -70,6 +72,8 @@ export class MessageNewProtocolSet extends MessageE2Base {
 }
 
 export class MessageSet extends MessageE2Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   target_temperature: number;
   variable_heating: boolean;
   whole_tank_heating: boolean;

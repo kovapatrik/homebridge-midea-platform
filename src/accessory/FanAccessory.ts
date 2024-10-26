@@ -66,27 +66,27 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-        case 'power':
-          updateState = true;
-          break;
-        case 'mode':
-          this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
-          break;
-        case 'fan_speed':
-          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
-          break;
-        case 'child_lock':
-          this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
-          break;
+      case 'power':
+        updateState = true;
+        break;
+      case 'mode':
+        this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
+        break;
+      case 'fan_speed':
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+        break;
+      case 'child_lock':
+        this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
+        break;
         // case 'oscillate':
         // case 'oscillation_angle':
         // case 'oscillation_mode':
         // case 'tilting_angle':
         //   this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
         //   break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-          break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        break;
       }
     }
     if (updateState) {
@@ -106,7 +106,7 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
     return this.device.attributes.MODE;
   }
 
-  async setTargetFanState(value: CharacteristicValue) {
+  async setTargetFanState(_value: CharacteristicValue) {
     throw new Error('Method not implemented.');
   }
 
@@ -130,7 +130,7 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
     throw new Error('Method not implemented.');
   }
 
-  async setRotationDirection(value: CharacteristicValue) {
+  async setRotationDirection(_value: CharacteristicValue) {
     throw new Error('Method not implemented.');
   }
 

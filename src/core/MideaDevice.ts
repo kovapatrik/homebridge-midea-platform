@@ -12,9 +12,9 @@ import { KeyToken, LocalSecurity } from './MideaSecurity';
 import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants';
 import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage';
 import PacketBuilder from './MideaPacketBuilder';
-import { PromiseSocket } from './MideaUtils';
 import { Config, DeviceConfig } from '../platformUtils';
 import EventEmitter from 'events';
+import { PromiseSocket } from './MideaUtils';
 
 export type DeviceAttributeBase = {
   [key: string]: number | number[] | string | boolean | boolean[] | Buffer | undefined;

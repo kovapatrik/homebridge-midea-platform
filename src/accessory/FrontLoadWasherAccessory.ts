@@ -47,19 +47,19 @@ export default class FanAccessory extends BaseAccessory<MideaDBDevice> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-        case 'power':
-          updateState = true;
-          break;
-        case 'start':
-          updateState = true;
-          break;
-        case 'time_remaining':
-        case 'progress':
-          updateState = true;
-          break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-          break;
+      case 'power':
+        updateState = true;
+        break;
+      case 'start':
+        updateState = true;
+        break;
+      case 'time_remaining':
+      case 'progress':
+        updateState = true;
+        break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        break;
       }
     }
     if (updateState) {

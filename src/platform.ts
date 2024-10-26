@@ -16,26 +16,39 @@ import DeviceFactory from './devices/DeviceFactory';
 import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils';
 import { defaultsDeep } from 'lodash';
 
-export interface MideaAccessory extends PlatformAccessory {
-  context: {
-    token: string;
-    key: string;
-    id: string;
-    type: string;
-    sn: string;
-    model: string;
-    serviceVersion: number;
-  };
-}
+type MideaContext = {
+  token: string;
+  key: string;
+  id: string;
+  type: string;
+  sn: string;
+  model: string;
+  serviceVersion: number;
+};
+
+export type MideaAccessory = PlatformAccessory<MideaContext>;
+
+// export interface MideaAccessory extends PlatformAccessory {
+//   context: {
+//     token: string;
+//     key: string;
+//     id: string;
+//     type: string;
+//     sn: string;
+//     model: string;
+//     serviceVersion: number;
+//   };
+// }
 
 export class MideaPlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
 
-  public readonly accessories: MideaAccessory[] = [];
+  public readonly accessories: Map<string, MideaAccessory> = new Map();
+  public readonly discoveredCacheUUIDs: string[] = [];
 
   // Keep track of all devices discovered by broadcast
-  private discoveredDevices = {};
+  private discoveredDevices: Map<number, boolean> = new Map();
   private discoveryInterval = 60; // seconds
 
   private readonly discover: Discover;
@@ -47,6 +60,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.Service = api.hap.Service;
+    this.Characteristic = api.hap.Characteristic;
     Error.stackTraceLimit = 100;
 
     // Add default config values
@@ -108,7 +123,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     const deviceConfig = this.platformConfig.devices.find((device: DeviceConfig) => device.id === device_info.id);
     if (deviceConfig) {
       // keep track of discovered devices
-      this.discoveredDevices[device_info.id] = true;
+      this.discoveredDevices.set(device_info.id, true);
       // Override name with that provided in the config.json settings
       device_info.name = deviceConfig.name ?? device_info.name;
       this.addDevice(device_info, deviceConfig);
@@ -122,16 +137,16 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * Function called by the 'complete' on handler.
    */
   private discoveryComplete() {
-    this.log.debug(`Discovery complete, check for missing devices`);
+    this.log.debug('Discovery complete, check for missing devices');
     // Check if network broadcasting found all devices that user configured.  If not then
     // we have to handle those.
     let missingDevices = 0;
     this.platformConfig.devices.forEach((device) => {
-      if (!this.discoveredDevices[device.id]) {
+      if (!this.discoveredDevices.get(device.id)) {
         // This device was not found by network discovery.
         missingDevices++;
-        if (this.discoveredDevices[device.id] === undefined) {
-          this.discoveredDevices[device.id] = false;
+        if (this.discoveredDevices.get(device.id) === undefined) {
+          this.discoveredDevices.set(device.id, false);
           this.log.warn(`[${device.name}] Device not found (id: ${device.id}), will retry every ${this.discoveryInterval} seconds`);
         } else {
           this.log.debug(`[${device.name}] Device not found (id: ${device.id}), will retry in ${this.discoveryInterval} seconds`);
@@ -146,7 +161,15 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         this.discover.startDiscover(1, 3000);
       }, this.discoveryInterval * 1000);
     } else {
-      this.log.info(`All configured devices added to Homebridge`);
+      this.log.info('All configured devices added to Homebridge');
+    }
+
+    // Delete not existing, but cached accessories
+    for (const [uuid, accessory] of this.accessories) {
+      if (!this.discoveredCacheUUIDs.includes(uuid)) {
+        this.log.info('Removing existing accessory from cache:', accessory.displayName);
+        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
     }
   }
 
@@ -157,7 +180,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    */
   private async addDevice(device_info: DeviceInfo, deviceConfig: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
-    const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+    const existingAccessory = this.accessories.get(uuid);
 
     // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
@@ -203,7 +226,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               accessory.context.id = device_info.id.toString();
               device.setCredentials(Buffer.from(accessory.context.token, 'hex'), Buffer.from(accessory.context.key, 'hex'));
             } else {
-              throw new Error(`Token/key not provided in config file, cannot add new device`);
+              throw new Error('Token/key not provided in config file, cannot add new device');
             }
           }
           await device.connect(false);
@@ -223,6 +246,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           );
         }
       }
+
+      this.discoveredCacheUUIDs.push(uuid);
     }
   }
 
@@ -230,10 +255,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
    * This function is invoked when homebridge restores cached accessories from disk at startup.
    * It should be used to setup event handlers for characteristics and update respective values.
    */
-  configureAccessory(accessory: MideaAccessory) {
+  configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
-    this.accessories.push(accessory);
+    this.accessories.set(accessory.UUID, accessory as MideaAccessory);
   }
 }

@@ -80,7 +80,7 @@ export class MessageSwitchDisplay extends MessageACBase {
 
   get _body() {
     return Buffer.concat([Buffer.from([0x00, 0x00, 0xff, 0x02, 0x00, 0x02, 0x00]), Buffer.alloc(12)]);
-    // eslint-disable-next-line max-len
+
     // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
 }
@@ -158,6 +158,8 @@ export class MessageSubProtocolQuery extends MessageSubProtocol {
 }
 
 export class MessageSubProtocolSet extends MessageSubProtocol {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   public power: boolean;
   public mode: number;
   public target_temperature: number;
@@ -245,6 +247,8 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
 }
 
 export class MessageGeneralSet extends MessageACBase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
   public power: boolean;
   public prompt_tone: boolean;
   public mode: number;
@@ -341,6 +345,8 @@ export class MessageGeneralSet extends MessageACBase {
 }
 
 export class MessageNewProtocolSet extends MessageACBase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [k: string]: any;
   public wind_swing_ud_angle?: number;
   public wind_swing_lr_angle?: number;
   public indirect_wind?: boolean;

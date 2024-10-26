@@ -22,6 +22,8 @@ export class MessageQuery extends MessageFABase {
 }
 
 export class MessageSet extends MessageFABase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   private subtype: number;
 
   power?: boolean;

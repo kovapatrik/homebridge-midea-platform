@@ -81,7 +81,7 @@ class UiServer extends HomebridgePluginUiServer {
     // Obtain the plugin configuration from homebridge config JSON file.
     const config = require(this.homebridgeConfigPath).platforms.find((obj) => obj.platform === 'midea-platform');
     this.logger = new Logger(config?.uiDebug ?? false);
-    this.logger.info(`Custom UI created.`);
+    this.logger.info('Custom UI created.');
     this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
@@ -89,7 +89,7 @@ class UiServer extends HomebridgePluginUiServer {
     this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
         if (useDefaultProfile) {
-          this.logger.debug(`Using default profile.`);
+          this.logger.debug('Using default profile.');
           registeredApp = 'Midea SmartHome (MSmartHome)';
           username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
           password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
@@ -101,7 +101,7 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         this.logger.warn(`Login failed:\n${msg}`);
-        throw new RequestError(`Login failed! Check the logs for more information.`);
+        throw new RequestError('Login failed! Check the logs for more information.');
       }
     });
 
@@ -252,33 +252,33 @@ class UiServer extends HomebridgePluginUiServer {
 
       discover.on('device', async (device) => {
         switch (device.type) {
-          case DeviceType.AIR_CONDITIONER:
-            device['displayName'] = 'Air Conditioner';
-            break;
-          case DeviceType.DEHUMIDIFIER:
-            device['displayName'] = 'Dehumidifier';
-            break;
-          case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
-            device['displayName'] = 'Heat Pump WiFi Controller';
-          case DeviceType.FRONT_LOAD_WASHER:
-            device['displayName'] = 'Front Load Washer';
-            break;
-          case DeviceType.DISHWASHER:
-            device['displayName'] = 'Dishwasher';
-            break;
-          case DeviceType.ELECTRIC_WATER_HEATER:
-            device['displayName'] = 'Electric Water Heater';
-            break;
-          case DeviceType.GAS_WATER_HEATER:
-            device['displayName'] = 'Gas Water Heater';
-            break;
-          case DeviceType.FAN:
-            device['displayName'] = 'Fan';
-            break;
-          case DeviceType.UNKNOWN:
-          default:
-            device['displayName'] = 'Unknown';
-            break;
+        case DeviceType.AIR_CONDITIONER:
+          device.displayName = 'Air Conditioner';
+          break;
+        case DeviceType.DEHUMIDIFIER:
+          device.displayName = 'Dehumidifier';
+          break;
+        case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
+          device.displayName = 'Heat Pump WiFi Controller';
+        case DeviceType.FRONT_LOAD_WASHER:
+          device.displayName = 'Front Load Washer';
+          break;
+        case DeviceType.DISHWASHER:
+          device.displayName = 'Dishwasher';
+          break;
+        case DeviceType.ELECTRIC_WATER_HEATER:
+          device.displayName = 'Electric Water Heater';
+          break;
+        case DeviceType.GAS_WATER_HEATER:
+          device.displayName = 'Gas Water Heater';
+          break;
+        case DeviceType.FAN:
+          device.displayName = 'Fan';
+          break;
+        case DeviceType.UNKNOWN:
+        default:
+          device.displayName = 'Unknown';
+          break;
         }
         devices.push(device);
         // too verbose to post every device as found...

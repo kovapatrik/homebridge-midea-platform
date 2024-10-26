@@ -8,7 +8,7 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
+import { Service } from 'homebridge';
 import { MideaAccessory, MideaPlatform } from '../platform';
 import BaseAccessory from './BaseAccessory';
 import { DeviceConfig } from '../platformUtils';
@@ -62,9 +62,9 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-          break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        break;
       }
     }
     // if (updateState) {

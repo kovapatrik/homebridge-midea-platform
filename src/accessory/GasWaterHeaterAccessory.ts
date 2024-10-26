@@ -162,38 +162,38 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
-        case 'power':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.Active,
-            v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
-          );
-          updateState = true;
-          break;
-        case 'burning_state':
-          this.burningStateService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
-          break;
-        case 'zero_cold_water':
-          this.zeroColdWaterService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-          break;
-        case 'protection':
-          this.protectionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
-          break;
-        case 'zero_cold_pulse':
-          this.zeroColdPulseService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-          break;
-        case 'smart_volume':
-          this.smartVolumeService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-          break;
-        case 'current_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as number);
-          updateState = true;
-          break;
-        case 'target_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as number);
-          updateState = true;
-          break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+      case 'power':
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
+        );
+        updateState = true;
+        break;
+      case 'burning_state':
+        this.burningStateService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
+        break;
+      case 'zero_cold_water':
+        this.zeroColdWaterService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+        break;
+      case 'protection':
+        this.protectionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
+        break;
+      case 'zero_cold_pulse':
+        this.zeroColdPulseService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+        break;
+      case 'smart_volume':
+        this.smartVolumeService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+        break;
+      case 'current_temperature':
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as number);
+        updateState = true;
+        break;
+      case 'target_temperature':
+        this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as number);
+        updateState = true;
+        break;
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());

@@ -51,6 +51,8 @@ export class MessagePower extends MessageE3Base {
 }
 
 export class MessageSet extends MessageE3Base {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
   target_temperature: number;
   zero_cold_water: boolean;
   bathtub_volume: number;

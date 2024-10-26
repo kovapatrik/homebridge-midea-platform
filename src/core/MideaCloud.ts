@@ -65,7 +65,7 @@ abstract class CloudBase<S extends CloudSecurity> {
         loginAccount: this.account,
       });
       if (response) {
-        return response['loginId'];
+        return response.loginId;
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
@@ -83,9 +83,9 @@ abstract class CloudBase<S extends CloudSecurity> {
     });
 
     if (response) {
-      for (const token of response['tokenlist']) {
-        if (token['udpId'] === udpid) {
-          return [Buffer.from(token['token'], 'hex'), Buffer.from(token['key'], 'hex')];
+      for (const token of response.tokenlist) {
+        if (token.udpId === udpid) {
+          return [Buffer.from(token.token, 'hex'), Buffer.from(token.key, 'hex')];
         }
       }
     } else {
@@ -96,31 +96,34 @@ abstract class CloudBase<S extends CloudSecurity> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DataObject = { [key: string]: any };
+
 abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
     const sign = this.security.sign(JSON.stringify(data), random);
-    const headers = {
+    const headers: DataObject = {
       'Content-Type': 'application/json',
       secretVersion: '1',
       sign: sign,
       random: random,
     };
     if (this.uid) {
-      headers['uid'] = this.uid;
+      headers.uid = this.uid;
     }
     if (this.access_token) {
-      headers['accessToken'] = this.access_token;
+      headers.accessToken = this.access_token;
     }
 
     for (let i = 0; i < 3; i++) {
       try {
         const response = await axios.post(url, data, { headers: headers, timeout: 10000 });
-        if (response.data['code'] !== undefined) {
-          if (Number.parseInt(response.data['code']) === 0) {
-            return response.data['data'];
+        if (response.data.code !== undefined) {
+          if (Number.parseInt(response.data.code) === 0) {
+            return response.data.data;
           }
         }
         throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
@@ -131,7 +134,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
     throw new Error(`Failed to send request to ${url}.`);
   }
 
-  buildRequestData() {
+  buildRequestData(): DataObject {
     return {
       appId: this.APP_ID,
       format: this.FORMAT,
@@ -153,7 +156,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
       const iotData = this.buildRequestData();
-      delete iotData['uid'];
+      delete iotData.uid;
 
       const response = await this.apiRequest('/mj/user/login', {
         data: {
@@ -174,9 +177,9 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       });
 
       if (response) {
-        this.access_token = response['mdata']['accessToken'];
-        if (response['key'] !== undefined) {
-          this.key = response['key'];
+        this.access_token = response.mdata.accessToken;
+        if (response.key !== undefined) {
+          this.key = response.key;
         }
         this.loggedIn = true;
       } else {
@@ -201,8 +204,8 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       version: '0',
     });
 
-    if (response && response['url']) {
-      const lua = await axios.get(response['url']);
+    if (response && response.url) {
+      const lua = await axios.get(response.url);
       const encrypted_data = Buffer.from(lua.data, 'hex');
       const file_data = this.security.decryptAESAppKey(encrypted_data).toString('utf8');
       if (file_data) {
@@ -263,7 +266,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
   }
 
   buildRequestData() {
-    const data = {
+    const data: DataObject = {
       appId: this.APP_ID,
       format: 2,
       clientType: 1,
@@ -273,7 +276,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       deviceId: this.DEVICE_ID,
     };
     if (this.sessionId) {
-      data['sessionId'] = this.sessionId;
+      data.sessionId = this.sessionId;
     }
     return data;
   }
@@ -283,31 +286,27 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     const headers = {
       ...header,
     };
-    if (data['stamp'] === undefined) {
-      data['stamp'] = this.timestamp();
+    if (data.stamp === undefined) {
+      data.stamp = this.timestamp();
     }
 
     const url = `${this.API_URL}${endpoint}`;
     const queryParams = new URLSearchParams(data);
     queryParams.sort();
-    data['sign'] = this.security.sign(url, queryParams.toString());
+    data.sign = this.security.sign(url, queryParams.toString());
 
     if (this.uid) {
-      headers['uid'] = this.uid;
+      headers.uid = this.uid;
     }
     if (this.access_token) {
-      headers['accessToken'] = this.access_token;
+      headers.accessToken = this.access_token;
     }
     const payload = new URLSearchParams(data);
     for (let i = 0; i < 3; i++) {
       try {
         const response = await axios.post(url, payload.toString(), { headers: headers });
-        if (
-          response.data['errorCode'] !== undefined &&
-          Number.parseInt(response.data['errorCode']) === 0 &&
-          response.data['result'] !== undefined
-        ) {
-          return response.data['result'];
+        if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
+          return response.data.result;
         } else {
           throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
         }
@@ -328,19 +327,19 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
-      const data = {
+      const data: DataObject = {
         ...this.buildRequestData(),
         loginAccount: this.account,
         password: this.security.encrpytPassword(login_id, this.password),
       };
       if (this.sessionId) {
-        data['sessionId'] = this.sessionId;
+        data.sessionId = this.sessionId;
       }
       const response = await this.apiRequest('/v1/user/login', data);
       if (response) {
-        this.access_token = response['accessToken'];
-        this.sessionId = response['sessionId'];
-        this.uid = response['userId'];
+        this.access_token = response.accessToken;
+        this.sessionId = response.sessionId;
+        this.uid = response.userId;
         this.loggedIn = true;
       } else {
         this.loggedIn = false;
@@ -376,16 +375,16 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
 export default class CloudFactory {
   static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
-      case 'Midea SmartHome (MSmartHome)':
-        return new MSmartHomeCloud(account, password);
-      case 'Meiju':
-        return new MeijuCloud(account, password);
-      case 'NetHome Plus':
-        return new NetHomePlusCloud(account, password);
-      case 'Ariston Clima':
-        return new AristonClimaCloud(account, password);
-      default:
-        throw new Error(`Cloud ${cloud} is not supported.`);
+    case 'Midea SmartHome (MSmartHome)':
+      return new MSmartHomeCloud(account, password);
+    case 'Meiju':
+      return new MeijuCloud(account, password);
+    case 'NetHome Plus':
+      return new NetHomePlusCloud(account, password);
+    case 'Ariston Clima':
+      return new AristonClimaCloud(account, password);
+    default:
+      throw new Error(`Cloud ${cloud} is not supported.`);
     }
   }
 }

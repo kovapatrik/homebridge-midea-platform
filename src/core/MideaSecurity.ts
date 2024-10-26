@@ -250,7 +250,7 @@ export class LocalSecurity {
     return Buffer.concat([header, data]);
   }
 
-  public decode_8370(data: Buffer) {
+  public decode_8370(data: Buffer): [Buffer[], Buffer] {
     if (data.length < 6) {
       return [[], data];
     }

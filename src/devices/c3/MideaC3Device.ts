@@ -185,10 +185,10 @@ export default class MideaC3Device extends MideaDevice {
         this.attributes.ZONE2_ROOM_TEMPERATURE_MODE = false;
       }
 
-      changed['ZONE1_WATER_TEMPERATURE_MODE'] = this.attributes.ZONE1_WATER_TEMPERATURE_MODE;
-      changed['ZONE1_ROOM_TEMPERATURE_MODE'] = this.attributes.ZONE1_ROOM_TEMPERATURE_MODE;
-      changed['ZONE2_WATER_TEMPERATURE_MODE'] = this.attributes.ZONE2_WATER_TEMPERATURE_MODE;
-      changed['ZONE2_ROOM_TEMPERATURE_MODE'] = this.attributes.ZONE2_ROOM_TEMPERATURE_MODE;
+      changed.ZONE1_WATER_TEMPERATURE_MODE = this.attributes.ZONE1_WATER_TEMPERATURE_MODE;
+      changed.ZONE1_ROOM_TEMPERATURE_MODE = this.attributes.ZONE1_ROOM_TEMPERATURE_MODE;
+      changed.ZONE2_WATER_TEMPERATURE_MODE = this.attributes.ZONE2_WATER_TEMPERATURE_MODE;
+      changed.ZONE2_ROOM_TEMPERATURE_MODE = this.attributes.ZONE2_ROOM_TEMPERATURE_MODE;
     }
 
     // Now we update Homebridge / Homekit accessory

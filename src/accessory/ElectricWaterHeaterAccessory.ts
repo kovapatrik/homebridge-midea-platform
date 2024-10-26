@@ -106,40 +106,40 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
-        case 'power':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.Active,
-            v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
-          );
-          updateState = true;
-          break;
-        case 'heating':
-          this.service.updateCharacteristic(
-            this.platform.Characteristic.CurrentHeaterCoolerState,
-            v ? this.platform.Characteristic.CurrentHeaterCoolerState.HEATING : this.platform.Characteristic.CurrentHeaterCoolerState.IDLE,
-          );
-          updateState = true;
-          break;
+      case 'power':
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
+        );
+        updateState = true;
+        break;
+      case 'heating':
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.CurrentHeaterCoolerState,
+          v ? this.platform.Characteristic.CurrentHeaterCoolerState.HEATING : this.platform.Characteristic.CurrentHeaterCoolerState.IDLE,
+        );
+        updateState = true;
+        break;
         // case 'keep_warm':
         //   this.platform.log.debug(`[${this.device.name}] Keep warm: ${v}`);
         //   break;
         // case 'protection':
         //   this.platform.log.debug(`[${this.device.name}] Protection: ${v}`);
         //   break;
-        case 'current_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
-          updateState = true;
-          break;
-        case 'target_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, v as CharacteristicValue);
-          updateState = true;
-          break;
-        case 'whole_tank_heating':
-          this.wholeTankHeatingService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
-          break;
-        case 'variable_heating':
-          this.variableHeatingService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
-          break;
+      case 'current_temperature':
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+        updateState = true;
+        break;
+      case 'target_temperature':
+        this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, v as CharacteristicValue);
+        updateState = true;
+        break;
+      case 'whole_tank_heating':
+        this.wholeTankHeatingService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
+        break;
+      case 'variable_heating':
+        this.variableHeatingService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
+        break;
         // case 'heating_time_remaining':
         //   this.platform.log.debug(`[${this.device.name}] Heating time remaining: ${v}`);
         //   break;
@@ -149,8 +149,8 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
         // case 'heating_power':
         //   this.platform.log.debug(`[${this.device.name}] Heating power: ${v}`);
         //   break;
-        default:
-          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+      default:
+        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());

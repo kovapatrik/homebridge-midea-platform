@@ -199,9 +199,7 @@ export default class Discover extends EventEmitter {
       } catch (err) {
         throw new Error(`Error while decrypting data: ${err}`);
       }
-
-      // prettier-ignore
-      // eslint-disable-next-line max-len
+      
       const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
       const port = decrypted_buffer.readUIntLE(4, 2);
 

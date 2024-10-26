@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 /***********************************************************************
  * Homebridge-midea-platform miscellaneous support functions.
  *
