@@ -22,6 +22,8 @@ import {
 import { LocalSecurity, ProxiedSecurity } from "../dist/core/MideaSecurity.js";
 import { PromiseSocket } from "../dist/core/MideaUtils.js";
 import { defaultConfig, defaultDeviceConfig } from "../dist/platformUtils.js";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 
 import _ from "lodash";
 
