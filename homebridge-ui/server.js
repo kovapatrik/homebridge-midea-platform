@@ -23,6 +23,8 @@ import { LocalSecurity, ProxiedSecurity } from "../dist/core/MideaSecurity.js";
 import { PromiseSocket } from "../dist/core/MideaUtils.js";
 import { defaultConfig, defaultDeviceConfig } from "../dist/platformUtils.js";
 
+import _ from "lodash";
+
 const DEFAULT_ACCOUNT = [
   BigInt(
     "39182118275972017797890111985649342047468653967530949796945843010512",
@@ -34,8 +36,6 @@ const DEFAULT_ACCOUNT = [
     "39182118275972017797890111985649342050088014265865102175083010656997",
   ),
 ];
-
-var _ = require("lodash");
 
 /*********************************************************************
  * Logger
