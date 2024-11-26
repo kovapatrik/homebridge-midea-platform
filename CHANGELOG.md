@@ -1,5 +1,8 @@
 # Changelog
 
+# v1.2.2
+- feat: added support for `Humidifiers` (fixes #114)
+
 # v1.2.1
 ## 2024-10-26
 - BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.

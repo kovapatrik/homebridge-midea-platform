@@ -26,6 +26,7 @@ Currently supports the following devices:
 | Electric Water Heater | E2 | [link](/docs/e2.md) |
 | Gas Water Heater | E3 | [link](/docs/e3.md) |
 | Fan | FA | [link](/docs/fa.md) |
+| Humidifier | FD | [link](/docs/fd.md) |
 
 ### Unsupported Devices
 
