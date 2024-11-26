@@ -2,6 +2,7 @@
 
 # v1.2.3
 - feat: added support for `Humidifiers` (fixes #114)
+- fix: mark accessories as 'Not responding' if the device is presumed offline
 
 # v1.2.2
 - version bump to fix the npm package
