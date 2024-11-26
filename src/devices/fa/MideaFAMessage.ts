@@ -1,3 +1,11 @@
+/***********************************************************************
+ * Midea Fan Device message handler class
+ *
+ * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
 import { DeviceType } from '../../core/MideaConstants.js';
 import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 
