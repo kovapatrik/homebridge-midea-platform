@@ -25,6 +25,9 @@ import MideaE1Device from '../devices/e1/MideaE1Device.js';
 import HeatPumpWiFiControllerAccessory from './HeatPumpWiFiControllerAccessory.js';
 import MideaC3Device from '../devices/c3/MideaC3Device.js';
 
+import HumidifierAccessory from './HumidifierAccessory.js';
+import MideaFDDevice from '../devices/fd/MideaFDDevice.js';
+
 import MideaDevice from '../core/MideaDevice.js';
 import { DeviceConfig } from '../platformUtils.js';
 
@@ -52,6 +55,8 @@ export default class AccessoryFactory {
       return new GasWaterHeaterAccessory(platform, accessory, device as unknown as MideaE3Device, configDev);
     case DeviceType.FAN:
       return new FanAccessory(platform, accessory, device as unknown as MideaFADevice, configDev);
+    case DeviceType.HUMIDIFIER:
+      return new HumidifierAccessory(platform, accessory, device as unknown as MideaFDDevice, configDev);
     case DeviceType.UNKNOWN:
     default:
       throw new Error(`Unsupported device type: ${device.type}`);

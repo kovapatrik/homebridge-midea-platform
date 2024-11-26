@@ -9,6 +9,7 @@ import MideaFADevice from './fa/MideaFADevice.js';
 import MideaDBDevice from './db/MideaDBDevice.js';
 import MideaE1Device from './e1/MideaE1Device.js';
 import MideaC3Device from './c3/MideaC3Device.js';
+import MideaFDDevice from './fd/MideaFDDevice.js';
 
 export default class DeviceFactory {
   public static createDevice(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
@@ -29,6 +30,8 @@ export default class DeviceFactory {
       return new MideaE3Device(logger, device_info, config, deviceConfig);
     case DeviceType.FAN:
       return new MideaFADevice(logger, device_info, config, deviceConfig);
+    case DeviceType.HUMIDIFIER:
+      return new MideaFDDevice(logger, device_info, config, deviceConfig);
     case DeviceType.UNKNOWN:
     default:
       return null;
