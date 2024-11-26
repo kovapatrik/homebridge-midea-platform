@@ -16,7 +16,7 @@ import { DeviceConfig, WaterTankSensor } from '../platformUtils.js';
 import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device.js';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
-  private service: Service;
+  protected service: Service;
 
   private temperatureService?: Service;
   private fanService?: Service;

@@ -15,7 +15,7 @@ import { DeviceConfig } from '../platformUtils.js';
 import MideaE1Device, { E1Attributes } from '../devices/e1/MideaE1Device.js';
 
 export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
-  private service: Service;
+  protected service: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers

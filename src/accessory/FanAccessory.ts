@@ -15,7 +15,7 @@ import { DeviceConfig } from '../platformUtils.js';
 import MideaFADevice, { FAAttributes } from '../devices/fa/MideaFADevice.js';
 
 export default class FanAccessory extends BaseAccessory<MideaFADevice> {
-  private service: Service;
+  protected service: Service;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers

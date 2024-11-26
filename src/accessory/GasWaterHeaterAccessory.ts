@@ -15,7 +15,7 @@ import { MideaAccessory, MideaPlatform } from '../platform.js';
 import { DeviceConfig } from '../platformUtils.js';
 
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
-  private service: Service;
+  protected service: Service;
 
   // Sensors/states
   private burningStateService?: Service;

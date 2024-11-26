@@ -15,7 +15,7 @@ import { MideaAccessory, MideaPlatform } from '../platform.js';
 import { DeviceConfig } from '../platformUtils.js';
 
 export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2Device> {
-  private service: Service;
+  protected service: Service;
 
   private variableHeatingService?: Service;
   private wholeTankHeatingService?: Service;

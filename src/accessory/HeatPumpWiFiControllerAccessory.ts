@@ -15,6 +15,9 @@ import { DeviceConfig } from '../platformUtils.js';
 import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
+
+  protected service: Service;
+
   // Zone1 related
   private zone1Service?: Service;
   private zone1CurveSwitchService?: Service;
@@ -55,6 +58,8 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
     super(platform, accessory, device, configDev);
 
     this.zone1Service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
+
+    this.service = this.zone1Service;
   }
 
   async updateCharacteristics(attributes: Partial<C3Attributes>) {

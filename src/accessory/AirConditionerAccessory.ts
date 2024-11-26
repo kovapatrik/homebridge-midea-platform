@@ -15,7 +15,7 @@ import { DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
 import MideaACDevice, { ACAttributes } from '../devices/ac/MideaACDevice.js';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
-  private service: Service;
+  protected service: Service;
   private outDoorTemperatureService?: Service;
   private displayService?: Service;
   private fanOnlyService?: Service;

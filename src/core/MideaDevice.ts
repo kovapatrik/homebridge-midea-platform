@@ -264,6 +264,7 @@ export default abstract class MideaDevice extends EventEmitter {
       }
 
       if (error_cnt === commands.length) {
+        this.emit('error_refresh');
         if (this.logRefreshStatusErrors) {
           this.logger.error(`[${this.name}] Refresh failed.`);
         } else {
