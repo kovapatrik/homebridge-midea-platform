@@ -1,7 +1,10 @@
 # Changelog
 
-# v1.2.2
+# v1.2.3
 - feat: added support for `Humidifiers` (fixes #114)
+
+# v1.2.2
+- version bump to fix the npm package
 
 # v1.2.1
 ## 2024-10-26
