@@ -1,5 +1,11 @@
 # Changelog
 
+# v1.2.3
+- fix: checking if cloud provider can be used for downloading Lua files in the discovery process
+
+# v1.2.2
+- version bump to fix the npm package
+
 # v1.2.1
 ## 2024-10-26
 - BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.
