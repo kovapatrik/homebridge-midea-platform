@@ -182,7 +182,7 @@ class UiServer extends HomebridgePluginUiServer {
 
     this.onRequest("/downloadLua", async ({ deviceType, deviceSn }) => {
       try {
-        if (!this.cloud || !(this.cloud instanceof ProxiedSecurity)) {
+        if (!this.cloud || !this.cloud.isProxied()) {
           this.pushEvent("showToast", {
             success: true,
             msg: "Currently used cloud provider doesn't support Lua downloading, using the default profile now...",

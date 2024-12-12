@@ -58,6 +58,10 @@ abstract class CloudBase<S extends CloudSecurity> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract apiRequest(endpoint: string, data: { [key: string]: any }): Promise<any>;
 
+  isProxied(): boolean {
+    return this.security.IS_PROXIED;
+  }
+
   async getLoginId() {
     try {
       const response = await this.apiRequest('/v1/user/login/id/get', {
