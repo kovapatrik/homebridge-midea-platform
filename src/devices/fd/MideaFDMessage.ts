@@ -45,7 +45,7 @@ export class MessageSet extends MessageFDBase {
   disinfect?: boolean;
 
   constructor(device_protocol_version: number) {
-    super(device_protocol_version, MessageType.SET, 0x00);
+    super(device_protocol_version, MessageType.SET, 0x48);
     this.power = false;
     this.fan_speed = 0;
     this.target_humidity = 50;
