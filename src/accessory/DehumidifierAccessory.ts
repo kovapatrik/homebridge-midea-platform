@@ -9,11 +9,12 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig, WaterTankSensor } from '../platformUtils.js';
-import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device.js';
+import { type DeviceConfig, WaterTankSensor } from '../platformUtils.js';
+import type MideaA1Device from '../devices/a1/MideaA1Device.js';
+import type { A1Attributes } from '../devices/a1/MideaA1Device.js';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   protected service: Service;

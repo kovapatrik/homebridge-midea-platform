@@ -8,11 +8,12 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { Service } from 'homebridge';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig } from '../platformUtils.js';
-import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import type MideaC3Device from '../devices/c3/MideaC3Device.js';
+import type { C3Attributes } from '../devices/c3/MideaC3Device.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
   protected service: Service;

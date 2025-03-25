@@ -8,7 +8,7 @@
  * Includes very basic implementation of a promise-wrapped Socket class.
  *
  */
-import { Logger } from 'homebridge';
+import type { Logger } from 'homebridge';
 import { Endianness } from './MideaConstants.js';
 import { Socket } from 'net';
 

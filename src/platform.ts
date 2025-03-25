@@ -7,13 +7,13 @@
  * Based on https://github.com/homebridge/homebridge-plugin-template
  *
  */
-import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import type { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import Discover from './core/MideaDiscover.js';
-import { DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
+import { type DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import AccessoryFactory from './accessory/AccessoryFactory.js';
 import DeviceFactory from './devices/DeviceFactory.js';
-import { Config, DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
+import { type Config, type DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import lodash from 'lodash';
 const { defaultsDeep } = lodash;
 

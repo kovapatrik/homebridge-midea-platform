@@ -8,10 +8,10 @@
  */
 
 import type { Logger } from 'homebridge';
-import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { DeviceInfo } from '../../core/MideaConstants.js';
-import type { Config, DeviceConfig } from '../../platformUtils.js';
+import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
+import type { Config, DeviceConfig } from '../../platformUtils.js';
 import { MessageFAResponse, MessageQuery, MessageSet } from './MideaFAMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of

@@ -8,11 +8,12 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import MideaE3Device, { E3Attributes } from '../devices/e3/MideaE3Device.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type MideaE3Device from '../devices/e3/MideaE3Device.js';
+import type { E3Attributes } from '../devices/e3/MideaE3Device.js';
 import BaseAccessory from './BaseAccessory.js';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
-import { DeviceConfig } from '../platformUtils.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
 
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
   protected service: Service;

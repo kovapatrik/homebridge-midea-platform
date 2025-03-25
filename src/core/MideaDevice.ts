@@ -7,12 +7,12 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { Logger } from 'homebridge';
-import { KeyToken, LocalSecurity } from './MideaSecurity.js';
-import { DeviceInfo, DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants.js';
-import { MessageQuerySubtype, MessageQuestCustom, MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage.js';
+import type { Logger } from 'homebridge';
+import { type KeyToken, LocalSecurity } from './MideaSecurity.js';
+import { type DeviceInfo, type DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants.js';
+import { MessageQuerySubtype, MessageQuestCustom, type MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage.js';
 import PacketBuilder from './MideaPacketBuilder.js';
-import { Config, DeviceConfig } from '../platformUtils.js';
+import type { Config, DeviceConfig } from '../platformUtils.js';
 import EventEmitter from 'events';
 import { PromiseSocket } from './MideaUtils.js';
 

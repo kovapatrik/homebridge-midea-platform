@@ -8,11 +8,12 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig } from '../platformUtils.js';
-import MideaE1Device, { E1Attributes } from '../devices/e1/MideaE1Device.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import type MideaE1Device from '../devices/e1/MideaE1Device.js';
+import type { E1Attributes } from '../devices/e1/MideaE1Device.js';
 
 export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   protected service: Service;

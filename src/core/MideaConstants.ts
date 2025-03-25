@@ -57,12 +57,12 @@ export enum TCPMessageType {
 
 export enum ProtocolVersion {
   UNKNOWN = 0,
-  V1,
-  V2,
-  V3,
+  V1 = 1,
+  V2 = 2,
+  V3 = 3,
 }
 
 export enum Endianness {
-  Little,
-  Big,
+  Little = 0,
+  Big = 1,
 }

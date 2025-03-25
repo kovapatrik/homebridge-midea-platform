@@ -8,11 +8,12 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig } from '../platformUtils.js';
-import MideaFDDevice, { FDAttributes } from '../devices/fd/MideaFDDevice.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import type MideaFDDevice from '../devices/fd/MideaFDDevice.js';
+import type { FDAttributes } from '../devices/fd/MideaFDDevice.js';
 
 export default class FanAccessory extends BaseAccessory<MideaFDDevice> {
   protected service: Service;

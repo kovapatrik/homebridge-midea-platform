@@ -1,7 +1,8 @@
-import { MideaAccessory, MideaPlatform } from '../platform.js';
-import MideaDevice, { DeviceAttributeBase } from '../core/MideaDevice.js';
-import { DeviceConfig } from '../platformUtils.js';
-import { Service } from 'homebridge';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type MideaDevice from '../core/MideaDevice.js';
+import type { DeviceAttributeBase } from '../core/MideaDevice.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import type { Service } from 'homebridge';
 
 export default abstract class BaseAccessory<T extends MideaDevice> {
   // main service of the accessory
