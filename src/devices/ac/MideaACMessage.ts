@@ -41,6 +41,7 @@ abstract class MessageACBase extends MessageRequest {
   }
 
   get body() {
+    // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
     let body = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
@@ -53,7 +54,14 @@ export class MessageQuery extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.from([0x81, 0x00, 0xff, 0x03, 0xff, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // biome-ignore format: easier to read
+    return Buffer.from([
+      0x81, 0x00, 0xff, 0x03,
+      0xff, 0x00, 0x02, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00
+    ]);
   }
 }
 
@@ -67,6 +75,7 @@ export class MessagePowerQuery extends MessageACBase {
   }
 
   get body() {
+    // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
     let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
@@ -79,7 +88,14 @@ export class MessageSwitchDisplay extends MessageACBase {
   }
 
   get _body() {
-    return Buffer.concat([Buffer.from([0x00, 0x00, 0xff, 0x02, 0x00, 0x02, 0x00]), Buffer.alloc(12)]);
+    // biome-ignore format: easier to read
+    return Buffer.concat([
+      Buffer.from([
+        0x00, 0x00, 0xff, 0x02,
+        0x00, 0x02, 0x00
+      ]),
+      Buffer.alloc(12),
+    ]);
 
     // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
   }
@@ -129,6 +145,7 @@ export abstract class MessageSubProtocol extends MessageACBase {
   }
 
   get body() {
+    // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
     let body = Buffer.concat([Buffer.from([this.body_type!]), this._body]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     body = Buffer.concat([body, Buffer.from([this.checksum(body)])]);
@@ -136,13 +153,7 @@ export abstract class MessageSubProtocol extends MessageACBase {
   }
 
   get _body() {
-    let body = Buffer.from([
-      6 + 2 + (this.subprotocol_body ? this.subprotocol_body.length : 0),
-      0x00,
-      0xff,
-      0xff,
-      this.subprotocol_query_type,
-    ]);
+    let body = Buffer.from([6 + 2 + (this.subprotocol_body ? this.subprotocol_body.length : 0), 0x00, 0xff, 0xff, this.subprotocol_query_type]);
     if (this.subprotocol_body) {
       body = Buffer.concat([body, this.subprotocol_body]);
     }
@@ -158,8 +169,8 @@ export class MessageSubProtocolQuery extends MessageSubProtocol {
 }
 
 export class MessageSubProtocolSet extends MessageSubProtocol {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   public power: boolean;
   public mode: number;
   public target_temperature: number;
@@ -204,26 +215,18 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
     const prompt_tone = this.prompt_tone ? 0x01 : 0;
     const timer = this.sn8_flag && this.timer ? 0x04 : 0;
 
+    // biome-ignore format: easier to read
     return Buffer.from([
-      boost_mode | power | dry,
+      0x02 | boost_mode | power | dry,
       aux_heating,
       sleep_mode,
-      0x00,
-      0x00,
+      0x00, 0x00,
       mode,
       target_temperature,
       fan_speed,
-      0x32,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x01,
-      0x01,
-      0x00,
-      0x01,
+      0x32, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x01,
+      0x01, 0x00, 0x01,
       water_model_temperature_set,
       prompt_tone,
       target_temperature,
@@ -231,23 +234,16 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
       0x66,
       0x00,
       eco | timer,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00,
       0x08,
     ]);
   }
 }
 
 export class MessageGeneralSet extends MessageACBase {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [key: string]: any;
   public power: boolean;
   public prompt_tone: boolean;
@@ -316,28 +312,20 @@ export class MessageGeneralSet extends MessageACBase {
     const frost_protect = this.frost_protect ? 0x80 : 0;
     // Byte 22 comfort_mode
     const comfort_mode = this.comfort_mode ? 0x01 : 0;
-
+    // biome-ignore format: easier to read
     return Buffer.from([
       power | prompt_tone,
       mode | target_temperature,
       fan_speed,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00,
       swing_mode,
       boost_mode,
       smart_eye | dry | aux_heating | eco_mode,
       temp_fahrenheit | sleep_mode | boost_mode_1,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00,
       natural_wind,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00,
       frost_protect,
       comfort_mode,
     ]);
@@ -345,7 +333,7 @@ export class MessageGeneralSet extends MessageACBase {
 }
 
 export class MessageNewProtocolSet extends MessageACBase {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [k: string]: any;
   public wind_swing_ud_angle?: number;
   public wind_swing_lr_angle?: number;
@@ -369,42 +357,27 @@ export class MessageNewProtocolSet extends MessageACBase {
 
     if (this.wind_swing_ud_angle !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_UD_ANGLE, Buffer.from([this.wind_swing_ud_angle])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_UD_ANGLE, Buffer.from([this.wind_swing_ud_angle]))]);
     }
 
     if (this.wind_swing_lr_angle !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_LR_ANGLE, Buffer.from([this.wind_swing_lr_angle])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_LR_ANGLE, Buffer.from([this.wind_swing_lr_angle]))]);
     }
 
     if (this.breezeless !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.BREEZELESS, Buffer.from([this.breezeless ? 0x01 : 0x00])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.BREEZELESS, Buffer.from([this.breezeless ? 0x01 : 0x00]))]);
     }
 
     if (this.indirect_wind !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01]))]);
     }
 
     if (this.screen_display !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.SCREEN_DISPLAY, Buffer.from([this.screen_display ? 0x64 : 0x00])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.SCREEN_DISPLAY, Buffer.from([this.screen_display ? 0x64 : 0x00]))]);
     }
 
     if (this.fresh_air_1 !== undefined && this.fresh_air_1.length === 2) {
@@ -415,7 +388,13 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.FRESH_AIR_1,
-          Buffer.from([fresh_air_power, fresh_air_fan_speed, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
+          // biome-ignore format: easier to read
+          Buffer.from([
+            fresh_air_power,
+            fresh_air_fan_speed,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+          ]),
         ),
       ]);
     }
@@ -424,18 +403,23 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       const fresh_air_power = this.fresh_air_2[0] > 0 ? 1 : 0;
       const fresh_air_fan_speed = this.fresh_air_2[1];
+      // biome-ignore format: easier to read
       payload = Buffer.concat([
         payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.FRESH_AIR_2, Buffer.from([fresh_air_power, fresh_air_fan_speed, 0xff])),
+        NewProtocolMessageBody.packet(
+          NewProtocolTags.FRESH_AIR_2,
+          Buffer.from([
+            fresh_air_power,
+            fresh_air_fan_speed,
+            0xff
+          ]),
+        )
       ]);
     }
 
     if (this.self_clean !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        NewProtocolMessageBody.packet(NewProtocolTags.SELF_CLEAN, Buffer.from([this.self_clean ? 0x01 : 0x00])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.SELF_CLEAN, Buffer.from([this.self_clean ? 0x01 : 0x00]))]);
     }
 
     if (this.rate_select !== undefined) {
@@ -449,10 +433,7 @@ export class MessageNewProtocolSet extends MessageACBase {
     }
 
     pack_count += 1;
-    payload = Buffer.concat([
-      payload,
-      NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00])),
-    ]);
+    payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
 
     payload[0] = pack_count;
     return payload;
@@ -688,21 +669,21 @@ class XC1MessageBody extends MessageBody {
   static parse_power(analysis_method: number, byte1: number, byte2: number, byte3: number) {
     if (analysis_method === 1) {
       return byte1 + byte2 / 100 + byte3 / 10000;
-    } else if (analysis_method === 2) {
-      return ((byte1 << 16) + (byte2 << 8) + byte3) / 1000;
-    } else {
-      return (byte1 * 10000 + byte2 * 100 + byte3) / 10;
     }
+    if (analysis_method === 2) {
+      return ((byte1 << 16) + (byte2 << 8) + byte3) / 1000;
+    }
+    return (byte1 * 10000 + byte2 * 100 + byte3) / 10;
   }
 
   static parse_consumption(analysis_method: number, byte1: number, byte2: number, byte3: number, byte4: number) {
     if (analysis_method === 1) {
       return byte1 * 10000 + byte2 * 100 + byte3 + byte4 / 100;
-    } else if (analysis_method === 2) {
-      return ((byte1 << 32) + (byte2 << 16) + (byte3 << 8) + byte4) / 1000;
-    } else {
-      return (byte1 * 1000000 + byte2 * 10000 + byte3 * 100 + byte4) / 100;
     }
+    if (analysis_method === 2) {
+      return ((byte1 << 32) + (byte2 << 16) + (byte3 << 8) + byte4) / 1000;
+    }
+    return (byte1 * 1000000 + byte2 * 10000 + byte3 * 100 + byte4) / 100;
   }
 }
 
@@ -775,20 +756,13 @@ export class MessageACResponse extends MessageResponse {
       this.set_body(new XA0MessageBody(this.body));
     } else if (this.message_type === MessageType.NOTIFY1 && this.body_type === 0xa1) {
       this.set_body(new XA1MessageBody(this.body));
-    } else if (
-      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
-      [0xb0, 0xb1, 0xb5].includes(this.body_type)
-    ) {
+    } else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) && [0xb0, 0xb1, 0xb5].includes(this.body_type)) {
       this.set_body(new XBXMessageBody(this.body, this.body_type));
     } else if ([MessageType.QUERY, MessageType.SET].includes(this.message_type) && this.body_type === 0xc0) {
       this.set_body(new XC0MessageBody(this.body));
     } else if (this.message_type === MessageType.QUERY && this.body_type === 0xc1) {
       this.set_body(new XC1MessageBody(this.body, power_analysis_method));
-    } else if (
-      [MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) &&
-      this.body_type === 0xbb &&
-      this.body.length >= 21
-    ) {
+    } else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) && this.body_type === 0xbb && this.body.length >= 21) {
       this.used_subprotocol = true;
       this.set_body(new XBBMessageBody(this.body));
     }

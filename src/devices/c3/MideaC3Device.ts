@@ -235,19 +235,7 @@ export default class MideaC3Device extends MideaDevice {
         }
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
-        if (
-          [
-            'ZONE1_POWER',
-            'ZONE2_POWER',
-            'DHW_POWER',
-            'ZONE1_CURVE',
-            'ZONE2_CURVE',
-            'DISINFECT',
-            'FAST_DHW',
-            'DHW_TARGET_TEMPERATURE',
-            'TBH',
-          ].includes(k)
-        ) {
+        if (['ZONE1_POWER', 'ZONE2_POWER', 'DHW_POWER', 'ZONE1_CURVE', 'ZONE2_CURVE', 'DISINFECT', 'FAST_DHW', 'DHW_TARGET_TEMPERATURE', 'TBH'].includes(k)) {
           messageToSend.SET ??= new MessageSet(this.device_protocol_version);
           messageToSend.SET[k.toLowerCase()] = v;
         } else if (k === 'SILENT_MODE') {

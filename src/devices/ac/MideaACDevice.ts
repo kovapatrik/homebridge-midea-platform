@@ -339,23 +339,23 @@ export default class MideaACDevice extends MideaDevice {
             if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
               let speed: number;
               switch (v) {
-              case 'Silent':
-                speed = 20;
-                break;
-              case 'Low':
-                speed = 40;
-                break;
-              case 'Medium':
-                speed = 60;
-                break;
-              case 'High':
-                speed = 80;
-                break;
-              case 'Full':
-                speed = 100;
-                break;
-              default:
-                speed = 0;
+                case 'Silent':
+                  speed = 20;
+                  break;
+                case 'Low':
+                  speed = 40;
+                  break;
+                case 'Medium':
+                  speed = 60;
+                  break;
+                case 'High':
+                  speed = 80;
+                  break;
+                case 'Full':
+                  speed = 100;
+                  break;
+                default:
+                  speed = 0;
               }
               const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
               messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
@@ -455,14 +455,14 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes.SWING_HORIZONTAL = false;
     this.attributes.SWING_VERTICAL = false;
     switch (swing_direction) {
-    case SwingAngle.HORIZONTAL:
-      message.wind_swing_lr_angle = swing_angle;
-      this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
-      break;
-    case SwingAngle.VERTICAL:
-      message.wind_swing_ud_angle = swing_angle;
-      this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
-      break;
+      case SwingAngle.HORIZONTAL:
+        message.wind_swing_lr_angle = swing_angle;
+        this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
+        break;
+      case SwingAngle.VERTICAL:
+        message.wind_swing_ud_angle = swing_angle;
+        this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
+        break;
     }
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);

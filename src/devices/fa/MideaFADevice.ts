@@ -7,11 +7,11 @@
  *
  */
 
-import { Logger } from 'homebridge';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
-import { DeviceInfo } from '../../core/MideaConstants.js';
-import { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageRequest } from '../../core/MideaMessage.js';
+import type { Logger } from 'homebridge';
+import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
+import type { DeviceInfo } from '../../core/MideaConstants.js';
+import type { Config, DeviceConfig } from '../../platformUtils.js';
+import type { MessageRequest } from '../../core/MideaMessage.js';
 import { MessageFAResponse, MessageQuery, MessageSet } from './MideaFAMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of

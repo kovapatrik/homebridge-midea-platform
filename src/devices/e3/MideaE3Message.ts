@@ -51,8 +51,8 @@ export class MessagePower extends MessageE3Base {
 }
 
 export class MessageSet extends MessageE3Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   target_temperature: number;
   zero_cold_water: boolean;
   bathtub_volume: number;
@@ -80,20 +80,15 @@ export class MessageSet extends MessageE3Base {
     // Byte 5
     const target_temperature = this.target_temperature & 0xff;
 
+    // biome-ignore format: easier to read
     return Buffer.from([
       0x01,
       zero_cold_water | 0x02,
       protection | zero_cold_pulse | smart_volume,
       0x00,
       target_temperature,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
       0x00,
     ]);
   }
@@ -121,7 +116,15 @@ export class MessageNewProtocolSet extends MessageE3Base {
     } else {
       value = this.value ? 0x01 : 0x00;
     }
-    return Buffer.from([key, value, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // biome-ignore format: easier to read
+    return Buffer.from([
+      key, value,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00
+    ]);
   }
 }
 

@@ -33,9 +33,7 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
 
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
     this.service.getCharacteristic(this.platform.Characteristic.InUse).onGet(this.getInUse.bind(this));
-    this.service
-      .getCharacteristic(this.platform.Characteristic.ValveType)
-      .onGet(() => this.platform.Characteristic.ValveType.GENERIC_VALVE);
+    this.service.getCharacteristic(this.platform.Characteristic.ValveType).onGet(() => this.platform.Characteristic.ValveType.GENERIC_VALVE);
     this.service
       .getCharacteristic(this.platform.Characteristic.RemainingDuration)
       .setProps({ minValue: 0, maxValue: 60 * 60 * 8, minStep: 1 })
@@ -47,15 +45,15 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-      case 'power':
-        updateState = true;
-        break;
-      case 'mode':
-        updateState = true;
-        break;
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-        break;
+        case 'power':
+          updateState = true;
+          break;
+        case 'mode':
+          updateState = true;
+          break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          break;
       }
     }
     if (updateState) {

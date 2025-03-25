@@ -29,10 +29,10 @@ export default class FanAccessory extends BaseAccessory<MideaFDDevice> {
   ) {
     super(platform, accessory, device, configDev);
 
-    this.service = this.accessory.getService(this.platform.Service.HumidifierDehumidifier) || 
-                   this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
+    this.service =
+      this.accessory.getService(this.platform.Service.HumidifierDehumidifier) || this.accessory.addService(this.platform.Service.HumidifierDehumidifier);
 
-    this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));;
+    this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
   }
 
   async updateCharacteristics(attributes: Partial<FDAttributes>) {
@@ -40,27 +40,27 @@ export default class FanAccessory extends BaseAccessory<MideaFDDevice> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-      case 'power':
-        updateState = true;
-        break;
-      // case 'mode':
-      //   this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
-      //   break;
-      // case 'fan_speed':
-      //   this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
-      //   break;
-      // case 'child_lock':
-      //   this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
-      //   break;
+        case 'power':
+          updateState = true;
+          break;
+        // case 'mode':
+        //   this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
+        //   break;
+        // case 'fan_speed':
+        //   this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+        //   break;
+        // case 'child_lock':
+        //   this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
+        //   break;
         // case 'oscillate':
         // case 'oscillation_angle':
         // case 'oscillation_mode':
         // case 'tilting_angle':
         //   this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
         //   break;
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-        break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          break;
       }
     }
     if (updateState) {

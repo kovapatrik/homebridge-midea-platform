@@ -1,4 +1,4 @@
-import { DeviceType } from './MideaConstants.js';
+import type { DeviceType } from './MideaConstants.js';
 
 export enum MessageType {
   UNKNOWN = 0x00,
@@ -48,9 +48,7 @@ export abstract class MessageRequest extends MessageBase {
   }
 
   get body() {
-    return Buffer.from(
-      this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : [],
-    );
+    return Buffer.from(this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : []);
   }
 
   get header() {
@@ -106,8 +104,8 @@ export class MessageQuestCustom extends MessageRequest {
   }
 }
 
-export class MessageBody{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class MessageBody {
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [k: string]: any;
   constructor(public readonly data: Buffer) {}
 
@@ -143,7 +141,7 @@ export class NewProtocolMessageBody extends MessageBody {
   }
 
   public parse() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: had to use any
     const result: { [key: string]: any } = {};
     let offset = 2;
     try {

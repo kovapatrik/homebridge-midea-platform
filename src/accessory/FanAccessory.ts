@@ -40,10 +40,7 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentFanState).onGet(this.getCurrentFanState.bind(this));
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.RotationSpeed)
-      .onGet(this.getRotationSpeed.bind(this))
-      .onSet(this.setRotationSpeed.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onGet(this.getRotationSpeed.bind(this)).onSet(this.setRotationSpeed.bind(this));
 
     // this.service
     //   .getCharacteristic(this.platform.Characteristic.RotationDirection)
@@ -66,27 +63,27 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-      case 'power':
-        updateState = true;
-        break;
-      case 'mode':
-        this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
-        break;
-      case 'fan_speed':
-        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
-        break;
-      case 'child_lock':
-        this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
-        break;
+        case 'power':
+          updateState = true;
+          break;
+        case 'mode':
+          this.service.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getTargetFanState());
+          break;
+        case 'fan_speed':
+          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+          break;
+        case 'child_lock':
+          this.service.updateCharacteristic(this.platform.Characteristic.LockPhysicalControls, this.getLockPhysicalControls());
+          break;
         // case 'oscillate':
         // case 'oscillation_angle':
         // case 'oscillation_mode':
         // case 'tilting_angle':
         //   this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
         //   break;
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-        break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          break;
       }
     }
     if (updateState) {
@@ -135,9 +132,7 @@ export default class FanAccessory extends BaseAccessory<MideaFADevice> {
   }
 
   getSwingMode(): CharacteristicValue {
-    return this.device.attributes.OSCILLATE
-      ? this.platform.Characteristic.SwingMode.SWING_ENABLED
-      : this.platform.Characteristic.SwingMode.SWING_DISABLED;
+    return this.device.attributes.OSCILLATE ? this.platform.Characteristic.SwingMode.SWING_ENABLED : this.platform.Characteristic.SwingMode.SWING_DISABLED;
   }
 
   async setSwingMode(value: CharacteristicValue) {

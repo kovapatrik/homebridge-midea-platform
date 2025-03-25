@@ -102,11 +102,7 @@ export class MeijuCloudSecurity extends ProxiedSecurity {
   readonly APP_KEY = 'ac21b9f9cbfe4ca5a88562ef25e2b768';
 
   constructor() {
-    super(
-      MeijuCloudSecurity._LOGIN_KEY,
-      BigInt('9795516279659324117647275084689641883661667'),
-      BigInt('117390035944627627450677220413733956185864939010425'),
-    );
+    super(MeijuCloudSecurity._LOGIN_KEY, BigInt('9795516279659324117647275084689641883661667'), BigInt('117390035944627627450677220413733956185864939010425'));
   }
 
   public encrpytIAMPassword(_loginId: string, password: string) {
@@ -153,10 +149,7 @@ export class ArtisonClimaSecurity extends SimpleSecurity {
 export class LocalSecurity {
   private readonly aes_key = Buffer.from(BigInt('141661095494369103254425781617665632877').toString(16), 'hex');
 
-  private readonly salt = Buffer.from(
-    BigInt('233912452794221312800602098970898185176935770387238278451789080441632479840061417076563').toString(16),
-    'hex',
-  );
+  private readonly salt = Buffer.from(BigInt('233912452794221312800602098970898185176935770387238278451789080441632479840061417076563').toString(16), 'hex');
 
   private readonly iv = Buffer.alloc(16);
 
@@ -215,11 +208,7 @@ export class LocalSecurity {
   }
 
   public encode_8370(data: Buffer, message_type: TCPMessageType) {
-    if (
-      message_type !== TCPMessageType.HANDSHAKE_REQUEST &&
-      message_type !== TCPMessageType.HANDSHAKE_RESPONSE &&
-      this.tcp_key.length === 0
-    ) {
+    if (message_type !== TCPMessageType.HANDSHAKE_REQUEST && message_type !== TCPMessageType.HANDSHAKE_RESPONSE && this.tcp_key.length === 0) {
       throw new Error('TCP key is not set.');
     }
     let header = Buffer.from([0x83, 0x70]);

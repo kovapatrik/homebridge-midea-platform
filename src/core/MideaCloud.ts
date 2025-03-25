@@ -12,15 +12,15 @@ import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import { Semaphore } from 'semaphore-promise';
-import { Endianness } from './MideaConstants.js';
+import type { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
   CloudSecurity,
   MeijuCloudSecurity,
   MSmartHomeCloudSecurity,
   NetHomePlusSecurity,
-  ProxiedSecurity,
-  SimpleSecurity,
+  type ProxiedSecurity,
+  type SimpleSecurity,
 } from './MideaSecurity.js';
 import { numberToUint8Array } from './MideaUtils.js';
 
@@ -55,7 +55,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 
   abstract buildRequestData(): { [key: string]: string | number };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   abstract apiRequest(endpoint: string, data: { [key: string]: any }): Promise<any>;
 
   async getLoginId() {
@@ -96,11 +96,11 @@ abstract class CloudBase<S extends CloudSecurity> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: had to use any
 type DataObject = { [key: string]: any };
 
 abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
@@ -120,7 +120,10 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, data, { headers: headers, timeout: 10000 });
+        const response = await axios.post(url, data, {
+          headers: headers,
+          timeout: 10000,
+        });
         if (response.data.code !== undefined) {
           if (Number.parseInt(response.data.code) === 0) {
             return response.data.data;
@@ -281,7 +284,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     return data;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   async apiRequest(endpoint: string, data: { [key: string]: any }, header?: { [key: string]: any } | undefined) {
     const headers = {
       ...header,
@@ -304,7 +307,9 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     const payload = new URLSearchParams(data);
     for (let i = 0; i < 3; i++) {
       try {
-        const response = await axios.post(url, payload.toString(), { headers: headers });
+        const response = await axios.post(url, payload.toString(), {
+          headers: headers,
+        });
         if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
           return response.data.result;
         } else {
@@ -375,16 +380,16 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
 export default class CloudFactory {
   static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
-    case 'Midea SmartHome (MSmartHome)':
-      return new MSmartHomeCloud(account, password);
-    case 'Meiju':
-      return new MeijuCloud(account, password);
-    case 'NetHome Plus':
-      return new NetHomePlusCloud(account, password);
-    case 'Ariston Clima':
-      return new AristonClimaCloud(account, password);
-    default:
-      throw new Error(`Cloud ${cloud} is not supported.`);
+      case 'Midea SmartHome (MSmartHome)':
+        return new MSmartHomeCloud(account, password);
+      case 'Meiju':
+        return new MeijuCloud(account, password);
+      case 'NetHome Plus':
+        return new NetHomePlusCloud(account, password);
+      case 'Ariston Clima':
+        return new AristonClimaCloud(account, password);
+      default:
+        throw new Error(`Cloud ${cloud} is not supported.`);
     }
   }
 }

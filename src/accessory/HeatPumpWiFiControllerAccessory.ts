@@ -15,7 +15,6 @@ import { DeviceConfig } from '../platformUtils.js';
 import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
-
   protected service: Service;
 
   // Zone1 related
@@ -67,9 +66,9 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-        break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          break;
       }
     }
     // if (updateState) {

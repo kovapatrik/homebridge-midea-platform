@@ -27,28 +27,14 @@ export class MessagePower extends MessageDBBase {
 
   get _body() {
     const power = this.power ? 0x01 : 0x00;
+    // biome-ignore format: easier to read
     return Buffer.from([
       power,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
-      0xff,
+      0xff, 0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff, 0xff
     ]);
   }
 }
@@ -66,10 +52,13 @@ export class MessageStart extends MessageDBBase {
 
   get _body() {
     if (this.start) {
-      return Buffer.concat([Buffer.from([0xff, 0x01]), this.washing_data]);
-    } else {
-      return Buffer.from([0xff, 0x00]);
+      // biome-ignore format: easier to read
+      return Buffer.concat([
+        Buffer.from([0xff, 0x01]),
+        this.washing_data
+      ]);
     }
+    return Buffer.from([0xff, 0x00]);
   }
 }
 
@@ -108,10 +97,7 @@ export class MessageDBResponse extends MessageResponse {
   constructor(message: Buffer) {
     super(message);
 
-    if (
-      [MessageType.QUERY, MessageType.SET].includes(this.message_type) ||
-      (this.message_type === MessageType.NOTIFY1 && this.body_type === 0x04)
-    ) {
+    if ([MessageType.QUERY, MessageType.SET].includes(this.message_type) || (this.message_type === MessageType.NOTIFY1 && this.body_type === 0x04)) {
       this.set_body(new DBGeneralMessageBody(this.body));
     }
   }

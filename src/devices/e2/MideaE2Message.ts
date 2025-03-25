@@ -44,8 +44,8 @@ export class MessagePower extends MessageE2Base {
 }
 
 export class MessageNewProtocolSet extends MessageE2Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   target_temperature?: number;
   variable_heating?: boolean;
   whole_tank_heating?: boolean;
@@ -72,8 +72,8 @@ export class MessageNewProtocolSet extends MessageE2Base {
 }
 
 export class MessageSet extends MessageE2Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   target_temperature: number;
   variable_heating: boolean;
   whole_tank_heating: boolean;
@@ -92,25 +92,18 @@ export class MessageSet extends MessageE2Base {
     const whole_tank_heating = this.whole_tank_heating ? 0x02 : 0x01;
     const target_temperature = this.target_temperature & 0xff;
     const variable_heating = this.variable_heating ? 0x10 : 0x00;
+    // biome-ignore format: easier to read
     return Buffer.from([
       0x01,
       0x00,
       0x80,
       whole_tank_heating | protection,
       target_temperature,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00,
       variable_heating,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00
     ]);
   }
 }
