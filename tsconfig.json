@@ -13,6 +13,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["eslint.config.js", "homebridge-ui", "src"],
+  "include": ["homebridge-ui", "src"],
   "exclude": ["**/*.spec.ts"]
 }
