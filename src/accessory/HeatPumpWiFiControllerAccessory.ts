@@ -9,11 +9,11 @@
  *
  */
 import type { Service } from 'homebridge';
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import BaseAccessory from './BaseAccessory.js';
-import type { DeviceConfig } from '../platformUtils.js';
 import type MideaC3Device from '../devices/c3/MideaC3Device.js';
 import type { C3Attributes } from '../devices/c3/MideaC3Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
   protected service: Service;

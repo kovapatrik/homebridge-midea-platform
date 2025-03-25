@@ -9,11 +9,11 @@
  *
  */
 import type { CharacteristicValue, Service } from 'homebridge';
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import BaseAccessory from './BaseAccessory.js';
-import type { DeviceConfig } from '../platformUtils.js';
 import type MideaE1Device from '../devices/e1/MideaE1Device.js';
 import type { E1Attributes } from '../devices/e1/MideaE1Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   protected service: Service;

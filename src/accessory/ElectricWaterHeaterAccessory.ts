@@ -11,9 +11,9 @@
 import type { CharacteristicValue, Service } from 'homebridge';
 import type MideaE2Device from '../devices/e2/MideaE2Device.js';
 import type { E2Attributes } from '../devices/e2/MideaE2Device.js';
-import BaseAccessory from './BaseAccessory.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2Device> {
   protected service: Service;
@@ -188,8 +188,8 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.E2_options.minTemp, Math.min(this.configDev.E2_options.maxTemp, value as number));
-    await this.device.set_attribute({ TARGET_TEMPERATURE: value });
+    const limitedValue = Math.max(this.configDev.E2_options.minTemp, Math.min(this.configDev.E2_options.maxTemp, value as number));
+    await this.device.set_attribute({ TARGET_TEMPERATURE: limitedValue });
   }
 
   getVariableHeating(): CharacteristicValue {

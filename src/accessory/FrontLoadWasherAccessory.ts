@@ -9,11 +9,11 @@
  *
  */
 import type { CharacteristicValue, Service } from 'homebridge';
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import BaseAccessory from './BaseAccessory.js';
-import type { DeviceConfig } from '../platformUtils.js';
 import type MideaDBDevice from '../devices/db/MideaDBDevice.js';
 import type { DBAttributes } from '../devices/db/MideaDBDevice.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class FanAccessory extends BaseAccessory<MideaDBDevice> {
   protected service: Service;

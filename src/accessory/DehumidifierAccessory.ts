@@ -10,11 +10,11 @@
  *
  */
 import type { CharacteristicValue, Service } from 'homebridge';
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import BaseAccessory from './BaseAccessory.js';
-import { type DeviceConfig, WaterTankSensor } from '../platformUtils.js';
 import type MideaA1Device from '../devices/a1/MideaA1Device.js';
 import type { A1Attributes } from '../devices/a1/MideaA1Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import { type DeviceConfig, WaterTankSensor } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   protected service: Service;
@@ -260,22 +260,22 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     if (!this.device.attributes.POWER) {
       // Powered off, must be inactive
       return this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
-    } else {
-      // Powered on, check mode
-      if (this.device.attributes.MODE >= 2) {
-        // Dehumidifying
-        return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
-      } else if (this.device.attributes.MODE === 1) {
-        // Whether deumidifying depends on whether we have reached target.  This is not
-        // always accurate, but is best we can do to signal whether actively dehumidifing or not.
-        if (this.device.attributes.CURRENT_HUMIDITY < this.device.attributes.TARGET_HUMIDITY) {
-          return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
-        } else {
-          return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
-        }
-      }
-      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
     }
+
+    // Powered on, check mode
+    if (this.device.attributes.MODE >= 2) {
+      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
+    }
+
+    if (this.device.attributes.MODE === 1) {
+      // Whether dehumidifying depends on whether we have reached target.  This is not
+      // always accurate, but is best we can do to signal whether actively dehumidifing or not.
+      if (this.device.attributes.CURRENT_HUMIDITY < this.device.attributes.TARGET_HUMIDITY) {
+        return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
+      }
+      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
+    }
+    return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
   }
 
   // Handle requests to get the target value of the "HumidifierDehumidifierState" characteristic

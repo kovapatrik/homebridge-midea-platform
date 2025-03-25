@@ -1,8 +1,8 @@
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { Service } from 'homebridge';
 import type MideaDevice from '../core/MideaDevice.js';
 import type { DeviceAttributeBase } from '../core/MideaDevice.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
-import type { Service } from 'homebridge';
 
 export default abstract class BaseAccessory<T extends MideaDevice> {
   // main service of the accessory
@@ -14,6 +14,7 @@ export default abstract class BaseAccessory<T extends MideaDevice> {
     protected readonly device: T,
     protected readonly configDev: DeviceConfig,
   ) {
+    // biome-ignore lint/style/noNonNullAssertion: by design, AccessoryInformation service is always present
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Midea')

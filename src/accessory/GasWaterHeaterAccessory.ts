@@ -11,9 +11,9 @@
 import type { CharacteristicValue, Service } from 'homebridge';
 import type MideaE3Device from '../devices/e3/MideaE3Device.js';
 import type { E3Attributes } from '../devices/e3/MideaE3Device.js';
-import BaseAccessory from './BaseAccessory.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
   protected service: Service;
@@ -216,8 +216,8 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.E3_options.minTemp, Math.min(this.configDev.E3_options.maxTemp, value as number));
-    await this.device.set_attribute({ TARGET_TEMPERATURE: value });
+    const limitedValue = Math.max(this.configDev.E3_options.minTemp, Math.min(this.configDev.E3_options.maxTemp, value as number));
+    await this.device.set_attribute({ TARGET_TEMPERATURE: limitedValue });
   }
 
   getBurningState(): CharacteristicValue {

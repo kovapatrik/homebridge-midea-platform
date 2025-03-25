@@ -9,11 +9,11 @@
  *
  */
 import type { CharacteristicValue, Service } from 'homebridge';
-import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import BaseAccessory from './BaseAccessory.js';
-import { type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
 import type MideaACDevice from '../devices/ac/MideaACDevice.js';
 import type { ACAttributes } from '../devices/ac/MideaACDevice.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import { type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
+import BaseAccessory from './BaseAccessory.js';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   protected service: Service;
@@ -445,31 +445,32 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       if (this.device.attributes.TARGET_TEMPERATURE < (this.device.attributes.INDOOR_TEMPERATURE ?? 0)) {
         if ([1, 2].includes(this.device.attributes.MODE)) {
           return this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-        } else {
-          return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
         }
-      } else if (this.device.attributes.TARGET_TEMPERATURE === this.device.attributes.INDOOR_TEMPERATURE) {
         return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
-      } else {
-        if (this.device.attributes.MODE === 4) {
-          return this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-        } else {
-          return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
-        }
       }
-    } else {
-      return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+
+      if (this.device.attributes.TARGET_TEMPERATURE === this.device.attributes.INDOOR_TEMPERATURE) {
+        return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+      }
+
+      if (this.device.attributes.MODE === 4) {
+        return this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
+      }
+
+      return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
     }
+
+    return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
   }
 
   getTargetHeaterCoolerState(): CharacteristicValue {
     if (this.device.attributes.MODE === 2) {
       return this.platform.Characteristic.TargetHeaterCoolerState.COOL;
-    } else if (this.device.attributes.MODE === 4) {
-      return this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
-    } else {
-      return this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
     }
+    if (this.device.attributes.MODE === 4) {
+      return this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
+    }
+    return this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
   }
 
   async setTargetHeaterCoolerState(value: CharacteristicValue) {
@@ -515,8 +516,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
-    await this.device.set_target_temperature(value);
+    const limitedValue = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
+    await this.device.set_target_temperature(limitedValue);
   }
 
   getSwingMode(): CharacteristicValue {
