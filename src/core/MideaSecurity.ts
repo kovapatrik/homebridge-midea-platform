@@ -11,6 +11,8 @@ export type KeyToken = Buffer | undefined;
 
 export abstract class CloudSecurity {
   protected readonly LOGIN_KEY: string;
+  abstract readonly IS_PROXIED: boolean;
+
   public readonly IOT_KEY?: string;
   public readonly HMAC_KEY?: string;
 
@@ -53,6 +55,7 @@ export abstract class CloudSecurity {
 
 export abstract class ProxiedSecurity extends CloudSecurity {
   abstract readonly APP_KEY: string;
+  IS_PROXIED = true;
 
   // Encrypts password for cloud API iampwd field.
   abstract encrpytIAMPassword(loginId: string, password: string): string;
@@ -114,6 +117,8 @@ export class MeijuCloudSecurity extends ProxiedSecurity {
 }
 
 export class SimpleSecurity extends CloudSecurity {
+  IS_PROXIED = false;
+
   public encrpytIAMPassword() {
     return '';
   }

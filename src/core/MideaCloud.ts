@@ -58,6 +58,10 @@ abstract class CloudBase<S extends CloudSecurity> {
   // biome-ignore lint/suspicious/noExplicitAny: had to use any
   abstract apiRequest(endpoint: string, data: { [key: string]: any }): Promise<any>;
 
+  isProxied(): boolean {
+    return this.security.IS_PROXIED;
+  }
+
   async getLoginId() {
     try {
       const response = await this.apiRequest('/v1/user/login/id/get', {
