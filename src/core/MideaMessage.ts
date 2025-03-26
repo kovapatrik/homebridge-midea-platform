@@ -135,9 +135,8 @@ export class NewProtocolMessageBody extends MessageBody {
     const length = value.length;
     if (packet_length === 4) {
       return Buffer.concat([Buffer.from([param & 0xff, param >> 8, length]), value]);
-    } else {
-      return Buffer.concat([Buffer.from([param & 0xff, param >> 8, 0x00, length]), value]);
     }
+    return Buffer.concat([Buffer.from([param & 0xff, param >> 8, 0x00, length]), value]);
   }
 
   public parse() {
@@ -210,8 +209,8 @@ export class MessageSubtypeResponse extends MessageResponse {
   constructor(message: Buffer | null | undefined) {
     super(message);
     if (this.message_type === MessageType.QUERY_SUBTYPE) {
-      const body = message!.subarray(this.HEADER_LENGTH, -1);
-      this.sub_type = (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0);
+      const body = message?.subarray(this.HEADER_LENGTH, -1);
+      this.sub_type = body ? (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0) : 0;
     } else {
       throw new Error('Invalid message type');
     }

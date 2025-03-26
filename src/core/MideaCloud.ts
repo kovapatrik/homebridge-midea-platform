@@ -8,16 +8,16 @@
  *                https://github.com/mill1000/midea-msmart
  *
  */
+import { randomBytes } from 'node:crypto';
 import axios from 'axios';
-import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import { Semaphore } from 'semaphore-promise';
 import type { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
   CloudSecurity,
-  MeijuCloudSecurity,
   MSmartHomeCloudSecurity,
+  MeijuCloudSecurity,
   NetHomePlusSecurity,
   type ProxiedSecurity,
   type SimpleSecurity,
@@ -118,7 +118,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       headers.accessToken = this.access_token;
     }
 
-    for (let i = 0; i < 3; i++) {
+    for (let retryCount = 0; retryCount < 3; retryCount++) {
       try {
         const response = await axios.post(url, data, {
           headers: headers,
@@ -129,9 +129,18 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
             return response.data.data;
           }
         }
-        throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
+        // If we got here, the API returned an error code
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
+        }
+        // Otherwise continue to retry
       } catch (error) {
-        throw new Error(`Error while sending request to ${url}: ${error}`);
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error while sending request to ${url}: ${error}`);
+        }
+        // Otherwise continue to retry
       }
     }
     throw new Error(`Failed to send request to ${url}.`);
@@ -158,8 +167,8 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
-      const iotData = this.buildRequestData();
-      delete iotData.uid;
+      // const iotData = this.buildRequestData();
+      // delete iotData.uid;
 
       const response = await this.apiRequest('/mj/user/login', {
         data: {
@@ -207,18 +216,17 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       version: '0',
     });
 
-    if (response && response.url) {
+    if (response?.url) {
       const lua = await axios.get(response.url);
       const encrypted_data = Buffer.from(lua.data, 'hex');
       const file_data = this.security.decryptAESAppKey(encrypted_data).toString('utf8');
       if (file_data) {
         return file_data;
-      } else {
-        throw new Error('Failed to decrypt plugin.');
       }
-    } else {
-      throw new Error('Failed to get protocol.');
+      throw new Error('Failed to decrypt plugin.');
     }
+
+    throw new Error('Failed to get protocol.');
   }
 
   async getPlugin(deviceType: number, serialNumber: string) {
@@ -237,9 +245,9 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 
     if (response) {
       return response;
-    } else {
-      throw new Error('Failed to get plugin.');
     }
+
+    throw new Error('Failed to get plugin.');
   }
 }
 
@@ -263,10 +271,6 @@ class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
 
 abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
   protected sessionId?: string;
-
-  constructor(account: string, password: string, security: T) {
-    super(account, password, security);
-  }
 
   buildRequestData() {
     const data: DataObject = {
@@ -305,18 +309,27 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       headers.accessToken = this.access_token;
     }
     const payload = new URLSearchParams(data);
-    for (let i = 0; i < 3; i++) {
+
+    for (let retryCount = 0; retryCount < 3; retryCount++) {
       try {
         const response = await axios.post(url, payload.toString(), {
           headers: headers,
         });
         if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
           return response.data.result;
-        } else {
+        }
+        // If we got here, the API returned an error code
+        if (retryCount === 2) {
+          // Last retry
           throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
         }
+        // Otherwise continue to retry
       } catch (error) {
-        throw new Error(`Error while sending request to ${url}: ${error}`);
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error while sending request to ${url}: ${error}`);
+        }
+        // Otherwise continue to retry
       }
     }
     throw new Error(`Failed to send request to ${url}.`);
@@ -377,6 +390,7 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   }
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
 export default class CloudFactory {
   static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {

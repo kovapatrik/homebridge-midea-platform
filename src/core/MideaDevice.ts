@@ -7,13 +7,13 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
+import EventEmitter from 'node:events';
 import type { Logger } from 'homebridge';
-import { type KeyToken, LocalSecurity } from './MideaSecurity.js';
-import { type DeviceInfo, type DeviceType, TCPMessageType, ProtocolVersion, ParseMessageResult } from './MideaConstants.js';
+import type { Config, DeviceConfig } from '../platformUtils.js';
+import { type DeviceInfo, type DeviceType, ParseMessageResult, ProtocolVersion, TCPMessageType } from './MideaConstants.js';
 import { MessageQuerySubtype, MessageQuestCustom, type MessageRequest, MessageSubtypeResponse, MessageType } from './MideaMessage.js';
 import PacketBuilder from './MideaPacketBuilder.js';
-import type { Config, DeviceConfig } from '../platformUtils.js';
-import EventEmitter from 'events';
+import { type KeyToken, LocalSecurity } from './MideaSecurity.js';
 import { PromiseSocket } from './MideaUtils.js';
 
 export type DeviceAttributeBase = {
@@ -105,8 +105,9 @@ export default abstract class MideaDevice extends EventEmitter {
     this.key = key;
   }
 
-  public fetch_v2_message(message: Buffer): [Buffer[], Buffer] {
+  public fetch_v2_message(messageToProcess: Buffer): [Buffer[], Buffer] {
     const result: Buffer[] = [];
+    let message = messageToProcess;
     while (message.length > 0) {
       const length = message.length;
       if (length < 6) {
@@ -241,11 +242,11 @@ export default abstract class MideaDevice extends EventEmitter {
                     this.unsupported_protocol.splice(cmd_idx, 1);
                   }
                   break;
-                } else if (result === ParseMessageResult.PADDING) {
-                  continue;
-                } else {
-                  throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
                 }
+                if (result === ParseMessageResult.PADDING) {
+                  continue;
+                }
+                throw new Error(`[${this.name} | refresh_status] Error when parsing message.`);
               }
             } catch (err) {
               error_cnt++;
@@ -443,7 +444,8 @@ export default abstract class MideaDevice extends EventEmitter {
             if (result === ParseMessageResult.ERROR) {
               this.logger.debug(`[${this.name} | run] Error return from ParseMessageResult.`);
               break;
-            } else if (result === ParseMessageResult.SUCCESS) {
+            }
+            if (result === ParseMessageResult.SUCCESS) {
               timeout_counter = 0;
             }
           } else {

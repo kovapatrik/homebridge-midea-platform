@@ -1,10 +1,10 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
+import { unescape as nodeUnescape } from 'node:querystring';
 import { Endianness, TCPMessageType } from './MideaConstants.js';
 import { numberToUint8Array, strxor } from './MideaUtils.js';
-import { unescape } from 'querystring';
 
 function unescape_plus(str: string) {
-  return unescape(str.replace(/\+/g, ' '));
+  return nodeUnescape(str.replace(/\+/g, ' '));
 }
 
 export type KeyToken = Buffer | undefined;
@@ -27,6 +27,7 @@ export abstract class CloudSecurity {
   // Generate a HMAC signature for the provided data and random data.
   public sign(data: string, random: string) {
     const message = `${this.IOT_KEY}${data}${random}`;
+    // biome-ignore lint/style/noNonNullAssertion: HMAC_KEY is defined in the constructor
     return createHmac('sha256', this.HMAC_KEY!).update(message).digest('hex');
   }
 
@@ -113,10 +114,6 @@ export class MeijuCloudSecurity extends ProxiedSecurity {
 }
 
 export class SimpleSecurity extends CloudSecurity {
-  constructor(login_key: string) {
-    super(login_key);
-  }
-
   public encrpytIAMPassword() {
     return '';
   }
@@ -207,10 +204,11 @@ export class LocalSecurity {
     return this.tcp_key;
   }
 
-  public encode_8370(data: Buffer, message_type: TCPMessageType) {
+  public encode_8370(dataToEncrypt: Buffer, message_type: TCPMessageType) {
     if (message_type !== TCPMessageType.HANDSHAKE_REQUEST && message_type !== TCPMessageType.HANDSHAKE_RESPONSE && this.tcp_key.length === 0) {
       throw new Error('TCP key is not set.');
     }
+    let data = dataToEncrypt;
     let header = Buffer.from([0x83, 0x70]);
     let size = data.length;
     let padding = 0;
@@ -239,7 +237,8 @@ export class LocalSecurity {
     return Buffer.concat([header, data]);
   }
 
-  public decode_8370(data: Buffer): [Buffer[], Buffer] {
+  public decode_8370(dataToDecrypt: Buffer): [Buffer[], Buffer] {
+    let data = dataToDecrypt;
     if (data.length < 6) {
       return [[], data];
     }
@@ -254,7 +253,8 @@ export class LocalSecurity {
     let leftover = Buffer.alloc(0);
     if (data.length < size) {
       return [[], data];
-    } else if (data.length > size) {
+    }
+    if (data.length > size) {
       leftover = data.subarray(size, data.length);
       data = data.subarray(0, size);
     }

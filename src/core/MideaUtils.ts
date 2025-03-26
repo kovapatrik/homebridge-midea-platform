@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 /***********************************************************************
  * Homebridge-midea-platform miscellaneous support functions.
  *
@@ -8,12 +7,13 @@
  * Includes very basic implementation of a promise-wrapped Socket class.
  *
  */
+import { Socket } from 'node:net';
 import type { Logger } from 'homebridge';
 import { Endianness } from './MideaConstants.js';
-import { Socket } from 'net';
 
-export function numberToUint8Array(num: number, byte_length: number, endianness: Endianness) {
+export function numberToUint8Array(inputNum: number, byte_length: number, endianness: Endianness) {
   const arr = new Uint8Array(byte_length);
+  let num = inputNum;
   for (let i = 0; i < byte_length; i++) {
     arr[i] = num % 256;
     num = Math.floor(num / 256);
