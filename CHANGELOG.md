@@ -1,6 +1,6 @@
 # Changelog
 
-# v1.2.3
+# v1.2.4
 - feat: added support for `Humidifiers` (fixes #114)
 - fix: mark accessories as 'Not responding' if the device is presumed offline
 
