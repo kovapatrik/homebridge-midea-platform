@@ -1,5 +1,8 @@
 # Changelog
 
+# v1.2.6
+- feat: added support for `Fresh Air Appliance` (fixes #118)
+
 # v1.2.5
 - fix: getting tokens/key for devices
   - IMPORTANT CHANGE: please read the [README](README.md#important-notice) about the change fetching the tokens
