@@ -30,7 +30,9 @@ Providing air conditioner settings is optional and the whole section or individu
     "tempStep": 1,
     "fahrenheit": false,
     "fanOnlyModeSwitch": false,
-    "fanAccessory": false
+    "fanAccessory": false,
+    "sleepModeSwitch": false,
+    "sleepModeAccessory": false
 }
 ```
 ## Options
@@ -48,7 +50,7 @@ Providing air conditioner settings is optional and the whole section or individu
 - **breezeAwaySwitch** *(optional)*: Toggles if the breeze away switch is created with the accessory. Default is `false`.
 - **displaySwitch**:
   - **flag** *(optional)*: Toggles if a switch, which can turn the display on or off will be created or not. Default is `true`.
-  - **command** *(optional)*: Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature. Default is `false`. 
+  - **command** *(optional)*: Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature. Default is `false`.
 - **auxHeatingSwitches** *(optional)*: Toggles if the aux heating switches are created with the accessory. Default is `false`.
 - **selfCleanSwitch** *(optional)*: Toggles if the self-cleaning switch is created with the accessory. Default is `false`.
 - **ionSwitch** *(optional)*: Toggles if the ION switch is created with the accessory. Default is `false`.
@@ -59,3 +61,4 @@ Providing air conditioner settings is optional and the whole section or individu
 - **fahrenheit** *(optional)*: Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius. Default is `false` (displays in Celsius).
 - **fanOnlyModeSwitch** *(optional)*: Toggles if the fan only mode switch is created with the accessory. Default is `false`.
 - **fanAccessory** *(optional)*: Toggles if the fan accessory is created with the accessory. Default is `false`.
+- **sleepModeSwitch** *(optional)*: Toggles if the sleep mode switch is created with the accessory. Default is `false`.

@@ -295,6 +295,11 @@
                   "title": "Fan Accessory",
                   "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
+                },
+                "sleepModeSwitch": {
+                  "title": "Sleep Mode Switch",
+                  "description": "Toggles if the sleep mode switch is created with the accessory.",
+                  "type": "boolean"
                 }
               }
             },
@@ -584,7 +589,8 @@
                 "devices[].AC_options.tempStep",
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyModeSwitch",
-                "devices[].AC_options.fanAccessory"
+                "devices[].AC_options.fanAccessory",
+                "devices[].AC_options.sleepModeSwitch"
               ]
             },
             {

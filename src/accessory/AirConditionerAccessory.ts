@@ -30,6 +30,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private selfCleanService?: Service;
   private ionService?: Service;
   private rateSelectService?: Service;
+  private sleepModeService?: Service;
 
   private swingAngleService?: Service;
 
@@ -267,6 +268,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         .onSet(this.setRateSelect.bind(this));
     } else if (this.rateSelectService) {
       this.accessory.removeService(this.rateSelectService);
+    }
+
+    // Sleep mode accessory
+    this.sleepModeService = this.accessory.getServiceById(this.platform.Service.Switch, 'SleepMode');
+    if (this.configDev.AC_options.sleepModeSwitch) {
+      this.sleepModeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Sleep`, 'SleepMode');
+      this.sleepModeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Sleep`);
+      this.sleepModeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getSleepMode.bind(this)).onSet(this.setSleepMode.bind(this));
+    } else if (this.sleepModeService) {
+      this.accessory.removeService(this.sleepModeService);
     }
 
     const swingProps = this.configDev.AC_options.swing;
@@ -690,5 +701,19 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setSwingAngleTargetVerticalTiltAngle(value: CharacteristicValue) {
     await this.device.set_swing_angle(SwingAngle.VERTICAL, Math.max(1, value as number));
+  }
+
+  getSleepMode(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.SLEEP_MODE
+      ? this.platform.Characteristic.Active.ACTIVE
+      : this.platform.Characteristic.Active.INACTIVE;
+  }
+
+  async setSleepMode(value: CharacteristicValue) {
+    if (value === this.platform.Characteristic.Active.ACTIVE) {
+      await this.device.set_attribute({ POWER: true, SLEEP_MODE: true });
+    } else {
+      await this.device.set_attribute({ SLEEP_MODE: false });
+    }
   }
 }
