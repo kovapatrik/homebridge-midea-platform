@@ -71,10 +71,10 @@ export default class FreshAirApplianceAccessory extends BaseAccessory<MideaCEDev
   }
 
   async updateCharacteristics(attributes: Partial<CEAttributes>) {
-    let updateState = false;
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
-      switch (k) {
+      let updateState = false;
+      switch (k.toLowerCase()) {
         case 'power':
           updateState = true;
           break;
@@ -102,6 +102,11 @@ export default class FreshAirApplianceAccessory extends BaseAccessory<MideaCEDev
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
           break;
+      }
+      if (updateState) {
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+        this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
       }
     }
   }
