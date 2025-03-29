@@ -398,14 +398,14 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
 export default class CloudFactory {
   static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
-      case 'Midea SmartHome (MSmartHome)':
-        return new MSmartHomeCloud(account, password);
-      case 'Meiju':
-        return new MeijuCloud(account, password);
+      // case 'Midea SmartHome (MSmartHome)':
+      //   return new MSmartHomeCloud(account, password);
+      // case 'Meiju':
+      //   return new MeijuCloud(account, password);
       case 'NetHome Plus':
         return new NetHomePlusCloud(account, password);
-      case 'Ariston Clima':
-        return new AristonClimaCloud(account, password);
+      // case 'Ariston Clima':
+      //   return new AristonClimaCloud(account, password);
       default:
         throw new Error(`Cloud ${cloud} is not supported.`);
     }

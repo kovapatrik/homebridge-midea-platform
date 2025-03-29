@@ -29,13 +29,13 @@ import _ from "lodash";
 
 const DEFAULT_ACCOUNT = [
   BigInt(
-    "39182118275972017797890111985649342047468653967530949796945843010512",
+    "41136566961777418441619689108052131385308997994436615360276316597550126349990",
   ),
   BigInt(
-    "29406100301096535908214728322278519471982973450672552249652548883645",
+    "41136566961777418205521495345904086238221761646585049169700858993146668339659",
   ),
   BigInt(
-    "39182118275972017797890111985649342050088014265865102175083010656997",
+    "41136566961777418441619689108052131385308997994436615362339979365072738212503",
   ),
 ];
 
@@ -109,11 +109,10 @@ class UiServer extends HomebridgePluginUiServer {
 
     this.onRequest(
       "/login",
-      async ({ username, password, registeredApp, useDefaultProfile }) => {
+      async ({ username, password, useDefaultProfile }) => {
         try {
           if (useDefaultProfile) {
             this.logger.debug("Using default profile.");
-            registeredApp = "Midea SmartHome (MSmartHome)";
             username = Buffer.from(
               (DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16),
               "hex",
@@ -126,9 +125,9 @@ class UiServer extends HomebridgePluginUiServer {
           this.cloud = CloudFactory.createCloud(
             username,
             password,
-            registeredApp,
+            "NetHome Plus",
           );
-          if (username && password && registeredApp) {
+          if (username && password) {
             await this.cloud.login();
           }
         } catch (e) {

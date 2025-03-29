@@ -38,19 +38,11 @@
             <label for="useDefaultProfile" class="form-check-label">Use default Midea SmartHome profile</label>
           </div>
           <div class="mb-3" id="login">
-            <div class="mb-3">
-              <label for="registeredApp" class="form-label">Registered app</label>
-              <select id="registeredApp" class="form-select">
-                <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
-                <option value="NetHome Plus">NetHome Plus</option>
-                <option value="Meiju">Meiju</option>
-                <option value="Artison Clima">Artison Clima</option>
-              </select>
-            </div>
-            <div class="mb-3 hide bg-warning-subtle border-warning-subtle p-3 rounded-2" id="meijuWarning">
-              The Meiju app disabled the process of obtaining the required token/key pair for protocol version 3 devices. 
-              When choosing Meiju, it will utilize the default Midea SmartHome profile to retrieve the token/key pair.
-            </div>
+              <div class="mb-3 hide bg-warning-subtle border-warning-subtle p-3 rounded-2">
+                  Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.
+                  It's expected that the token fetching in NetHome Plus API will be disabled as well. Make sure you save your devices' token and key to be able to usem them in the future.
+                  From now, it's only available to login using NetHome Plus accounts.
+              </div>
             <div id="userPass">
               <div class="mb-3">
                 <label for="username" class="form-label">Username</label>
@@ -209,7 +201,6 @@
 
     const loginSection = document.getElementById('login')
     const userPass = document.getElementById('userPass');
-    const meijuWarning = document.getElementById('meijuWarning');
 
     document.getElementById('useDefaultProfile').addEventListener('change', function (e) {
       if (e.target.checked === true) {
@@ -219,18 +210,6 @@
       }
     });
 
-    document.getElementById('registeredApp').addEventListener('change', function (e) {
-      if (e.target.value === 'Meiju') {
-        meijuWarning.classList.remove('hide');
-        userPass.classList.add('disabled');
-      } else {
-        meijuWarning.classList.add('hide');
-        userPass.classList.remove('disabled');
-      }
-    });
-
-
-
     /*********************************************************************
      * Discover button clicked....
      */
@@ -239,18 +218,15 @@
 
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      const registeredApp = document.getElementById('registeredApp').value;
-      const isMeiju = registeredApp === 'Meiju';
-      const useDefaultProfile = document.getElementById('useDefaultProfile').checked === true || isMeiju;
-      
+      const useDefaultProfile = document.getElementById('useDefaultProfile').checked === true;
+
       let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
 
       homebridge.showSpinner();
 
-
       console.info(`Request login...`);
       try {
-        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile });
+        await homebridge.request('/login', { username, password, useDefaultProfile });
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
@@ -260,7 +236,6 @@
 
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
-
 
       // Merge current config over to the server so discover has latest device config...
       let currentConfig = await homebridge.getPluginConfig();
@@ -321,7 +296,7 @@
               window.URL.revokeObjectURL(url);
             } catch (e) {
               homebridge.toast.error(e.message);
-            } 
+            }
           });
 
           modelCell.appendChild(download_btn);
