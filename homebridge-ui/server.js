@@ -14,7 +14,7 @@ import {
 import Discover from "../dist/core/MideaDiscover.js";
 import CloudFactory from "../dist/core/MideaCloud.js";
 import {
-  DeviceType,
+  DeviceTypeToName,
   TCPMessageType,
   ProtocolVersion,
   Endianness,
@@ -316,38 +316,7 @@ class UiServer extends HomebridgePluginUiServer {
       discover.startDiscover();
 
       discover.on("device", async (device) => {
-        switch (device.type) {
-          case DeviceType.AIR_CONDITIONER:
-            device.displayName = "Air Conditioner";
-            break;
-          case DeviceType.DEHUMIDIFIER:
-            device.displayName = "Dehumidifier";
-            break;
-          case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
-            device.displayName = "Heat Pump WiFi Controller";
-          case DeviceType.FRONT_LOAD_WASHER:
-            device.displayName = "Front Load Washer";
-            break;
-          case DeviceType.DISHWASHER:
-            device.displayName = "Dishwasher";
-            break;
-          case DeviceType.ELECTRIC_WATER_HEATER:
-            device.displayName = "Electric Water Heater";
-            break;
-          case DeviceType.GAS_WATER_HEATER:
-            device.displayName = "Gas Water Heater";
-            break;
-          case DeviceType.FAN:
-            device.displayName = "Fan";
-            break;
-          case DeviceType.HUMIDIFIER:
-            device.displayName = "Humidifier";
-            break;
-          case DeviceType.UNKNOWN:
-          default:
-            device.displayName = "Unknown";
-            break;
-        }
+        device.displayName = DeviceTypeToName[device.type] ?? "Unknown";
         devices.push(device);
         // too verbose to post every device as found...
         // this.pushEvent('showToast', { success: true, msg: `Discovered ${device.name} at ${device.ip}`, device: device });

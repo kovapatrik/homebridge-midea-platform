@@ -36,7 +36,18 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller", "Humidifier"],
+              "enum": [
+                "Air Conditioner",
+                "Dehumidifier",
+                "Dishwasher",
+                "Electric Water Heater",
+                "Fan",
+                "Fresh Air Appliance",
+                "Front Load Washer",
+                "Gas Water Heater",
+                "Heat Pump WiFi Controller",
+                "Humidifier"
+              ],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -331,14 +342,21 @@
                 }
               }
             },
+            "CE_options": {
+              "title": "Top Load Washer Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Top Load Washer';"
+              },
+              "properties": {}
+            },
             "DB_options": {
               "title": "Front Load Washer Options",
               "type": "object",
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Front Load Washer';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "E1_options": {
               "title": "Dishwasher Options",
@@ -346,8 +364,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dishwasher';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "E2_options": {
               "title": "Electric Water Heater Options",
@@ -448,8 +465,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fan';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "FD_options": {
               "title": "Humidifier Options",
@@ -457,8 +473,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Humidifier';"
               },
-              "properties": {
-              }
+              "properties": {}
             }
           }
         }
@@ -521,11 +536,7 @@
               "items": [
                 {
                   "key": "devices[].AC_options.swing",
-                  "items": [
-                    "devices[].AC_options.swing.mode",
-                    "devices[].AC_options.swing.angleAccessory",
-                    "devices[].AC_options.swing.angleMainControl"
-                  ]
+                  "items": ["devices[].AC_options.swing.mode", "devices[].AC_options.swing.angleAccessory", "devices[].AC_options.swing.angleMainControl"]
                 },
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
@@ -564,6 +575,12 @@
                 "devices[].C3_options.tbhSwitch",
                 "devices[].C3_options.disinfectSwitch"
               ]
+            },
+            {
+              "key": "devices[].CE_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             },
             {
               "key": "devices[].DB_options",
