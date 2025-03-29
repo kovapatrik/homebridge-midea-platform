@@ -106,7 +106,13 @@ type C3Options = {
   tbhSwitch: boolean;
 };
 
-type CEOptions = unknown;
+type CEOptions = {
+  silentMode: boolean;
+  autoSetModeSwitch: boolean;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+};
 
 type DBOptions = unknown;
 
@@ -197,7 +203,13 @@ export const defaultDeviceConfig: DeviceConfig = {
     silentSwitch: false,
     tbhSwitch: false,
   },
-  CE_options: {},
+  CE_options: {
+    autoSetModeSwitch: false,
+    minTemp: 16,
+    maxTemp: 30,
+    tempStep: 1,
+    silentMode: false,
+  },
   DB_options: {},
   E1_options: {},
   E2_options: {

@@ -348,7 +348,32 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Top Load Washer';"
               },
-              "properties": {}
+              "properties": {
+                "silentMode": {
+                  "title": "Silent Mode",
+                  "description": "Toggles if the silent mode switch alongside the level slider is created with the accessory.",
+                  "type": "boolean"
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature (°C)",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature (°C)",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step (°C)",
+                  "type": "number",
+                  "required": true,
+                  "enum": [0.5, 1]
+                },
+                "autoSetModeSwitch": {
+                  "title": "Auto Set Mode Switch",
+                  "description": "Toggles if the auto set mode switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
             },
             "DB_options": {
               "title": "Front Load Washer Options",
