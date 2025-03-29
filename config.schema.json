@@ -605,7 +605,13 @@
               "key": "devices[].CE_options",
               "expandable": true,
               "expanded": false,
-              "items": []
+              "items": [
+                "devices[].CE_options.silentMode",
+                "devices[].CE_options.minTemp",
+                "devices[].CE_options.maxTemp",
+                "devices[].CE_options.tempStep",
+                "devices[].CE_options.autoSetModeSwitch"
+              ]
             },
             {
               "key": "devices[].DB_options",
