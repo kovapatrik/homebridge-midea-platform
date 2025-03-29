@@ -2,6 +2,7 @@
 
 # v1.2.6
 - feat: added support for `Fresh Air Appliance` (fixes #118)
+- feat: added sleep mode switch for `Air Conditioner` (fixes #128)
 
 # v1.2.5
 - fix: getting tokens/key for devices
