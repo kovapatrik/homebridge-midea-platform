@@ -186,7 +186,6 @@ class UiServer extends HomebridgePluginUiServer {
             success: true,
             msg: "Currently used cloud provider doesn't support Lua downloading, using the default profile now...",
           });
-          const registeredApp = "Midea SmartHome (MSmartHome)";
           const username = Buffer.from(
             (DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16),
             "hex",
@@ -198,7 +197,7 @@ class UiServer extends HomebridgePluginUiServer {
           this.cloud = CloudFactory.createCloud(
             username,
             password,
-            registeredApp,
+            "NetHome Plus",
           );
           await this.cloud.login();
         }
