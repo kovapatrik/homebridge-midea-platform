@@ -33,6 +33,7 @@ export type DeviceConfig = {
   E2_options: E2Options;
   E3_options: E3Options;
   FA_options: FAOptions;
+  FD_options: FDOptions;
 };
 
 export enum SwingMode {
@@ -131,6 +132,8 @@ type E3Options = {
 
 type FAOptions = unknown;
 
+type FDOptions = unknown;
+
 export const defaultDeviceConfig: DeviceConfig = {
   id: 0,
   type: '',
@@ -213,4 +216,5 @@ export const defaultDeviceConfig: DeviceConfig = {
     smartVolumeSwitch: false,
   },
   FA_options: {},
+  FD_options: {},
 };

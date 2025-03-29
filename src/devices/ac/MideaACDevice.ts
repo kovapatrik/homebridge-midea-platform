@@ -6,9 +6,10 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import { Logger } from 'homebridge';
-import { DeviceInfo } from '../../core/MideaConstants.js';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
+import type { Logger } from 'homebridge';
+import type { DeviceInfo } from '../../core/MideaConstants.js';
+import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
+import { type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
 import {
   MessageACResponse,
   MessageGeneralSet,
@@ -20,7 +21,6 @@ import {
   MessageSubProtocolSet,
   MessageSwitchDisplay,
 } from './MideaACMessage.js';
-import { Config, DeviceConfig, SwingAngle } from '../../platformUtils.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -213,9 +213,8 @@ export default class MideaACDevice extends MideaDevice {
         for (const [k, v] of Object.entries(this.FRESH_AIR_FAN_SPEEDS_REVERSE)) {
           if (this.attributes.FRESH_AIR_FAN_SPEED > Number.parseInt(k)) {
             break;
-          } else {
-            this.attributes.FRESH_AIR_MODE = v;
           }
+          this.attributes.FRESH_AIR_MODE = v;
         }
       } else {
         this.attributes.FRESH_AIR_MODE = 'Off';
@@ -339,23 +338,23 @@ export default class MideaACDevice extends MideaDevice {
             if (Object.values(this.FRESH_AIR_FAN_SPEEDS).includes(v as string)) {
               let speed: number;
               switch (v) {
-              case 'Silent':
-                speed = 20;
-                break;
-              case 'Low':
-                speed = 40;
-                break;
-              case 'Medium':
-                speed = 60;
-                break;
-              case 'High':
-                speed = 80;
-                break;
-              case 'Full':
-                speed = 100;
-                break;
-              default:
-                speed = 0;
+                case 'Silent':
+                  speed = 20;
+                  break;
+                case 'Low':
+                  speed = 40;
+                  break;
+                case 'Medium':
+                  speed = 60;
+                  break;
+                case 'High':
+                  speed = 80;
+                  break;
+                case 'Full':
+                  speed = 100;
+                  break;
+                default:
+                  speed = 0;
               }
               const fresh_air = speed > 0 ? [true, speed] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
               messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
@@ -455,14 +454,14 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes.SWING_HORIZONTAL = false;
     this.attributes.SWING_VERTICAL = false;
     switch (swing_direction) {
-    case SwingAngle.HORIZONTAL:
-      message.wind_swing_lr_angle = swing_angle;
-      this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
-      break;
-    case SwingAngle.VERTICAL:
-      message.wind_swing_ud_angle = swing_angle;
-      this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
-      break;
+      case SwingAngle.HORIZONTAL:
+        message.wind_swing_lr_angle = swing_angle;
+        this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
+        break;
+      case SwingAngle.VERTICAL:
+        message.wind_swing_ud_angle = swing_angle;
+        this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
+        break;
     }
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);

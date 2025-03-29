@@ -26,8 +26,8 @@ export class MessageQuery extends MessageC3Base {
 }
 
 export class MessageSet extends MessageC3Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   zone1_power: boolean;
   zone2_power: boolean;
   dhw_power: boolean;
@@ -85,8 +85,8 @@ export class MessageSet extends MessageC3Base {
 }
 
 export class MessageSetSilent extends MessageC3Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   silent_mode: boolean;
   super_silent: boolean;
 
@@ -100,13 +100,18 @@ export class MessageSetSilent extends MessageC3Base {
     const silent_mode = this.silent_mode ? 0x01 : 0x00;
     const super_silent = this.super_silent ? 0x02 : 0x00;
 
-    return Buffer.from([silent_mode | super_silent, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // biome-ignore format: easier to read
+    return Buffer.from([
+      silent_mode | super_silent,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00
+    ]);
   }
 }
 
 export class MessageSetECO extends MessageC3Base {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
+  [key: string]: any;
   eco_mode: boolean;
 
   constructor(device_protocol_version: number) {
@@ -116,8 +121,12 @@ export class MessageSetECO extends MessageC3Base {
 
   get _body() {
     const eco_mode = this.eco_mode ? 0x01 : 0x00;
-
-    return Buffer.from([eco_mode, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // biome-ignore format: easier to read
+    return Buffer.from([
+      eco_mode,
+      0x00, 0x00, 0x00, 0x00,
+      0x00
+    ]);
   }
 }
 

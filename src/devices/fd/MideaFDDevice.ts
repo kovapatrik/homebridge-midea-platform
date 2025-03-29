@@ -1,5 +1,5 @@
 /***********************************************************************
- * Midea Front Load Washer class
+ * Midea Humidifier class
  *
  * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
  *
@@ -12,30 +12,42 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageDBResponse, MessagePower, MessageQuery, MessageStart } from './MideaDBMessage.js';
+import { MessageFDResponse, MessageQuery, MessageSet } from './MideaFDMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
-export interface DBAttributes extends DeviceAttributeBase {
+export interface FDAttributes extends DeviceAttributeBase {
   POWER: boolean;
-  START: boolean;
-  WASHING_DATA: Buffer;
-  PROGRESS: number;
-  TIME_REMAINING: number; // in minutes
+  FAN_SPEED: number;
+  PROMPT_TONE: boolean;
+  TARGET_HUMIDITY: number;
+  CURRENT_HUMIDITY: number;
+  CURRENT_TEMPERATURE: number;
+  TANK: number;
+  MODE: number;
+  SCREEN_DISPLAY: number;
+  DISINFECT?: boolean;
 }
 
-export default class MideaDBDevice extends MideaDevice {
-  public attributes: DBAttributes;
+export default class MideaFDDevice extends MideaDevice {
+  public attributes: FDAttributes;
+
+  // private modes = ['Manual', 'Auto', 'Continuous', 'Living-Room', 'Bed-Room', 'Kitchen', 'Sleep'];
 
   constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
 
     this.attributes = {
       POWER: false,
-      START: false,
-      WASHING_DATA: Buffer.alloc(0),
-      PROGRESS: 0,
-      TIME_REMAINING: 0,
+      FAN_SPEED: 0,
+      PROMPT_TONE: true,
+      TARGET_HUMIDITY: 60,
+      CURRENT_HUMIDITY: 0,
+      CURRENT_TEMPERATURE: 0,
+      TANK: 0,
+      MODE: 0,
+      SCREEN_DISPLAY: 0,
+      DISINFECT: undefined,
     };
   }
 
@@ -44,7 +56,7 @@ export default class MideaDBDevice extends MideaDevice {
   }
 
   process_message(msg: Buffer) {
-    const message = new MessageDBResponse(msg);
+    const message = new MessageFDResponse(msg);
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
@@ -72,16 +84,26 @@ export default class MideaDBDevice extends MideaDevice {
   }
 
   set_subtype(): void {
-    this.logger.debug('No subtype for FA device');
+    this.logger.debug('No subtype for FD device');
   }
 
-  async set_attribute(attributes: Partial<DBAttributes>) {
+  make_message_set(): MessageSet {
+    const message = new MessageSet(this.device_protocol_version);
+    message.power = this.attributes.POWER;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    message.screen_display = this.attributes.SCREEN_DISPLAY;
+    message.disinfect = this.attributes.DISINFECT;
+    message.mode = this.attributes.MODE;
+    message.fan_speed = this.attributes.FAN_SPEED;
+    message.target_humidity = this.attributes.TARGET_HUMIDITY;
+    return message;
+  }
+
+  async set_attribute(attributes: Partial<FDAttributes>) {
     const messageToSend: {
-      POWER: MessagePower | undefined;
-      START: MessageStart | undefined;
+      SET: MessageSet | undefined;
     } = {
-      POWER: undefined,
-      START: undefined,
+      SET: undefined,
     };
 
     try {
@@ -93,16 +115,8 @@ export default class MideaDBDevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        if (k === 'POWER') {
-          messageToSend.POWER ??= new MessagePower(this.device_protocol_version);
-          messageToSend.POWER.power = v as boolean;
-        } else if (k === 'START') {
-          messageToSend.START ??= new MessageStart(this.device_protocol_version);
-          messageToSend.START.start = v as boolean;
-          messageToSend.START.washing_data = this.attributes.WASHING_DATA;
-        } else {
-          this.logger.debug(`[${this.name}] Attribute '${k}' not supported`);
-        }
+        messageToSend.SET ??= this.make_message_set();
+        messageToSend.SET[k.toLowerCase()] = v;
       }
 
       for (const [k, v] of Object.entries(messageToSend)) {

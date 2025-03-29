@@ -1,4 +1,4 @@
-import { DeviceType } from './MideaConstants.js';
+import type { DeviceType } from './MideaConstants.js';
 
 export enum MessageType {
   UNKNOWN = 0x00,
@@ -48,9 +48,7 @@ export abstract class MessageRequest extends MessageBase {
   }
 
   get body() {
-    return Buffer.from(
-      this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : [],
-    );
+    return Buffer.from(this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : []);
   }
 
   get header() {
@@ -106,8 +104,8 @@ export class MessageQuestCustom extends MessageRequest {
   }
 }
 
-export class MessageBody{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class MessageBody {
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [k: string]: any;
   constructor(public readonly data: Buffer) {}
 
@@ -137,13 +135,12 @@ export class NewProtocolMessageBody extends MessageBody {
     const length = value.length;
     if (packet_length === 4) {
       return Buffer.concat([Buffer.from([param & 0xff, param >> 8, length]), value]);
-    } else {
-      return Buffer.concat([Buffer.from([param & 0xff, param >> 8, 0x00, length]), value]);
     }
+    return Buffer.concat([Buffer.from([param & 0xff, param >> 8, 0x00, length]), value]);
   }
 
   public parse() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: had to use any
     const result: { [key: string]: any } = {};
     let offset = 2;
     try {
@@ -212,8 +209,8 @@ export class MessageSubtypeResponse extends MessageResponse {
   constructor(message: Buffer | null | undefined) {
     super(message);
     if (this.message_type === MessageType.QUERY_SUBTYPE) {
-      const body = message!.subarray(this.HEADER_LENGTH, -1);
-      this.sub_type = (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0);
+      const body = message?.subarray(this.HEADER_LENGTH, -1);
+      this.sub_type = body ? (body.length > 2 ? body[2] : 0) + (body.length > 3 ? body[3] << 8 : 0) : 0;
     } else {
       throw new Error('Invalid message type');
     }

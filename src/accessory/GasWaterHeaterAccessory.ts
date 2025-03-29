@@ -8,14 +8,15 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import MideaE3Device, { E3Attributes } from '../devices/e3/MideaE3Device.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type MideaE3Device from '../devices/e3/MideaE3Device.js';
+import type { E3Attributes } from '../devices/e3/MideaE3Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
-import { DeviceConfig } from '../platformUtils.js';
 
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
-  private service: Service;
+  protected service: Service;
 
   // Sensors/states
   private burningStateService?: Service;
@@ -34,26 +35,20 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
   ) {
     super(platform, accessory, device, configDev);
 
-    this.service =
-      this.accessory.getService(this.platform.Service.HeaterCooler) || this.accessory.addService(this.platform.Service.HeaterCooler);
+    this.service = this.accessory.getService(this.platform.Service.HeaterCooler) || this.accessory.addService(this.platform.Service.HeaterCooler);
 
     this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
 
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState)
-      .onGet(this.getCurrentHeaterCoolerState.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(this.getCurrentHeaterCoolerState.bind(this));
 
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
       .onGet(this.getTargetHeaterCoolerState.bind(this))
       .onSet(this.setTargetHeaterCoolerState.bind(this))
       .setProps({
-        validValues: [
-          this.platform.Characteristic.TargetHeatingCoolingState.OFF,
-          this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
-        ],
+        validValues: [this.platform.Characteristic.TargetHeatingCoolingState.OFF, this.platform.Characteristic.TargetHeaterCoolerState.HEAT],
       });
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
@@ -71,11 +66,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     // Burning state sensor
     this.burningStateService = this.accessory.getServiceById(this.platform.Service.MotionSensor, 'BurningState');
     if (this.configDev.E3_options.burningStateSensor) {
-      this.burningStateService ??= this.accessory.addService(
-        this.platform.Service.MotionSensor,
-        `${this.device.name} Burning State`,
-        'BurningState',
-      );
+      this.burningStateService ??= this.accessory.addService(this.platform.Service.MotionSensor, `${this.device.name} Burning State`, 'BurningState');
       this.burningStateService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name}  Burning State`);
       this.burningStateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name}  Burning State`);
       this.burningStateService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getBurningState.bind(this));
@@ -86,11 +77,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     // Protection sensor
     this.protectionService = this.accessory.getServiceById(this.platform.Service.MotionSensor, 'Protection');
     if (this.configDev.E3_options.protectionSensor) {
-      this.protectionService ??= this.accessory.addService(
-        this.platform.Service.MotionSensor,
-        `${this.device.name} Protection`,
-        'Protection',
-      );
+      this.protectionService ??= this.accessory.addService(this.platform.Service.MotionSensor, `${this.device.name} Protection`, 'Protection');
       this.protectionService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Protection`);
       this.protectionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Protection`);
       this.protectionService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getProtection.bind(this));
@@ -101,11 +88,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     // Zero Cold Water switch
     this.zeroColdWaterService = this.accessory.getServiceById(this.platform.Service.Switch, 'ZeroColdWater');
     if (this.configDev.E3_options.zeroColdWaterSwitch) {
-      this.zeroColdWaterService ??= this.accessory.addService(
-        this.platform.Service.Switch,
-        `${this.device.name} Zero Cold Water`,
-        'ZeroColdWater',
-      );
+      this.zeroColdWaterService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Zero Cold Water`, 'ZeroColdWater');
       this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Water`);
       this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Water`);
       this.zeroColdWaterService
@@ -119,11 +102,7 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     // Zero Cold Pulse switch
     this.zeroColdPulseService = this.accessory.getServiceById(this.platform.Service.Switch, 'ZeroColdPulse');
     if (this.configDev.E3_options.zeroColdPulseSwitch) {
-      this.zeroColdPulseService ??= this.accessory.addService(
-        this.platform.Service.Switch,
-        `${this.device.name} Zero Cold Pulse`,
-        'ZeroColdPulse',
-      );
+      this.zeroColdPulseService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Zero Cold Pulse`, 'ZeroColdPulse');
       this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Pulse`);
       this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Pulse`);
       this.zeroColdPulseService
@@ -137,17 +116,10 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     // Smart Volume switch
     this.smartVolumeService = this.accessory.getServiceById(this.platform.Service.Switch, 'SmartVolume');
     if (this.configDev.E3_options.smartVolumeSwitch) {
-      this.smartVolumeService ??= this.accessory.addService(
-        this.platform.Service.Switch,
-        `${this.device.name} Smart Volume`,
-        'SmartVolume',
-      );
+      this.smartVolumeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Smart Volume`, 'SmartVolume');
       this.smartVolumeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Smart Volume`);
       this.smartVolumeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Smart Volume`);
-      this.smartVolumeService
-        .getCharacteristic(this.platform.Characteristic.On)
-        .onGet(this.getSmartVolume.bind(this))
-        .onSet(this.setSmartVolume.bind(this));
+      this.smartVolumeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getSmartVolume.bind(this)).onSet(this.setSmartVolume.bind(this));
     } else if (this.smartVolumeService) {
       this.accessory.removeService(this.smartVolumeService);
     }
@@ -162,38 +134,38 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
-      case 'power':
-        this.service.updateCharacteristic(
-          this.platform.Characteristic.Active,
-          v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
-        );
-        updateState = true;
-        break;
-      case 'burning_state':
-        this.burningStateService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
-        break;
-      case 'zero_cold_water':
-        this.zeroColdWaterService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-        break;
-      case 'protection':
-        this.protectionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
-        break;
-      case 'zero_cold_pulse':
-        this.zeroColdPulseService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-        break;
-      case 'smart_volume':
-        this.smartVolumeService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
-        break;
-      case 'current_temperature':
-        this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as number);
-        updateState = true;
-        break;
-      case 'target_temperature':
-        this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as number);
-        updateState = true;
-        break;
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        case 'power':
+          this.service.updateCharacteristic(
+            this.platform.Characteristic.Active,
+            v ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE,
+          );
+          updateState = true;
+          break;
+        case 'burning_state':
+          this.burningStateService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
+          break;
+        case 'zero_cold_water':
+          this.zeroColdWaterService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+          break;
+        case 'protection':
+          this.protectionService?.updateCharacteristic(this.platform.Characteristic.MotionDetected, v as boolean);
+          break;
+        case 'zero_cold_pulse':
+          this.zeroColdPulseService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+          break;
+        case 'smart_volume':
+          this.smartVolumeService?.updateCharacteristic(this.platform.Characteristic.On, v as boolean);
+          break;
+        case 'current_temperature':
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as number);
+          updateState = true;
+          break;
+        case 'target_temperature':
+          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, v as number);
+          updateState = true;
+          break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
@@ -240,15 +212,12 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
   }
 
   getTargetTemperature(): CharacteristicValue {
-    return Math.max(
-      this.configDev.E3_options.minTemp,
-      Math.min(this.configDev.E3_options.maxTemp, this.device.attributes.TARGET_TEMPERATURE),
-    );
+    return Math.max(this.configDev.E3_options.minTemp, Math.min(this.configDev.E3_options.maxTemp, this.device.attributes.TARGET_TEMPERATURE));
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.E3_options.minTemp, Math.min(this.configDev.E3_options.maxTemp, value as number));
-    await this.device.set_attribute({ TARGET_TEMPERATURE: value });
+    const limitedValue = Math.max(this.configDev.E3_options.minTemp, Math.min(this.configDev.E3_options.maxTemp, value as number));
+    await this.device.set_attribute({ TARGET_TEMPERATURE: limitedValue });
   }
 
   getBurningState(): CharacteristicValue {

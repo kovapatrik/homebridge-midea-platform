@@ -8,15 +8,15 @@
  * With thanks to https://github.com/georgezhao2010/midea_ac_lan
  *
  */
-import dgram from 'dgram';
-import { Logger } from 'homebridge';
-import { DISCOVERY_MESSAGE, DeviceInfo, ProtocolVersion } from './MideaConstants.js';
+import dgram from 'node:dgram';
+import EventEmitter from 'node:events';
 import { XMLParser } from 'fast-xml-parser';
-import EventEmitter from 'events';
+import type { Logger } from 'homebridge';
+import { DISCOVERY_MESSAGE, type DeviceInfo, ProtocolVersion } from './MideaConstants.js';
 import { LocalSecurity } from './MideaSecurity.js';
 
 // To access network interface detail...
-import os from 'os';
+import os from 'node:os';
 
 export default class Discover extends EventEmitter {
   private socket: dgram.Socket;
@@ -127,7 +127,7 @@ export default class Discover extends EventEmitter {
   public startDiscover(retries = 3, timeout = 2000) {
     let tries = 0;
     // force timeout to be between 500ms and 5 seconds
-    timeout = Math.max(500, Math.min(timeout, 5000));
+    const limitedTimeout = Math.max(500, Math.min(timeout, 5000));
     const broadcastAddrs = this.ifBroadcastAddrs();
 
     function broadcast(this: Discover) {
@@ -135,9 +135,8 @@ export default class Discover extends EventEmitter {
         this.logger.debug(`Device discovery complete after ${retries + 1} network broadcasts.`);
         this.emit('complete');
         return;
-      } else {
-        this.emit('retry', tries, this.ips.length);
       }
+      this.emit('retry', tries, this.ips.length);
       for (const ip of broadcastAddrs) {
         this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);
         for (const port of [6445, 20086]) {
@@ -149,7 +148,7 @@ export default class Discover extends EventEmitter {
           });
         }
       }
-      setTimeout(broadcast.bind(this), timeout);
+      setTimeout(broadcast.bind(this), limitedTimeout);
     }
     broadcast.bind(this)();
   }
@@ -163,7 +162,8 @@ export default class Discover extends EventEmitter {
 
       if (start_of_packet.compare(Buffer.from([0x5a, 0x5a])) === 0) {
         return ProtocolVersion.V2;
-      } else if (start_of_packet.compare(Buffer.from([0x83, 0x70])) === 0) {
+      }
+      if (start_of_packet.compare(Buffer.from([0x83, 0x70])) === 0) {
         return ProtocolVersion.V3;
       }
     }
@@ -183,52 +183,52 @@ export default class Discover extends EventEmitter {
       // throw new Error("Could not find 'body/device' in XML.");
 
       throw new Error('Version 1 not implemented.');
-    } else {
-      let buffer = data;
-      // Strip V3 header and hash
-      if (version === ProtocolVersion.V3) {
-        buffer = buffer.subarray(8, -16);
-      }
-
-      const encrypted_data = buffer.subarray(40, -16);
-      const device_id = buffer.readUIntLE(20, 6);
-
-      let decrypted_buffer: Buffer;
-      try {
-        decrypted_buffer = this.security.aes_decrypt(encrypted_data);
-      } catch (err) {
-        throw new Error(`Error while decrypting data: ${err}`);
-      }
-      
-      const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
-      const port = decrypted_buffer.readUIntLE(4, 2);
-
-      if (ip_address !== ip) {
-        this.logger.warn(`IP address mismatch: ${ip_address} != ${ip}`);
-      }
-
-      const model = decrypted_buffer.subarray(17, 25).toString();
-
-      // Serial number
-      const sn = decrypted_buffer.subarray(8, 40).toString();
-
-      // Extract name/SSID
-      const name_length = decrypted_buffer.readUIntLE(40, 1);
-      const name = decrypted_buffer.subarray(41, 41 + name_length).toString();
-
-      const device_type = Number(`0x${name.split('_')[1]}`);
-
-      return {
-        ip: ip,
-        port: port,
-        id: device_id,
-        model: model,
-        sn: sn,
-        name: name,
-        type: device_type,
-        version: version,
-      };
     }
+
+    let buffer = data;
+    // Strip V3 header and hash
+    if (version === ProtocolVersion.V3) {
+      buffer = buffer.subarray(8, -16);
+    }
+
+    const encrypted_data = buffer.subarray(40, -16);
+    const device_id = buffer.readUIntLE(20, 6);
+
+    let decrypted_buffer: Buffer;
+    try {
+      decrypted_buffer = this.security.aes_decrypt(encrypted_data);
+    } catch (err) {
+      throw new Error(`Error while decrypting data: ${err}`);
+    }
+
+    const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;
+    const port = decrypted_buffer.readUIntLE(4, 2);
+
+    if (ip_address !== ip) {
+      this.logger.warn(`IP address mismatch: ${ip_address} != ${ip}`);
+    }
+
+    const model = decrypted_buffer.subarray(17, 25).toString();
+
+    // Serial number
+    const sn = decrypted_buffer.subarray(8, 40).toString();
+
+    // Extract name/SSID
+    const name_length = decrypted_buffer.readUIntLE(40, 1);
+    const name = decrypted_buffer.subarray(41, 41 + name_length).toString();
+
+    const device_type = Number(`0x${name.split('_')[1]}`);
+
+    return {
+      ip: ip,
+      port: port,
+      id: device_id,
+      model: model,
+      sn: sn,
+      name: name,
+      type: device_type,
+      version: version,
+    };
   }
 
   // TODO: Implement device classes, now only using AC

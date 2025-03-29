@@ -36,7 +36,7 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller"],
+              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller", "Humidifier"],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -450,6 +450,15 @@
               },
               "properties": {
               }
+            },
+            "FD_options": {
+              "title": "Humidifier Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Humidifier';"
+              },
+              "properties": {
+              }
             }
           }
         }
@@ -599,6 +608,12 @@
             },
             {
               "key": "devices[].FA_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
+            },
+            {
+              "key": "devices[].FD_options",
               "expandable": true,
               "expanded": false,
               "items": []

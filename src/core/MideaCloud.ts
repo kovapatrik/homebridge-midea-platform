@@ -8,19 +8,19 @@
  *                https://github.com/mill1000/midea-msmart
  *
  */
+import { randomBytes } from 'node:crypto';
 import axios from 'axios';
-import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import { Semaphore } from 'semaphore-promise';
-import { Endianness } from './MideaConstants.js';
+import type { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
   CloudSecurity,
-  MeijuCloudSecurity,
   MSmartHomeCloudSecurity,
+  MeijuCloudSecurity,
   NetHomePlusSecurity,
-  ProxiedSecurity,
-  SimpleSecurity,
+  type ProxiedSecurity,
+  type SimpleSecurity,
 } from './MideaSecurity.js';
 import { numberToUint8Array } from './MideaUtils.js';
 
@@ -55,7 +55,7 @@ abstract class CloudBase<S extends CloudSecurity> {
 
   abstract buildRequestData(): { [key: string]: string | number };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   abstract apiRequest(endpoint: string, data: { [key: string]: any }): Promise<any>;
 
   isProxied(): boolean {
@@ -100,11 +100,11 @@ abstract class CloudBase<S extends CloudSecurity> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: had to use any
 type DataObject = { [key: string]: any };
 
 abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
     const url = `${this.API_URL}${endpoint}`;
     const random = randomBytes(16).toString('hex');
@@ -122,17 +122,29 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       headers.accessToken = this.access_token;
     }
 
-    for (let i = 0; i < 3; i++) {
+    for (let retryCount = 0; retryCount < 3; retryCount++) {
       try {
-        const response = await axios.post(url, data, { headers: headers, timeout: 10000 });
+        const response = await axios.post(url, data, {
+          headers: headers,
+          timeout: 10000,
+        });
         if (response.data.code !== undefined) {
           if (Number.parseInt(response.data.code) === 0) {
             return response.data.data;
           }
         }
-        throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
+        // If we got here, the API returned an error code
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
+        }
+        // Otherwise continue to retry
       } catch (error) {
-        throw new Error(`Error while sending request to ${url}: ${error}`);
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error while sending request to ${url}: ${error}`);
+        }
+        // Otherwise continue to retry
       }
     }
     throw new Error(`Failed to send request to ${url}.`);
@@ -159,8 +171,8 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       }
       // Not logged in so proceed...
       const login_id = await this.getLoginId();
-      const iotData = this.buildRequestData();
-      delete iotData.uid;
+      // const iotData = this.buildRequestData();
+      // delete iotData.uid;
 
       const response = await this.apiRequest('/mj/user/login', {
         data: {
@@ -208,18 +220,17 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       version: '0',
     });
 
-    if (response && response.url) {
+    if (response?.url) {
       const lua = await axios.get(response.url);
       const encrypted_data = Buffer.from(lua.data, 'hex');
       const file_data = this.security.decryptAESAppKey(encrypted_data).toString('utf8');
       if (file_data) {
         return file_data;
-      } else {
-        throw new Error('Failed to decrypt plugin.');
       }
-    } else {
-      throw new Error('Failed to get protocol.');
+      throw new Error('Failed to decrypt plugin.');
     }
+
+    throw new Error('Failed to get protocol.');
   }
 
   async getPlugin(deviceType: number, serialNumber: string) {
@@ -238,9 +249,9 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
 
     if (response) {
       return response;
-    } else {
-      throw new Error('Failed to get plugin.');
     }
+
+    throw new Error('Failed to get plugin.');
   }
 }
 
@@ -265,10 +276,6 @@ class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
 abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
   protected sessionId?: string;
 
-  constructor(account: string, password: string, security: T) {
-    super(account, password, security);
-  }
-
   buildRequestData() {
     const data: DataObject = {
       appId: this.APP_ID,
@@ -285,7 +292,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     return data;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: had to use any
   async apiRequest(endpoint: string, data: { [key: string]: any }, header?: { [key: string]: any } | undefined) {
     const headers = {
       ...header,
@@ -306,16 +313,27 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       headers.accessToken = this.access_token;
     }
     const payload = new URLSearchParams(data);
-    for (let i = 0; i < 3; i++) {
+
+    for (let retryCount = 0; retryCount < 3; retryCount++) {
       try {
-        const response = await axios.post(url, payload.toString(), { headers: headers });
+        const response = await axios.post(url, payload.toString(), {
+          headers: headers,
+        });
         if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
           return response.data.result;
-        } else {
+        }
+        // If we got here, the API returned an error code
+        if (retryCount === 2) {
+          // Last retry
           throw new Error(`Error response from API: ${JSON.stringify(response.data)}`);
         }
+        // Otherwise continue to retry
       } catch (error) {
-        throw new Error(`Error while sending request to ${url}: ${error}`);
+        if (retryCount === 2) {
+          // Last retry
+          throw new Error(`Error while sending request to ${url}: ${error}`);
+        }
+        // Otherwise continue to retry
       }
     }
     throw new Error(`Failed to send request to ${url}.`);
@@ -376,19 +394,20 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   }
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
 export default class CloudFactory {
   static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
     switch (cloud) {
-    case 'Midea SmartHome (MSmartHome)':
-      return new MSmartHomeCloud(account, password);
-    case 'Meiju':
-      return new MeijuCloud(account, password);
-    case 'NetHome Plus':
-      return new NetHomePlusCloud(account, password);
-    case 'Ariston Clima':
-      return new AristonClimaCloud(account, password);
-    default:
-      throw new Error(`Cloud ${cloud} is not supported.`);
+      case 'Midea SmartHome (MSmartHome)':
+        return new MSmartHomeCloud(account, password);
+      case 'Meiju':
+        return new MeijuCloud(account, password);
+      case 'NetHome Plus':
+        return new NetHomePlusCloud(account, password);
+      case 'Ariston Clima':
+        return new AristonClimaCloud(account, password);
+      default:
+        throw new Error(`Cloud ${cloud} is not supported.`);
     }
   }
 }

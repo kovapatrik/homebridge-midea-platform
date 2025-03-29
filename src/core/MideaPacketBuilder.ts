@@ -51,7 +51,7 @@ export default class PacketBuilder {
     const t = DateTime.utc().toFormat('yyyyMMddHHmmssuu');
     const b = Buffer.alloc(8);
     for (let i = 0; i < t.length; i += 2) {
-      b[8 - i - 1] = parseInt(t.substring(i, i + 2));
+      b[8 - i - 1] = Number.parseInt(t.substring(i, i + 2));
     }
     return b;
   }

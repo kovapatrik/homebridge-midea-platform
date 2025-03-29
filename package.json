@@ -2,7 +2,7 @@
   "displayName": "Homebridge Midea Platform",
   "name": "homebridge-midea-platform",
   "type": "module",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
   "repository": {
@@ -28,24 +28,23 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "lint": "eslint . --max-warnings=0",
+    "lint": "biome lint --error-on-warnings ./src",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run lint && npm run build",
-    "format": "npm run lint -- --fix"
+    "format": "biome format ./src --write"
   },
-  "keywords": [
-    "homebridge-plugin"
-  ],
+  "keywords": ["homebridge-plugin"],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
-    "axios": "^1.7.7",
+    "axios": "^1.8.4",
     "fast-xml-parser": "^4.5.0",
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
     "semaphore-promise": "^1.4.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@eslint/js": "^9.13.0",
     "@types/eslint__js": "^8.42.3",
     "@types/lodash": "^4.17.12",

@@ -342,6 +342,9 @@ class UiServer extends HomebridgePluginUiServer {
           case DeviceType.FAN:
             device.displayName = "Fan";
             break;
+          case DeviceType.HUMIDIFIER:
+            device.displayName = "Humidifier";
+            break;
           case DeviceType.UNKNOWN:
           default:
             device.displayName = "Unknown";

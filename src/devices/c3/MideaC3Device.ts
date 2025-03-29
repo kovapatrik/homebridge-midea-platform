@@ -7,11 +7,11 @@
  *
  */
 
-import { Logger } from 'homebridge';
-import MideaDevice, { DeviceAttributeBase } from '../../core/MideaDevice.js';
-import { DeviceInfo } from '../../core/MideaConstants.js';
-import { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageRequest } from '../../core/MideaMessage.js';
+import type { Logger } from 'homebridge';
+import type { DeviceInfo } from '../../core/MideaConstants.js';
+import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
+import type { MessageRequest } from '../../core/MideaMessage.js';
+import type { Config, DeviceConfig } from '../../platformUtils.js';
 import { MessageC3Response, MessageQuery, MessageSet, MessageSetECO, MessageSetSilent } from './MideaC3Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
@@ -235,19 +235,7 @@ export default class MideaC3Device extends MideaDevice {
         }
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
-        if (
-          [
-            'ZONE1_POWER',
-            'ZONE2_POWER',
-            'DHW_POWER',
-            'ZONE1_CURVE',
-            'ZONE2_CURVE',
-            'DISINFECT',
-            'FAST_DHW',
-            'DHW_TARGET_TEMPERATURE',
-            'TBH',
-          ].includes(k)
-        ) {
+        if (['ZONE1_POWER', 'ZONE2_POWER', 'DHW_POWER', 'ZONE1_CURVE', 'ZONE2_CURVE', 'DISINFECT', 'FAST_DHW', 'DHW_TARGET_TEMPERATURE', 'TBH'].includes(k)) {
           messageToSend.SET ??= new MessageSet(this.device_protocol_version);
           messageToSend.SET[k.toLowerCase()] = v;
         } else if (k === 'SILENT_MODE') {

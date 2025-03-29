@@ -30,6 +30,7 @@ abstract class MessageA1Base extends MessageRequest {
   }
 
   get body() {
+    // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
     let body = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([this.message_id])]);
     body = Buffer.concat([body, Buffer.from([calculate(body)])]);
     return body;
@@ -42,7 +43,14 @@ export class MessageQuery extends MessageA1Base {
   }
 
   get _body() {
-    return Buffer.from([0x81, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    // biome-ignore format: easier to read
+    return Buffer.from([
+      0x81, 0x00, 0xff, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00
+    ]);
   }
 }
 
@@ -108,28 +116,20 @@ export class MessageSet extends MessageA1Base {
     const swing = this.swing ? 0x08 : 0x00;
     // byte 13 water_level_set
     const water_level_set = this.water_level_set;
-
+    // biome-ignore format: easier to read
     return Buffer.from([
       power | prompt_tone | 0x02,
       mode,
       fan_speed,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00,
       target_humidity,
       child_lock,
       anion,
       swing,
-      0x00,
-      0x00,
+      0x00, 0x00,
       water_level_set,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
-      0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,
     ]);
   }
 }

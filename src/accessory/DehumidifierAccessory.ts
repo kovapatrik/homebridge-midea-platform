@@ -9,14 +9,15 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { CharacteristicValue, Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { CharacteristicValue, Service } from 'homebridge';
+import type MideaA1Device from '../devices/a1/MideaA1Device.js';
+import type { A1Attributes } from '../devices/a1/MideaA1Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import { type DeviceConfig, WaterTankSensor } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig, WaterTankSensor } from '../platformUtils.js';
-import MideaA1Device, { A1Attributes } from '../devices/a1/MideaA1Device.js';
 
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
-  private service: Service;
+  protected service: Service;
 
   private temperatureService?: Service;
   private fanService?: Service;
@@ -39,9 +40,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   ) {
     super(platform, accessory, device, configDev);
 
-    this.platform.log.debug(
-      `[${device.name}] Dehumidifier serviceVersion: ${this.serviceVersion}, currentVersion: ${this.accessory.context.serviceVersion}`,
-    );
+    this.platform.log.debug(`[${device.name}] Dehumidifier serviceVersion: ${this.serviceVersion}, currentVersion: ${this.accessory.context.serviceVersion}`);
 
     const service = this.accessory.getService(this.platform.Service.HumidifierDehumidifier);
 
@@ -84,14 +83,11 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         validValues: [this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER],
       });
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
-      .onGet(this.getCurrentRelativeHumidity.bind(this))
-      .setProps({
-        minValue: 0,
-        maxValue: 100,
-        minStep: 1,
-      });
+    this.service.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.getCurrentRelativeHumidity.bind(this)).setProps({
+      minValue: 0,
+      maxValue: 100,
+      minStep: 1,
+    });
 
     this.service
       .getCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold)
@@ -103,10 +99,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         minStep: 5,
       });
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.RotationSpeed)
-      .onGet(this.getRotationSpeed.bind(this))
-      .onSet(this.setRotationSpeed.bind(this));
+    this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onGet(this.getRotationSpeed.bind(this)).onSet(this.setRotationSpeed.bind(this));
 
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
 
@@ -125,10 +118,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, 'Fan', 'Fan');
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
       this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan`);
-      this.fanService
-        .getCharacteristic(this.platform.Characteristic.Active)
-        .onGet(this.getActive.bind(this))
-        .onSet(this.setActive.bind(this));
+      this.fanService.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
       this.fanService
         .getCharacteristic(this.platform.Characteristic.RotationSpeed)
         .onGet(this.getRotationSpeed.bind(this))
@@ -141,9 +131,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, 'Humidity');
     if (this.configDev.A1_options.humiditySensor) {
       this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, 'Humidity', 'Humidity');
-      this.humiditySensorService
-        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
-        .onGet(this.getCurrentRelativeHumidity.bind(this));
+      this.humiditySensorService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.getCurrentRelativeHumidity.bind(this));
     } else if (this.humiditySensorService) {
       this.accessory.removeService(this.humiditySensorService);
     }
@@ -164,18 +152,10 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.getServiceById(this.platform.Service.LeakSensor, 'WaterTankLeak');
     if (this.configDev.A1_options.waterTankSensor !== WaterTankSensor.NONE) {
       if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
-        this.waterTankService ??= this.accessory.addService(
-          this.platform.Service.ContactSensor,
-          `${this.device.name} Water Tank Sensor`,
-          'WaterTankContact',
-        );
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, `${this.device.name} Water Tank Sensor`, 'WaterTankContact');
         this.waterTankService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
       } else {
-        this.waterTankService ??= this.accessory.addService(
-          this.platform.Service.LeakSensor,
-          `${this.device.name} Water Tank Sensor`,
-          'WaterTankLeak',
-        );
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, `${this.device.name} Water Tank Sensor`, 'WaterTankLeak');
         this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
       }
       this.waterTankService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Water Tank Sensor`);
@@ -194,53 +174,53 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
       switch (k.toLowerCase()) {
-      case 'power':
-        updateState = true;
-        break;
-      case 'target_humidity':
-        this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold, v as CharacteristicValue);
-        updateState = true;
-        break;
-      case 'fan_speed':
-        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
-        this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
-        updateState = true;
-        break;
-      case 'current_humidity':
-        this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
-        this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
-        updateState = true;
-        break;
-      case 'mode':
-        updateState = true;
-        break;
-      case 'current_temperature':
-        this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
-        break;
-      case 'tank_level':
-        this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
-        break;
-      case 'pump':
-        this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
-        break;
-      case 'tank_full':
-        if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
-          this.waterTankService?.updateCharacteristic(this.platform.Characteristic.LeakDetected, v as CharacteristicValue);
-        } else if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
-          this.waterTankService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, v as CharacteristicValue);
-        }
-        break;
-      case 'water_level_set':
-        // No HomeKit characteristic
-        break;
-      case 'swing':
-        // No HomeKit characteristic
-        break;
-      case 'child_lock':
-        // No HomeKit characteristic
-        break;
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+        case 'power':
+          updateState = true;
+          break;
+        case 'target_humidity':
+          this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold, v as CharacteristicValue);
+          updateState = true;
+          break;
+        case 'fan_speed':
+          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          updateState = true;
+          break;
+        case 'current_humidity':
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
+          this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
+          updateState = true;
+          break;
+        case 'mode':
+          updateState = true;
+          break;
+        case 'current_temperature':
+          this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+          break;
+        case 'tank_level':
+          this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
+          break;
+        case 'pump':
+          this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
+          break;
+        case 'tank_full':
+          if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
+            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.LeakDetected, v as CharacteristicValue);
+          } else if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
+            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, v as CharacteristicValue);
+          }
+          break;
+        case 'water_level_set':
+          // No HomeKit characteristic
+          break;
+        case 'swing':
+          // No HomeKit characteristic
+          break;
+        case 'child_lock':
+          // No HomeKit characteristic
+          break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
         this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
@@ -248,10 +228,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.platform.Characteristic.TargetHumidifierDehumidifierState,
           this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
         );
-        this.service.updateCharacteristic(
-          this.platform.Characteristic.CurrentHumidifierDehumidifierState,
-          this.currentHumidifierDehumidifierState(),
-        );
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.currentHumidifierDehumidifierState());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
       }
     }
@@ -283,22 +260,22 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     if (!this.device.attributes.POWER) {
       // Powered off, must be inactive
       return this.platform.Characteristic.CurrentHumidifierDehumidifierState.INACTIVE;
-    } else {
-      // Powered on, check mode
-      if (this.device.attributes.MODE >= 2) {
-        // Dehumidifying
-        return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
-      } else if (this.device.attributes.MODE === 1) {
-        // Whether deumidifying depends on whether we have reached target.  This is not
-        // always accurate, but is best we can do to signal whether actively dehumidifing or not.
-        if (this.device.attributes.CURRENT_HUMIDITY < this.device.attributes.TARGET_HUMIDITY) {
-          return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
-        } else {
-          return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
-        }
-      }
-      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
     }
+
+    // Powered on, check mode
+    if (this.device.attributes.MODE >= 2) {
+      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
+    }
+
+    if (this.device.attributes.MODE === 1) {
+      // Whether dehumidifying depends on whether we have reached target.  This is not
+      // always accurate, but is best we can do to signal whether actively dehumidifing or not.
+      if (this.device.attributes.CURRENT_HUMIDITY < this.device.attributes.TARGET_HUMIDITY) {
+        return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
+      }
+      return this.platform.Characteristic.CurrentHumidifierDehumidifierState.DEHUMIDIFYING;
+    }
+    return this.platform.Characteristic.CurrentHumidifierDehumidifierState.IDLE;
   }
 
   // Handle requests to get the target value of the "HumidifierDehumidifierState" characteristic
@@ -330,9 +307,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the Relative value of the "HumidityDehumidifierThreshold" characteristic
   private getRelativeHumidityDehumidifierThreshold(): CharacteristicValue {
-    this.platform.log.debug(
-      `[${this.device.name}] GET RelativeHumidityDehumidifierThreshold, value: ${this.device.attributes.TARGET_HUMIDITY}`,
-    );
+    this.platform.log.debug(`[${this.device.name}] GET RelativeHumidityDehumidifierThreshold, value: ${this.device.attributes.TARGET_HUMIDITY}`);
     return this.device.attributes.TARGET_HUMIDITY;
   }
 
@@ -347,9 +322,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           ? this.device.MAX_HUMIDITY
           : RequestedHumidity;
 
-    this.platform.log.debug(
-      `[${this.device.name}] SET RelativeHumidityDehumidifierThreshold to: ${RequestedHumidity} (${value as number})`,
-    );
+    this.platform.log.debug(`[${this.device.name}] SET RelativeHumidityDehumidifierThreshold to: ${RequestedHumidity} (${value as number})`);
     await this.device.set_attribute({ TARGET_HUMIDITY: RequestedHumidity });
     // Update HomeKit in case we adjusted the value outside of min and max values
     if (RequestedHumidity !== (value as number)) {

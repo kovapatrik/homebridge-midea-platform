@@ -8,13 +8,16 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
-import { Service } from 'homebridge';
-import { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { Service } from 'homebridge';
+import type MideaC3Device from '../devices/c3/MideaC3Device.js';
+import type { C3Attributes } from '../devices/c3/MideaC3Device.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
-import { DeviceConfig } from '../platformUtils.js';
-import MideaC3Device, { C3Attributes } from '../devices/c3/MideaC3Device.js';
 
 export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<MideaC3Device> {
+  protected service: Service;
+
   // Zone1 related
   private zone1Service?: Service;
   private zone1CurveSwitchService?: Service;
@@ -55,6 +58,8 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
     super(platform, accessory, device, configDev);
 
     this.zone1Service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
+
+    this.service = this.zone1Service;
   }
 
   async updateCharacteristics(attributes: Partial<C3Attributes>) {
@@ -62,9 +67,9 @@ export default class HeatPumpWiFiControllerAccessory extends BaseAccessory<Midea
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       switch (k) {
-      default:
-        this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
-        break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+          break;
       }
     }
     // if (updateState) {

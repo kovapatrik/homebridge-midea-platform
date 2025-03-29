@@ -1,5 +1,10 @@
 # Changelog
 
+# v1.2.4
+- feat: added support for `Humidifiers` (fixes #114)
+- fix: mark accessories as 'Not responding' if the device is presumed offline
+- chore: changed linter and formatter to biome.js and applied all the necessary changes
+
 # v1.2.3
 - fix: checking if cloud provider can be used for downloading Lua files in the discovery process
 
