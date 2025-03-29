@@ -1,5 +1,9 @@
 # Changelog
 
+# v1.2.5
+- fix: getting tokens/key for devices
+  - IMPORTANT CHANGE: please read the [README](README.md#important-notice) about the change fetching the tokens
+
 # v1.2.4
 - feat: added support for `Humidifiers` (fixes #114)
 - fix: mark accessories as 'Not responding' if the device is presumed offline

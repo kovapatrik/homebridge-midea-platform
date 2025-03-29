@@ -14,6 +14,13 @@ Pull requests and/or other offers of development assistance gratefully received.
 
 More information can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki).
 
+## IMPORTANT NOTICE
+- As written by [@wuwentao](https://github.com/wuwentao) in the [midea_ac_lan repository](https://github.com/wuwentao/midea_ac_lan), Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.
+- It's expected that the token fetching in NetHome Plus API will be disabled as well.
+- Make sure you save your devices' token and key to be able to usem them in the future.
+- [@wuwentao](https://github.com/wuwentao) also wrote a nice summary about the history of what happened: https://github.com/mill1000/midea-msmart/issues/201#issuecomment-2746782457
+- For these reasons, only NetHome Plus is enabled in the discovery process.
+
 ## Features
 
 Currently supports the following devices:
@@ -56,7 +63,7 @@ You should use the UI to discover and add devices. More information on the setti
 
 ## License
 
-Copyright (c) 2023 [Kovalovszky Patrik](https://github.com/kovapatrik),  
+Copyright (c) 2023 [Kovalovszky Patrik](https://github.com/kovapatrik),
 Copyright (c) 2023 [David A. Kerr](https://github.com/dkerr64)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this program except in compliance with the License. You may obtain a copy of the License at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
