@@ -4,6 +4,7 @@ import type { Config, DeviceConfig } from '../platformUtils.js';
 import MideaA1Device from './a1/MideaA1Device.js';
 import MideaACDevice from './ac/MideaACDevice.js';
 import MideaC3Device from './c3/MideaC3Device.js';
+import MideaCEDevice from './ce/MideaCEDevice.js';
 import MideaDBDevice from './db/MideaDBDevice.js';
 import MideaE1Device from './e1/MideaE1Device.js';
 import MideaE2Device from './e2/MideaE2Device.js';
@@ -33,6 +34,8 @@ export default class DeviceFactory {
         return new MideaFADevice(logger, device_info, config, deviceConfig);
       case DeviceType.HUMIDIFIER:
         return new MideaFDDevice(logger, device_info, config, deviceConfig);
+      case DeviceType.FRESH_AIR_APPLIANCE:
+        return new MideaCEDevice(logger, device_info, config, deviceConfig);
       default:
         return null;
     }

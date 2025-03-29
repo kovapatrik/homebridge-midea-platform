@@ -28,6 +28,9 @@ import HeatPumpWiFiControllerAccessory from './HeatPumpWiFiControllerAccessory.j
 import type MideaFDDevice from '../devices/fd/MideaFDDevice.js';
 import HumidifierAccessory from './HumidifierAccessory.js';
 
+import type MideaCEDevice from '../devices/ce/MideaCEDevice.js';
+import FreshAirApplianceAccessory from './FreshAirApplianceAccessory.js';
+
 import type MideaDevice from '../core/MideaDevice.js';
 import type { DeviceConfig } from '../platformUtils.js';
 
@@ -53,6 +56,8 @@ export default class AccessoryFactory {
         return new FanAccessory(platform, accessory, device as unknown as MideaFADevice, configDev);
       case DeviceType.HUMIDIFIER:
         return new HumidifierAccessory(platform, accessory, device as unknown as MideaFDDevice, configDev);
+      case DeviceType.FRESH_AIR_APPLIANCE:
+        return new FreshAirApplianceAccessory(platform, accessory, device as unknown as MideaCEDevice, configDev);
       default:
         throw new Error(`Unsupported device type: ${device.type}`);
     }
