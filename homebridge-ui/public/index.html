@@ -199,6 +199,7 @@
     createForm(configSchema, configuration);
     homebridge.hideSpinner();
 
+    const main = document.getElementById('main');
     const loginSection = document.getElementById('login')
     const userPass = document.getElementById('userPass');
 
@@ -304,11 +305,13 @@
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                      <div class="mb-3">
-                        <button id="copyLuaBtn" class="btn btn-primary">Copy to Clipboard</button>
-                        <small class="text-muted ms-2">Save this as ${device.type.toString(16)}_${device.model}.lua</small>
+                      <div class="mb-3 btn-toolbar">
+                        <div class="btn-group me-2">
+                          <button id="selectAllLuaBtn" class="btn btn-secondary">Select All</button>
+                        </div>
+                        <small class="text-warning ms-2 align-self-center">Save this as ${device.type.toString(16)}_${device.model}.lua</small>
                       </div>
-                      <pre style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">${file_data_str}</pre>
+                      <pre id="luaCodePre"><code style="color: var(--bs-body-color);">${file_data_str}</code></pre>
                     </div>
                     <div class="modal-footer">
                       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -317,25 +320,25 @@
                 </div>
               `;
 
-              document.body.appendChild(modal);
+              main.appendChild(modal);
 
               // Initialize the Bootstrap modal
               const bootstrapModal = new bootstrap.Modal(modal);
               bootstrapModal.show();
 
-              // Add event listener for the copy button
-              document.getElementById('copyLuaBtn').addEventListener('click', async () => {
-                try {
-                  await navigator.clipboard.writeText(file_data_str);
-                  homebridge.toast.success('Lua code copied to clipboard!');
-                } catch (e) {
-                  homebridge.toast.error('Failed to copy to clipboard. Please select and copy the code manually.');
-                }
+              document.getElementById('selectAllLuaBtn').addEventListener('click', () => {
+                const codeElement = document.getElementById('luaCodePre');
+                const selection = window.getSelection();
+                const range = document.createRange();
+
+                range.selectNodeContents(codeElement);
+                selection.removeAllRanges();
+                selection.addRange(range);
               });
 
               // Clean up when modal is hidden
               modal.addEventListener('hidden.bs.modal', () => {
-                document.body.removeChild(modal);
+                main.removeChild(modal);
               });
 
               homebridge.hideSpinner();
