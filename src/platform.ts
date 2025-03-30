@@ -25,6 +25,7 @@ type MideaContext = {
   sn: string;
   model: string;
   serviceVersion: number;
+  configuredNames: { [key: string]: string };
 };
 
 export type MideaAccessory = PlatformAccessory<MideaContext>;

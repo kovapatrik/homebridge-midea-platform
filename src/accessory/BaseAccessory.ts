@@ -30,6 +30,15 @@ export default abstract class BaseAccessory<T extends MideaDevice> {
     });
   }
 
+  handleConfiguredName(service: Service, subtype: string, fallbackName: string) {
+    service
+      .getCharacteristic(this.platform.Characteristic.ConfiguredName)
+      .onGet(() => this.accessory.context.configuredNames[subtype] ?? `${this.device.name} ${fallbackName}`)
+      .onSet((value) => {
+        this.accessory.context.configuredNames[subtype] = value as string;
+      });
+  }
+
   // protected abstract handleErrorRefresh(): void;
   protected abstract updateCharacteristics(attributes: DeviceAttributeBase): Promise<void>;
 }

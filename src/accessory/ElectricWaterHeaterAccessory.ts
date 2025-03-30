@@ -15,6 +15,9 @@ import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
 
+const variableHeatingSubtype = 'variableHeating';
+const wholeTankHeatingSubtype = 'wholeTankHeating';
+
 export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2Device> {
   protected service: Service;
 
@@ -57,11 +60,11 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
         minStep: this.configDev.E2_options.tempStep,
       });
 
-    this.variableHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, 'VariableHeating');
+    // Variable heating service
+    this.variableHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, variableHeatingSubtype);
     if (this.configDev.E2_options.variableHeatingSwitch) {
-      this.variableHeatingService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Variable Heating`, 'VariableHeating');
-      this.variableHeatingService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Variable Heating`);
-      this.variableHeatingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Variable Heating`);
+      this.variableHeatingService ??= this.accessory.addService(this.platform.Service.Switch, undefined, variableHeatingSubtype);
+      this.handleConfiguredName(this.variableHeatingService, variableHeatingSubtype, 'Variable Heating');
       this.variableHeatingService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getVariableHeating.bind(this))
@@ -70,11 +73,10 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
       this.accessory.removeService(this.variableHeatingService);
     }
 
-    this.wholeTankHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, 'WholeTankHeating');
+    this.wholeTankHeatingService = this.accessory.getServiceById(this.platform.Service.Switch, wholeTankHeatingSubtype);
     if (this.configDev.E2_options.wholeTankHeatingSwitch) {
-      this.wholeTankHeatingService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Whole Tank Heating`, 'WholeTankHeating');
-      this.wholeTankHeatingService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Whole Tank Heating`);
-      this.wholeTankHeatingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Whole Tank Heating`);
+      this.wholeTankHeatingService ??= this.accessory.addService(this.platform.Service.Switch, undefined, wholeTankHeatingSubtype);
+      this.handleConfiguredName(this.wholeTankHeatingService, wholeTankHeatingSubtype, 'Whole Tank Heating');
       this.wholeTankHeatingService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getWholeTankHeating.bind(this))
