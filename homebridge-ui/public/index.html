@@ -286,15 +286,62 @@
           download_btn.className = 'btn btn-outline-secondary btn-sm';
           download_btn.addEventListener('click', async () => {
             try {
+              homebridge.showSpinner();
               const file_data_str = await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn });
-              const a = document.createElement('a');
-              a.setAttribute('download', `${device.type.toString(16)}_${device.model}.lua`);
-              const blob = new Blob([file_data_str], { type: 'text/plain' });
-              const url = window.URL.createObjectURL(blob);
-              a.href = url
-              a.click();
-              window.URL.revokeObjectURL(url);
+
+              const modal = document.createElement("div");
+              modal.className = 'modal fade';
+              modal.id = 'luaCodeModal';
+              modal.setAttribute('tabindex', '-1');
+              modal.setAttribute('aria-labelledby', 'luaCodeModalLabel');
+              modal.setAttribute('aria-hidden', 'true');
+
+              modal.innerHTML = `
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="luaCodeModalLabel">Lua Code for ${device.model}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <button id="copyLuaBtn" class="btn btn-primary">Copy to Clipboard</button>
+                        <small class="text-muted ms-2">Save this as ${device.type.toString(16)}_${device.model}.lua</small>
+                      </div>
+                      <pre style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">${file_data_str}</pre>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+
+              document.body.appendChild(modal);
+
+              // Initialize the Bootstrap modal
+              const bootstrapModal = new bootstrap.Modal(modal);
+              bootstrapModal.show();
+
+              // Add event listener for the copy button
+              document.getElementById('copyLuaBtn').addEventListener('click', async () => {
+                try {
+                  await navigator.clipboard.writeText(file_data_str);
+                  homebridge.toast.success('Lua code copied to clipboard!');
+                } catch (e) {
+                  homebridge.toast.error('Failed to copy to clipboard. Please select and copy the code manually.');
+                }
+              });
+
+              // Clean up when modal is hidden
+              modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+              });
+
+              homebridge.hideSpinner();
+
             } catch (e) {
+              homebridge.hideSpinner();
               homebridge.toast.error(e.message);
             }
           });

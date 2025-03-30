@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["dist/**", ".vscode/**", ".github/**", "node_modules/**", "homebridge-ui/**"]
+    "ignore": ["dist/**", ".vscode/**", ".github/**", "node_modules/**"]
   },
   "formatter": {
     "enabled": true,
