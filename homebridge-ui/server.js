@@ -253,8 +253,10 @@ class UiServer extends HomebridgePluginUiServer {
         msg: 'Start device discovery',
       });
       // If IP addresses provided then probe them directly
-      for (const ip of ipAddrs) {
-        discover.discoverDeviceByIP(ip);
+      if (ipAddrs && ipAddrs.length > 0) {
+        for (const ip of ipAddrs) {
+          discover.discoverDeviceByIP(ip);
+        }
       }
       // And then send broadcast to network(s)
       discover.startDiscover();
