@@ -348,10 +348,10 @@
               }
             },
             "CE_options": {
-              "title": "Top Load Washer Options",
+              "title": "Fresh Air Appliance Options",
               "type": "object",
               "condition": {
-                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Top Load Washer';"
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fresh Air Appliance';"
               },
               "properties": {
                 "silentMode": {
