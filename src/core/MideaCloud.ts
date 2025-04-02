@@ -128,6 +128,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
           headers: headers,
           timeout: 10000,
         });
+        console.log('Proxied API Request response: ', JSON.stringify(response.data, null, 4), response.status);
         if (response.data.code !== undefined) {
           if (Number.parseInt(response.data.code) === 0) {
             return response.data.data;
@@ -319,7 +320,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
         const response = await axios.post(url, payload.toString(), {
           headers: headers,
         });
-        console.log('API Request response: ', response.data, response.status);
+        console.log('Simple API Request response: ', JSON.stringify(response.data, null, 4), response.status);
         if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
           return response.data.result;
         }
