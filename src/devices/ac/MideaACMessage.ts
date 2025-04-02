@@ -22,7 +22,7 @@ enum NewProtocolTags {
   FRESH_AIR_2 = 0x004b,
   SELF_CLEAN = 0x0039,
   RATE_SELECT = 0x0048, // GEAR
-  ION = 0x001e, // anion
+  ION = 0x021e, // anion - 0x1E and 0x02, gets shifted
 }
 
 const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
