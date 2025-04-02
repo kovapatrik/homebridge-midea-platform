@@ -80,7 +80,7 @@ export default class MideaCEDevice extends MideaDevice {
   }
 
   set_subtype(): void {
-    this.logger.debug('No subtype for FA device');
+    this.logger.debug('No subtype for CE device');
   }
 
   make_message_set(): MessageSet {
