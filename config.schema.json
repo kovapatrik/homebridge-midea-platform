@@ -45,6 +45,7 @@
                 "Fresh Air Appliance",
                 "Front Load Washer",
                 "Gas Water Heater",
+                "Heat Pump Water Heater",
                 "Heat Pump WiFi Controller",
                 "Humidifier"
               ],
@@ -347,6 +348,14 @@
                 }
               }
             },
+            "CD_options": {
+              "title": "Heat Pump Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Heat Pump Water Heater';"
+              },
+              "properties": {}
+            },
             "CE_options": {
               "title": "Fresh Air Appliance Options",
               "type": "object",
@@ -606,6 +615,12 @@
                 "devices[].C3_options.tbhSwitch",
                 "devices[].C3_options.disinfectSwitch"
               ]
+            },
+            {
+              "key": "devices[].CD_options",
+              "expandable": true,
+              "expanded": false,
+              "items": []
             },
             {
               "key": "devices[].CE_options",

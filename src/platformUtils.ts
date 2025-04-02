@@ -28,6 +28,7 @@ export type DeviceConfig = {
   AC_options: ACOptions;
   A1_options: A1Options;
   C3_options: C3Options;
+  CD_options: CDOptions;
   CE_options: CEOptions;
   DB_options: DBOptions;
   E1_options: E1Options;
@@ -106,6 +107,8 @@ type C3Options = {
   silentSwitch: boolean;
   tbhSwitch: boolean;
 };
+
+type CDOptions = unknown;
 
 type CEOptions = {
   silentMode: boolean;
@@ -205,6 +208,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     silentSwitch: false,
     tbhSwitch: false,
   },
+  CD_options: {},
   CE_options: {
     autoSetModeSwitch: false,
     minTemp: 16,
