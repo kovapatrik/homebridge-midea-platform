@@ -319,6 +319,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
         const response = await axios.post(url, payload.toString(), {
           headers: headers,
         });
+        console.log('API Request response: ', response.data, response.status);
         if (response.data.errorCode !== undefined && Number.parseInt(response.data.errorCode) === 0 && response.data.result !== undefined) {
           return response.data.result;
         }

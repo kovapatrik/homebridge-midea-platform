@@ -156,6 +156,8 @@ class UiServer extends HomebridgePluginUiServer {
           const username = Buffer.from((DEFAULT_SMARTHOME_ACCOUNT[0] ^ DEFAULT_SMARTHOME_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
           const password = Buffer.from((DEFAULT_SMARTHOME_ACCOUNT[0] ^ DEFAULT_SMARTHOME_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
           this.smartHomeCloud = CloudFactory.createCloud(username, password, 'Midea SmartHome (MSmartHome)');
+        }
+        if (!this.smartHomeCloud.loggedIn) {
           await this.smartHomeCloud.login();
         }
         const lua = await this.smartHomeCloud.getProtocolLua(deviceType, deviceSn);
