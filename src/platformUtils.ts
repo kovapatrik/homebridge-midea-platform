@@ -108,7 +108,12 @@ type C3Options = {
   tbhSwitch: boolean;
 };
 
-type CDOptions = unknown;
+type CDOptions = {
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  disinfectionSwitch: boolean;
+};
 
 type CEOptions = {
   silentMode: boolean;
@@ -208,7 +213,12 @@ export const defaultDeviceConfig: DeviceConfig = {
     silentSwitch: false,
     tbhSwitch: false,
   },
-  CD_options: {},
+  CD_options: {
+    minTemp: 38,
+    maxTemp: 70,
+    tempStep: 0.5,
+    disinfectionSwitch: false,
+  },
   CE_options: {
     autoSetModeSwitch: false,
     minTemp: 16,
