@@ -1,5 +1,5 @@
 /***********************************************************************
- * Midea Heat Pump Water Heater Deviceclass
+ * Midea Heat Pump Water Heater Device class
  *
  * Copyright (c) 2025 Kovalovszky Patrik, https://github.com/kovapatrik
  *
