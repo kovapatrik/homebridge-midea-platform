@@ -74,7 +74,7 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     // Mode switches
     this.energySaveModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, energySaveModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, energySaveModeSubtype);
+      this.accessory.addService(this.platform.Service.Switch, undefined, energySaveModeSubtype);
     this.handleConfiguredName(this.energySaveModeService, energySaveModeSubtype, `${this.device.name} Energy Save Mode`);
     this.energySaveModeService
       .getCharacteristic(this.platform.Characteristic.On)
@@ -83,7 +83,7 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
 
     this.standardModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, standardModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, standardModeSubtype);
+      this.accessory.addService(this.platform.Service.Switch, undefined, standardModeSubtype);
     this.handleConfiguredName(this.standardModeService, standardModeSubtype, `${this.device.name} Standard Mode`);
     this.standardModeService
       .getCharacteristic(this.platform.Characteristic.On)
@@ -92,7 +92,7 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
 
     this.compatibilizingModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, compatibilizingModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, compatibilizingModeSubtype);
+      this.accessory.addService(this.platform.Service.Switch, undefined, compatibilizingModeSubtype);
     this.handleConfiguredName(this.compatibilizingModeService, compatibilizingModeSubtype, `${this.device.name} Compatibilizing Mode`);
     this.compatibilizingModeService
       .getCharacteristic(this.platform.Characteristic.On)
@@ -101,7 +101,7 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
 
     this.smartModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, smartModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, smartModeSubtype);
+      this.accessory.addService(this.platform.Service.Switch, undefined, smartModeSubtype);
     this.handleConfiguredName(this.smartModeService, smartModeSubtype, `${this.device.name} Smart Mode`);
     this.smartModeService
       .getCharacteristic(this.platform.Characteristic.On)
