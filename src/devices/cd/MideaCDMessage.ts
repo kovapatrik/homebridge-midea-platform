@@ -77,10 +77,16 @@ export class MessageSetSterilize extends MessageCDBase {
   // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [key: string]: any;
   sterilize: boolean;
+  auto_sterilize_week: number;
+  auto_sterilize_hour: number;
+  auto_sterilize_minute: number;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0x06);
     this.sterilize = false;
+    this.auto_sterilize_week = 0;
+    this.auto_sterilize_hour = 0;
+    this.auto_sterilize_minute = 0;
   }
 
   get _body() {
@@ -88,7 +94,10 @@ export class MessageSetSterilize extends MessageCDBase {
 
     // biome-ignore format: easier to read
     return Buffer.from([
-      sterilize, 0x00, 0x00, 0x00
+      sterilize,
+      this.auto_sterilize_week,
+      this.auto_sterilize_hour,
+      this.auto_sterilize_minute,
     ])
   }
 }
@@ -124,6 +133,9 @@ export class CDGeneralMessageBody extends MessageBody {
   fahrenheit?: boolean;
   mute_effect?: boolean;
   mute_status?: boolean;
+  auto_sterilize_week?: number;
+  auto_sterilize_hour?: number;
+  auto_sterilize_minute?: number;
 
   constructor(body: Buffer) {
     super(body);
@@ -178,6 +190,12 @@ export class CDGeneralMessageBody extends MessageBody {
     this.fahrenheit = body.length > OLD_BODY_LENGTH ? (body[35] & 0x80) > 0 : undefined; // fahrenheitEffect
     this.mute_effect = body.length > OLD_BODY_LENGTH ? (body[39] & 0x40) > 0 : undefined; // mute_effect
     this.mute_status = body.length > OLD_BODY_LENGTH ? (body[39] & 0x80) > 0 : undefined; // mute_status
+
+    if (body.length > 44) {
+      this.auto_sterilize_week = body[45];
+      this.auto_sterilize_hour = body[46];
+      this.auto_sterilize_minute = body[47];
+    }
   }
 }
 
@@ -205,11 +223,17 @@ export class CD01MessageBody extends MessageBody {
 
 export class CD06MessageBody extends MessageBody {
   sterilize: boolean;
+  auto_sterilize_week: number;
+  auto_sterilize_hour: number;
+  auto_sterilize_minute: number;
 
   constructor(body: Buffer) {
     super(body);
 
     this.sterilize = (body[2] & 0x80) > 0;
+    this.auto_sterilize_week = body[3];
+    this.auto_sterilize_hour = body[4];
+    this.auto_sterilize_minute = body[5];
   }
 }
 

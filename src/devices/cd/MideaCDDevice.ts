@@ -31,6 +31,9 @@ export interface CDAttributes extends DeviceAttributeBase {
   OPEN_PTC?: boolean;
   PTC_TEMPERATURE?: number;
   STERILIZE: boolean; // disinfect
+  AUTO_STERILIZE_WEEK: number;
+  AUTO_STERILIZE_HOUR: number;
+  AUTO_STERILIZE_MINUTE: number;
 }
 
 export default class MideaCDDevice extends MideaDevice {
@@ -54,6 +57,9 @@ export default class MideaCDDevice extends MideaDevice {
       OPEN_PTC: undefined,
       PTC_TEMP: undefined,
       STERILIZE: false,
+      AUTO_STERILIZE_WEEK: 0,
+      AUTO_STERILIZE_HOUR: 0,
+      AUTO_STERILIZE_MINUTE: 0,
     };
   }
 
@@ -96,10 +102,8 @@ export default class MideaCDDevice extends MideaDevice {
   async set_attribute(attributes: Partial<CDAttributes>) {
     const messageToSend: {
       SET: MessageSet | undefined;
-      STERILIZE: MessageSetSterilize | undefined;
     } = {
       SET: undefined,
-      STERILIZE: undefined,
     };
 
     try {
@@ -111,13 +115,8 @@ export default class MideaCDDevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        if (['STERILIZE'].includes(k)) {
-          messageToSend.STERILIZE ??= new MessageSetSterilize(this.device_protocol_version);
-          messageToSend.STERILIZE[k.toLowerCase()] = v;
-        } else {
-          messageToSend.SET ??= new MessageSet(this.device_protocol_version);
-          messageToSend.SET[k.toLowerCase()] = v;
-        }
+        messageToSend.SET ??= new MessageSet(this.device_protocol_version);
+        messageToSend.SET[k.toLowerCase()] = v;
       }
 
       for (const [k, v] of Object.entries(messageToSend)) {
@@ -130,5 +129,15 @@ export default class MideaCDDevice extends MideaDevice {
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
     }
+  }
+
+  async set_sterilize(sterilize: boolean) {
+    const message = new MessageSetSterilize(this.device_protocol_version);
+    message.sterilize = sterilize;
+    this.attributes.STERILIZE = sterilize;
+    message.auto_sterilize_week = this.attributes.AUTO_STERILIZE_WEEK;
+    message.auto_sterilize_hour = this.attributes.AUTO_STERILIZE_HOUR;
+    message.auto_sterilize_minute = this.attributes.AUTO_STERILIZE_MINUTE;
+    await this.build_send(message);
   }
 }

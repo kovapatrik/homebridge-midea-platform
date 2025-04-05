@@ -186,6 +186,6 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
   }
 
   async setDisinfection(value: CharacteristicValue) {
-    await this.device.set_attribute({ STERILIZE: true });
+    await this.device.set_sterilize(value as boolean);
   }
 }
