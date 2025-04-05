@@ -530,7 +530,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    await this.device.set_target_temperature(limitValue(value as number, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp););
+    await this.device.set_target_temperature(limitValue(value as number, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp));
   }
 
   getSwingMode(): CharacteristicValue {
