@@ -12,13 +12,13 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageCDResponse, MessageQuery, MessageSet } from './MideaCDMessage.js';
+import { MessageCDResponse, MessageQuery, MessageSet, MessageSetSterilize, Mode } from './MideaCDMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
 export interface CDAttributes extends DeviceAttributeBase {
   POWER: boolean;
-  MODE?: number; // 0 - energy-save, 1 - standard, 2 - dual, 3 - smart
+  MODE: Mode;
   MAX_TEMPERATURE: number;
   MIN_TEMPERATURE: number;
   TARGET_TEMPERATURE: number;
@@ -30,6 +30,7 @@ export interface CDAttributes extends DeviceAttributeBase {
   TR_TEMPERATURE?: number;
   OPEN_PTC?: boolean;
   PTC_TEMPERATURE?: number;
+  STERILIZE: boolean; // disinfect
 }
 
 export default class MideaCDDevice extends MideaDevice {
@@ -40,7 +41,7 @@ export default class MideaCDDevice extends MideaDevice {
 
     this.attributes = {
       POWER: false,
-      MODE: undefined,
+      MODE: Mode.Standard,
       MAX_TEMPERATURE: 65,
       MIN_TEMPERATURE: 35,
       TARGET_TEMPERATURE: 40,
@@ -52,6 +53,7 @@ export default class MideaCDDevice extends MideaDevice {
       TR_VALUE: undefined,
       OPEN_PTC: undefined,
       PTC_TEMP: undefined,
+      STERILIZE: false,
     };
   }
 
@@ -94,8 +96,10 @@ export default class MideaCDDevice extends MideaDevice {
   async set_attribute(attributes: Partial<CDAttributes>) {
     const messageToSend: {
       SET: MessageSet | undefined;
+      STERILIZE: MessageSetSterilize | undefined;
     } = {
       SET: undefined,
+      STERILIZE: undefined,
     };
 
     try {
@@ -107,8 +111,13 @@ export default class MideaCDDevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        messageToSend.SET ??= new MessageSet(this.device_protocol_version);
-        messageToSend.SET[k.toLowerCase()] = v;
+        if (['STERILIZE'].includes(k)) {
+          messageToSend.STERILIZE ??= new MessageSetSterilize(this.device_protocol_version);
+          messageToSend.STERILIZE[k.toLowerCase()] = v;
+        } else {
+          messageToSend.SET ??= new MessageSet(this.device_protocol_version);
+          messageToSend.SET[k.toLowerCase()] = v;
+        }
       }
 
       for (const [k, v] of Object.entries(messageToSend)) {
