@@ -3,7 +3,8 @@
  *
  * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
  *
- * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan and
+                  https://github.com/midea-lan/midea-local
  *
  */
 
@@ -12,7 +13,20 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageC3Response, MessageQuery, MessageSet, MessageSetECO, MessageSetSilent } from './MideaC3Message.js';
+import {
+  MessageC3Response,
+  MessageQueryBasic,
+  MessageQueryDisinfect,
+  MessageQueryECO,
+  MessageQueryHMIPara,
+  MessageQueryInstall,
+  MessageQuerySilence,
+  MessageQueryUnitPara,
+  MessageSet,
+  MessageSetDisinfect,
+  MessageSetECO,
+  MessageSetSilent,
+} from './MideaC3Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -22,7 +36,6 @@ export interface C3Attributes extends DeviceAttributeBase {
   DHW_POWER: boolean;
   ZONE1_CURVE: boolean;
   ZONE2_CURVE: boolean;
-  DISINFECT: boolean;
   FAST_DHW: boolean;
   ZONE_TEMPERATURE_TYPE: boolean[];
   ZONE1_ROOM_TEMPERATURE_MODE: boolean;
@@ -55,8 +68,9 @@ export interface C3Attributes extends DeviceAttributeBase {
   OUTDOOR_TEMPERATURE?: number;
   SILENT_MODE: boolean;
   ECO_MODE: boolean;
-  TBH: boolean;
+  TBH: boolean; // disinfect
   ERROR_CODE: number;
+  TEMP_TA?: number; // room temperature
 }
 
 export default class MideaC3Device extends MideaDevice {
@@ -76,7 +90,6 @@ export default class MideaC3Device extends MideaDevice {
       DHW_POWER: false,
       ZONE1_CURVE: false,
       ZONE2_CURVE: false,
-      DISINFECT: false,
       FAST_DHW: false,
       ZONE_TEMPERATURE_TYPE: [false, false],
       ZONE1_ROOM_TEMPERATURE_MODE: false,
@@ -111,11 +124,20 @@ export default class MideaC3Device extends MideaDevice {
       ECO_MODE: false,
       TBH: false,
       ERROR_CODE: 0,
+      TEMP_TA: undefined,
     };
   }
 
   build_query(): MessageRequest[] {
-    return [new MessageQuery(this.device_protocol_version)];
+    return [
+      new MessageQueryBasic(this.device_protocol_version),
+      new MessageQuerySilence(this.device_protocol_version),
+      new MessageQueryECO(this.device_protocol_version),
+      new MessageQueryInstall(this.device_protocol_version),
+      new MessageQueryDisinfect(this.device_protocol_version),
+      new MessageQueryUnitPara(this.device_protocol_version),
+      new MessageQueryHMIPara(this.device_protocol_version),
+    ];
   }
 
   process_message(msg: Buffer) {
@@ -210,7 +232,6 @@ export default class MideaC3Device extends MideaDevice {
     message.room_target_temperature = this.attributes.ROOM_TARGET_TEMPERATURE;
     message.zone1_curve = this.attributes.ZONE1_CURVE;
     message.zone2_curve = this.attributes.ZONE2_CURVE;
-    message.disinfect = this.attributes.DISINFECT;
     message.tbh = this.attributes.TBH;
     message.fast_dhw = this.attributes.FAST_DHW;
     return message;
@@ -221,10 +242,12 @@ export default class MideaC3Device extends MideaDevice {
       SET: MessageSet | undefined;
       SILENT: MessageSetSilent | undefined;
       ECO: MessageSetECO | undefined;
+      DISINFECT: MessageSetDisinfect | undefined;
     } = {
       SET: undefined,
       SILENT: undefined,
       ECO: undefined,
+      DISINFECT: undefined,
     };
 
     try {
@@ -235,15 +258,18 @@ export default class MideaC3Device extends MideaDevice {
         }
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
 
-        if (['ZONE1_POWER', 'ZONE2_POWER', 'DHW_POWER', 'ZONE1_CURVE', 'ZONE2_CURVE', 'DISINFECT', 'FAST_DHW', 'DHW_TARGET_TEMPERATURE', 'TBH'].includes(k)) {
+        if (['ZONE1_POWER', 'ZONE2_POWER', 'DHW_POWER', 'ZONE1_CURVE', 'ZONE2_CURVE', 'FAST_DHW', 'DHW_TARGET_TEMPERATURE', 'TBH'].includes(k)) {
           messageToSend.SET ??= new MessageSet(this.device_protocol_version);
           messageToSend.SET[k.toLowerCase()] = v;
-        } else if (k === 'SILENT_MODE') {
+        } else if (['SILENT_MODE', 'SILENT_LEVEL'].includes(k)) {
           messageToSend.SILENT ??= new MessageSetSilent(this.device_protocol_version);
           messageToSend.SILENT[k.toLowerCase()] = v;
         } else if (k === 'ECO_MODE') {
           messageToSend.ECO ??= new MessageSetECO(this.device_protocol_version);
           messageToSend.ECO[k.toLowerCase()] = v;
+        } else if (k === 'DISINFECT') {
+          messageToSend.DISINFECT ??= new MessageSetDisinfect(this.device_protocol_version);
+          messageToSend.DISINFECT[k.toLowerCase()] = v;
         }
       }
 
