@@ -13,7 +13,7 @@ import type MideaACDevice from '../devices/ac/MideaACDevice.js';
 import type { ACAttributes } from '../devices/ac/MideaACDevice.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import { type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
-import BaseAccessory from './BaseAccessory.js';
+import BaseAccessory, { limitValue } from './BaseAccessory.js';
 
 const outDoorTemperatureSubtype = 'outdoor';
 const displaySubtype = 'display';
@@ -506,7 +506,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getTargetTemperature(): CharacteristicValue {
-    return Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, this.device.attributes.TARGET_TEMPERATURE));
+    return limitValue(this.device.attributes.TARGET_TEMPERATURE, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp);
   }
 
   getFanOnlyMode(): CharacteristicValue {
@@ -530,8 +530,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    const limitedValue = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
-    await this.device.set_target_temperature(limitedValue);
+    await this.device.set_target_temperature(limitValue(value as number, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp););
   }
 
   getSwingMode(): CharacteristicValue {

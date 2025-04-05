@@ -46,3 +46,7 @@ export default abstract class BaseAccessory<T extends MideaDevice> {
   // protected abstract handleErrorRefresh(): void;
   protected abstract updateCharacteristics(attributes: DeviceAttributeBase): Promise<void>;
 }
+
+export function limitValue(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
