@@ -1,5 +1,7 @@
 import { DeviceType } from '../core/MideaConstants.js';
+import type MideaDevice from '../core/MideaDevice.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
 
 import type MideaACDevice from '../devices/ac/MideaACDevice.js';
 import AirConditionerAccessory from './AirConditionerAccessory.js';
@@ -31,8 +33,8 @@ import HumidifierAccessory from './HumidifierAccessory.js';
 import type MideaCEDevice from '../devices/ce/MideaCEDevice.js';
 import FreshAirApplianceAccessory from './FreshAirApplianceAccessory.js';
 
-import type MideaDevice from '../core/MideaDevice.js';
-import type { DeviceConfig } from '../platformUtils.js';
+import type MideaCDDevice from '../devices/cd/MideaCDDevice.js';
+import HeatPumpWaterHeaterAccessory from './HeatPumpWaterHeaterAccessory.js';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
 export default class AccessoryFactory {
@@ -58,6 +60,8 @@ export default class AccessoryFactory {
         return new HumidifierAccessory(platform, accessory, device as unknown as MideaFDDevice, configDev);
       case DeviceType.FRESH_AIR_APPLIANCE:
         return new FreshAirApplianceAccessory(platform, accessory, device as unknown as MideaCEDevice, configDev);
+      case DeviceType.HEAT_PUMP_WATER_HEATER:
+        return new HeatPumpWaterHeaterAccessory(platform, accessory, device as unknown as MideaCDDevice, configDev);
       default:
         throw new Error(`Unsupported device type: ${device.type}`);
     }
