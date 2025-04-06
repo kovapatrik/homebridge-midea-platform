@@ -664,6 +664,10 @@
                 "devices[].CD_options.minTemp",
                 "devices[].CD_options.maxTemp",
                 "devices[].CD_options.tempStep",
+                "devices[].CD_options.energySaveModeSwitch",
+                "devices[].CD_options.standardModeSwitch",
+                "devices[].CD_options.eHeaterModeSwitch",
+                "devices[].CD_options.smartModeSwitch",
                 "devices[].CD_options.disinfectionSwitch"
               ]
             },
