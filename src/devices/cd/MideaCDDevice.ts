@@ -99,6 +99,14 @@ export default class MideaCDDevice extends MideaDevice {
     this.logger.debug('No subtype for CD device');
   }
 
+  make_message_set(): MessageSet {
+    const message = new MessageSet(this.device_protocol_version);
+    message.power = this.attributes.POWER;
+    message.target_temperature = this.attributes.TARGET_TEMPERATURE;
+    message.mode = this.attributes.MODE;
+    return message;
+  }
+
   async set_attribute(attributes: Partial<CDAttributes>) {
     const messageToSend: {
       SET: MessageSet | undefined;
@@ -115,7 +123,7 @@ export default class MideaCDDevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        messageToSend.SET ??= new MessageSet(this.device_protocol_version);
+        messageToSend.SET ??= this.make_message_set();
         messageToSend.SET[k.toLowerCase()] = v;
       }
 

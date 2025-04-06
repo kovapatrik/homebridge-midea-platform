@@ -135,20 +135,40 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
   }
 
   async updateCharacteristics(attributes: Partial<CDAttributes>) {
-    // const updateState = false;
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
-      switch (k) {
+      let updateState = false;
+      switch (k.toLowerCase()) {
+        case 'power':
+          updateState = true;
+          break;
+        case 'mode':
+          updateState = true;
+          break;
+        case 'target_temperature':
+          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
+          break;
+        case 'current_temperature':
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+          updateState = true;
+          break;
+        case 'sterilize':
+          this.disinfectionService?.updateCharacteristic(this.platform.Characteristic.Active, this.getDisinfection());
+          break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
           break;
       }
+      if (updateState) {
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+
+        this.energySaveModeService?.updateCharacteristic(this.platform.Characteristic.Active, this.getMode(Mode.EnergySave));
+        this.standardModeService?.updateCharacteristic(this.platform.Characteristic.Active, this.getMode(Mode.Standard));
+        this.eHeaterService?.updateCharacteristic(this.platform.Characteristic.Active, this.getMode(Mode.Compatibilizing));
+        this.smartModeService?.updateCharacteristic(this.platform.Characteristic.Active, this.getMode(Mode.Smart));
+      }
     }
-    // if (updateState) {
-    // this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
-    // this.service.updateCharacteristic(this.platform.Characteristic.InUse, this.getInUse());
-    // this.service.updateCharacteristic(this.platform.Characteristic.RemainingDuration, this.getRemainingDuration());
-    // }
   }
 
   getActive(): CharacteristicValue {
