@@ -53,9 +53,9 @@ export default class MideaCDDevice extends MideaDevice {
       CONDENSER_TEMPERATURE: undefined,
       COMPRESSOR_TEMPERATURE: undefined,
       COMPRESSOR_STATUS: undefined,
-      TR_VALUE: undefined,
+      TR_TEMPERATURE: undefined,
       OPEN_PTC: undefined,
-      PTC_TEMP: undefined,
+      PTC_TEMPERATURE: undefined,
       STERILIZE: false,
       AUTO_STERILIZE_WEEK: 0,
       AUTO_STERILIZE_HOUR: 0,
@@ -104,6 +104,9 @@ export default class MideaCDDevice extends MideaDevice {
     message.power = this.attributes.POWER;
     message.target_temperature = this.attributes.TARGET_TEMPERATURE;
     message.mode = this.attributes.MODE;
+    message.tr_temperature = this.attributes.TR_TEMPERATURE ?? 0;
+    message.open_ptc = this.attributes.OPEN_PTC ?? false;
+    message.ptc_temperature = this.attributes.PTC_TEMPERATURE ?? 0;
     return message;
   }
 

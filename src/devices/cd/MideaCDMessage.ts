@@ -41,7 +41,6 @@ export class MessageSet extends MessageCDBase {
   [key: string]: any;
   power: boolean;
   target_temperature: number;
-  aux_heating: boolean;
   mode: Mode;
   tr_temperature: number;
   open_ptc: boolean;
@@ -51,7 +50,6 @@ export class MessageSet extends MessageCDBase {
     super(device_protocol_version, MessageType.SET, 0x01);
     this.power = false;
     this.target_temperature = 0;
-    this.aux_heating = false;
     this.tr_temperature = 0;
     this.open_ptc = false;
     this.ptc_temperature = 0;
