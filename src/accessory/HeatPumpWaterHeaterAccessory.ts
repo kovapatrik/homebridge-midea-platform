@@ -18,17 +18,17 @@ import BaseAccessory, { limitValue } from './BaseAccessory.js';
 
 const energySaveModeSubtype = 'energySaveMode';
 const standardModeSubtype = 'standardMode';
-const compatibilizingModeSubtype = 'compatibilizingMode';
+const eHeaterSubtype = 'eHeater';
 const smartModeSubtype = 'smartMode';
 const disinfectionSubtype = 'disinfection';
 
 export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDDevice> {
   protected service: Service;
 
-  private energySaveModeService: Service;
-  private standardModeService: Service;
-  private compatibilizingModeService: Service;
-  private smartModeService: Service;
+  private energySaveModeService?: Service;
+  private standardModeService?: Service;
+  private eHeaterService?: Service;
+  private smartModeService?: Service;
 
   private disinfectionService?: Service;
 
@@ -71,42 +71,57 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
         minStep: this.configDev.CD_options.tempStep,
       });
 
-    // Mode switches
-    this.energySaveModeService =
-      this.accessory.getServiceById(this.platform.Service.Switch, energySaveModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, undefined, energySaveModeSubtype);
-    this.handleConfiguredName(this.energySaveModeService, energySaveModeSubtype, 'Energy Save Mode');
-    this.energySaveModeService
-      .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(() => this.getMode(Mode.EnergySave))
-      .onSet((value) => this.setMode(value, Mode.EnergySave));
+    // Enery-save Mode switch
+    this.energySaveModeService = this.accessory.getServiceById(this.platform.Service.Switch, energySaveModeSubtype);
+    if (this.configDev.CD_options.energySaveModeSwitch) {
+      this.energySaveModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, energySaveModeSubtype);
+      this.handleConfiguredName(this.energySaveModeService, energySaveModeSubtype, 'Energy Save Mode');
+      this.energySaveModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(() => this.getMode(Mode.EnergySave))
+        .onSet((value) => this.setMode(value, Mode.EnergySave));
+    } else if (this.energySaveModeService) {
+      this.accessory.removeService(this.energySaveModeService);
+    }
 
-    this.standardModeService =
-      this.accessory.getServiceById(this.platform.Service.Switch, standardModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, undefined, standardModeSubtype);
-    this.handleConfiguredName(this.standardModeService, standardModeSubtype, 'Standard Mode');
-    this.standardModeService
-      .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(() => this.getMode(Mode.Standard))
-      .onSet((value) => this.setMode(value, Mode.Standard));
+    // Standard Mode switch
+    this.standardModeService = this.accessory.getServiceById(this.platform.Service.Switch, standardModeSubtype);
+    if (this.configDev.CD_options.standardModeSwitch) {
+      this.standardModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, standardModeSubtype);
+      this.handleConfiguredName(this.standardModeService, standardModeSubtype, 'Standard Mode');
+      this.standardModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(() => this.getMode(Mode.Standard))
+        .onSet((value) => this.setMode(value, Mode.Standard));
+    } else if (this.standardModeService) {
+      this.accessory.removeService(this.standardModeService);
+    }
 
-    this.compatibilizingModeService =
-      this.accessory.getServiceById(this.platform.Service.Switch, compatibilizingModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, undefined, compatibilizingModeSubtype);
-    this.handleConfiguredName(this.compatibilizingModeService, compatibilizingModeSubtype, 'Compatibilizing Mode');
-    this.compatibilizingModeService
-      .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(() => this.getMode(Mode.Compatibilizing))
-      .onSet((value) => this.setMode(value, Mode.Compatibilizing));
+    // E-Heater Mode switch
+    this.eHeaterService = this.accessory.getServiceById(this.platform.Service.Switch, eHeaterSubtype);
+    if (this.configDev.CD_options.eHeaterModeSwitch) {
+      this.eHeaterService ??= this.accessory.addService(this.platform.Service.Switch, undefined, eHeaterSubtype);
+      this.handleConfiguredName(this.eHeaterService, eHeaterSubtype, 'E-Heater Mode');
+      this.eHeaterService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(() => this.getMode(Mode.Compatibilizing))
+        .onSet((value) => this.setMode(value, Mode.Compatibilizing));
+    } else if (this.eHeaterService) {
+      this.accessory.removeService(this.eHeaterService);
+    }
 
-    this.smartModeService =
-      this.accessory.getServiceById(this.platform.Service.Switch, smartModeSubtype) ||
-      this.accessory.addService(this.platform.Service.Switch, undefined, smartModeSubtype);
-    this.handleConfiguredName(this.smartModeService, smartModeSubtype, 'Smart Mode');
-    this.smartModeService
-      .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(() => this.getMode(Mode.Smart))
-      .onSet((value) => this.setMode(value, Mode.Smart));
+    // Smart Mode switch
+    this.smartModeService = this.accessory.getServiceById(this.platform.Service.Switch, smartModeSubtype);
+    if (this.configDev.CD_options.smartModeSwitch) {
+      this.smartModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, smartModeSubtype);
+      this.handleConfiguredName(this.smartModeService, smartModeSubtype, 'Smart Mode');
+      this.smartModeService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(() => this.getMode(Mode.Smart))
+        .onSet((value) => this.setMode(value, Mode.Smart));
+    } else if (this.smartModeService) {
+      this.accessory.removeService(this.smartModeService);
+    }
 
     // Disinfection Service
     this.disinfectionService = this.accessory.getServiceById(this.platform.Service.Switch, disinfectionSubtype);

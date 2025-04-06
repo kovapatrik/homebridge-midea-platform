@@ -112,6 +112,10 @@ type CDOptions = {
   minTemp: number;
   maxTemp: number;
   tempStep: number;
+  energySaveModeSwitch: boolean;
+  standardModeSwitch: boolean;
+  eHeaterModeSwitch: boolean;
+  smartModeSwitch: boolean;
   disinfectionSwitch: boolean;
 };
 
@@ -217,6 +221,10 @@ export const defaultDeviceConfig: DeviceConfig = {
     minTemp: 38,
     maxTemp: 70,
     tempStep: 0.5,
+    energySaveModeSwitch: false,
+    standardModeSwitch: false,
+    eHeaterModeSwitch: false,
+    smartModeSwitch: false,
     disinfectionSwitch: false,
   },
   CE_options: {

@@ -15,7 +15,7 @@ const OLD_BODY_LENGTH = 29;
 export enum Mode {
   EnergySave = 0x1,
   Standard = 0x2,
-  Compatibilizing = 0x3,
+  Compatibilizing = 0x3, // e-heater
   Smart = 0x4,
   Vacation = 0x5,
 }

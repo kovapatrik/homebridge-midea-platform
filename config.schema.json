@@ -369,6 +369,26 @@
                   "required": true,
                   "enum": [0.5, 1]
                 },
+                "energySaveModeSwitch": {
+                  "title": "Energy Save Mode Switch",
+                  "description": "Toggles if the energy save mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "standardModeSwitch": {
+                  "title": "Standard Mode Switch",
+                  "description": "Toggles if the standard mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "eHeaterModeSwitch": {
+                  "title": "E-Heater Mode Switch",
+                  "description": "Toggles if the e-heater mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "smartModeSwitch": {
+                  "title": "Smart Mode Switch",
+                  "description": "Toggles if the smart mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "disinfectionSwitch": {
                   "title": "Disinfection Mode Switch",
                   "description": "Toggles if the disinfection mode switch is created with the accessory.",
