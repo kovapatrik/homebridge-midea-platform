@@ -78,8 +78,8 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     this.handleConfiguredName(this.energySaveModeService, energySaveModeSubtype, 'Energy Save Mode');
     this.energySaveModeService
       .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(this.getMode.bind(this, Mode.EnergySave))
-      .onSet(this.setMode.bind(this, Mode.EnergySave));
+      .onGet(() => this.getMode(Mode.EnergySave))
+      .onSet((value) => this.setMode(value, Mode.EnergySave));
 
     this.standardModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, standardModeSubtype) ||
@@ -87,8 +87,8 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     this.handleConfiguredName(this.standardModeService, standardModeSubtype, 'Standard Mode');
     this.standardModeService
       .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(this.getMode.bind(this, Mode.Standard))
-      .onSet(this.setMode.bind(this, Mode.Standard));
+      .onGet(() => this.getMode(Mode.Standard))
+      .onSet((value) => this.setMode(value, Mode.Standard));
 
     this.compatibilizingModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, compatibilizingModeSubtype) ||
@@ -96,8 +96,8 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     this.handleConfiguredName(this.compatibilizingModeService, compatibilizingModeSubtype, 'Compatibilizing Mode');
     this.compatibilizingModeService
       .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(this.getMode.bind(this, Mode.Compatibilizing))
-      .onSet(this.setMode.bind(this, Mode.Compatibilizing));
+      .onGet(() => this.getMode(Mode.Compatibilizing))
+      .onSet((value) => this.setMode(value, Mode.Compatibilizing));
 
     this.smartModeService =
       this.accessory.getServiceById(this.platform.Service.Switch, smartModeSubtype) ||
@@ -105,8 +105,8 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     this.handleConfiguredName(this.smartModeService, smartModeSubtype, 'Smart Mode');
     this.smartModeService
       .getCharacteristic(this.platform.Characteristic.On)
-      .onGet(this.getMode.bind(this, Mode.Smart))
-      .onSet(this.setMode.bind(this, Mode.Smart));
+      .onGet(() => this.getMode(Mode.Smart))
+      .onSet((value) => this.setMode(value, Mode.Smart));
 
     // Disinfection Service
     this.disinfectionService = this.accessory.getServiceById(this.platform.Service.Switch, disinfectionSubtype);
@@ -177,8 +177,8 @@ export default class HeatPumpWaterHeaterAccessory extends BaseAccessory<MideaCDD
     return this.device.attributes.MODE === mode;
   }
 
-  async setMode(mode: Mode) {
-    await this.device.set_attribute({ POWER: true, MODE: mode });
+  async setMode(value: CharacteristicValue, mode: Mode) {
+    await this.device.set_attribute({ MODE: value ? mode : Mode.Standard });
   }
 
   getDisinfection(): CharacteristicValue {
