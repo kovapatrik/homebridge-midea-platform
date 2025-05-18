@@ -3,6 +3,7 @@
 # v1.2.6
 - feat: added support for `Fresh Air Appliance` (fixes #118)
 - feat: added sleep mode switch for `Air Conditioner` (fixes #128)
+- feat: added comfort mode switch for `Air Conditioner` (fixes #132)
 - fix: store and display name of sub-service if it's changed from the Home app (fixed #120)
   - you might have duplicated accessories because of this, please delete the cached accessories for this plugin to remove them
   - you can do this from the Homebridge UI: three dots in the top right side -> Settings -> scroll down to the bottom and there will be a `Remove Single Accessory` button -> use that and remove everything which is connected to the plugin `homebridge-midea-platform`

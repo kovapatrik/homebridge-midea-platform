@@ -301,6 +301,11 @@
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "comfortModeSwitch": {
+                  "title": "Comfort Mode Switch",
+                  "description": "Toggles if the comfort mode switch is created with the accessory.",
+                  "type": "boolean"
                 }
               }
             },
@@ -615,7 +620,11 @@
               "items": [
                 {
                   "key": "devices[].AC_options.swing",
-                  "items": ["devices[].AC_options.swing.mode", "devices[].AC_options.swing.angleAccessory", "devices[].AC_options.swing.angleMainControl"]
+                  "items": [
+                    "devices[].AC_options.swing.mode",
+                    "devices[].AC_options.swing.angleAccessory",
+                    "devices[].AC_options.swing.angleMainControl"
+                  ]
                 },
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
@@ -631,7 +640,10 @@
                 "devices[].AC_options.rateSelector",
                 {
                   "key": "devices[].AC_options.displaySwitch",
-                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
+                  "items": [
+                    "devices[].AC_options.displaySwitch.flag",
+                    "devices[].AC_options.displaySwitch.command"
+                  ]
                 },
                 "devices[].AC_options.minTemp",
                 "devices[].AC_options.maxTemp",
@@ -639,7 +651,8 @@
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory",
-                "devices[].AC_options.sleepModeSwitch"
+                "devices[].AC_options.sleepModeSwitch",
+                "devices[].AC_options.comfortModeSwitch"
               ]
             },
             {

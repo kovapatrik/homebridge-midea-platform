@@ -85,6 +85,7 @@ type ACOptions = {
   audioFeedback: boolean;
   screenOff: boolean;
   sleepModeSwitch: boolean;
+  comfortModeSwitch: boolean;
 };
 
 type A1Options = {
@@ -197,6 +198,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     fanOnlyModeSwitch: false,
     fanAccessory: false,
     sleepModeSwitch: false,
+    comfortModeSwitch: false,
   },
   A1_options: {
     temperatureSensor: false,

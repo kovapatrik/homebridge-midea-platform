@@ -30,6 +30,7 @@ const ionSubtype = 'ion';
 const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
+const comfortModeSubtype = 'comfortMode';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   protected service: Service;
@@ -49,6 +50,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private rateSelectService?: Service;
   private sleepModeService?: Service;
   private swingAngleService?: Service;
+  private comfortModeService?: Service;
 
   private swingAngleMainControl: SwingAngle;
 
@@ -284,6 +286,15 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.sleepModeService);
     }
 
+    this.comfortModeService = this.accessory.getServiceById(this.platform.Service.Switch, comfortModeSubtype);
+    if (this.configDev.AC_options.comfortModeSwitch) {
+      this.comfortModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, comfortModeSubtype);
+      this.handleConfiguredName(this.comfortModeService, comfortModeSubtype, 'Comfort');
+      this.comfortModeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getComfortMode.bind(this)).onSet(this.setComfortMode.bind(this));
+    } else if (this.comfortModeService) {
+      this.accessory.removeService(this.comfortModeService);
+    }
+
     const swingProps = this.configDev.AC_options.swing;
     this.swingAngleMainControl =
       swingProps.mode === SwingMode.VERTICAL || (swingProps.mode === SwingMode.BOTH && swingProps.angleMainControl === SwingAngle.VERTICAL)
@@ -451,7 +462,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setTemperatureDisplayUnits(value: CharacteristicValue) {
-    await this.device.set_attribute({ TEMP_FAHRENHEIT: value === this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT });
+    await this.device.set_attribute({
+      TEMP_FAHRENHEIT: value === this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT,
+    });
   }
 
   getCurrentHeaterCoolerState(): CharacteristicValue {
@@ -716,6 +729,20 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       await this.device.set_attribute({ POWER: true, SLEEP_MODE: true });
     } else {
       await this.device.set_attribute({ SLEEP_MODE: false });
+    }
+  }
+
+  getComfortMode(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.COMFORT_MODE
+      ? this.platform.Characteristic.Active.ACTIVE
+      : this.platform.Characteristic.Active.INACTIVE;
+  }
+
+  async setComfortMode(value: CharacteristicValue) {
+    if (value === this.platform.Characteristic.Active.ACTIVE) {
+      await this.device.set_attribute({ POWER: true, COMFORT_MODE: true });
+    } else {
+      await this.device.set_attribute({ COMFORT_MODE: false });
     }
   }
 }
