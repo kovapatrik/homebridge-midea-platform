@@ -14,7 +14,6 @@ enum NewProtocolTags {
   WIND_SWING_UD_ANGLE = 0x0009,
   WIND_SWING_LR_ANGLE = 0x000a,
   INDOOR_HUMIDITY = 0x0015,
-  SCREEN_DISPLAY = 0x0024,
   BREEZELESS = 0x0018,
   PROMPT_TONE = 0x001a,
   INDIRECT_WIND = 0x0042, // prevent_straight_wind
@@ -23,6 +22,7 @@ enum NewProtocolTags {
   SELF_CLEAN = 0x0039,
   RATE_SELECT = 0x0048, // GEAR
   ION = 0x021e, // anion - 0x1E and 0x02, gets shifted
+  SCREEN_DISPLAY = 0x0224,
 }
 
 const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
@@ -56,12 +56,25 @@ export class MessageQuery extends MessageACBase {
   get _body() {
     // biome-ignore format: easier to read
     return Buffer.from([
-      0x81, 0x00, 0xff, 0x03,
-      0xff, 0x00, 0x02, 0x00,
+      0x81, 0x00, 0xff, 0x00,
+      0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00
     ]);
+  }
+}
+
+export class MessageCapabilityQuery extends MessageACBase {
+  additional_capabilities: boolean;
+
+  constructor(device_protocol_version: number, additional_capabilities: boolean) {
+    super(device_protocol_version, MessageType.QUERY, 0xb5);
+    this.additional_capabilities = additional_capabilities;
+  }
+
+  get _body() {
+    return this.additional_capabilities ? Buffer.from([0x01, 0x01, 0x01]) : Buffer.from([0x01, 0x00]);
   }
 }
 
@@ -83,18 +96,36 @@ export class MessagePowerQuery extends MessageACBase {
 }
 
 export class MessageSwitchDisplay extends MessageACBase {
+  prompt_tone: boolean;
+
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.QUERY, 0x41);
+    this.prompt_tone = false;
   }
 
   get _body() {
+    const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
     // biome-ignore format: easier to read
-    return Buffer.concat([
-      Buffer.from([
-        0x00, 0x00, 0xff, 0x02,
-        0x00, 0x02, 0x00
-      ]),
-      Buffer.alloc(12),
+    return Buffer.from([
+      0x02 | prompt_tone,
+      0x00,
+      0xFF,
+      0x02,
+      0x00,
+      0x02,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
     ]);
 
     // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
