@@ -36,7 +36,19 @@
               "title": "Device Type",
               "type": "string",
               "required": true,
-              "enum": ["Air Conditioner", "Dehumidifier", "Dishwasher", "Electric Water Heater", "Fan", "Front Load Washer", "Gas Water Heater", "Heat Pump WiFi Controller", "Humidifier"],
+              "enum": [
+                "Air Conditioner",
+                "Dehumidifier",
+                "Dishwasher",
+                "Electric Water Heater",
+                "Fan",
+                "Fresh Air Appliance",
+                "Front Load Washer",
+                "Gas Water Heater",
+                "Heat Pump Water Heater",
+                "Heat Pump WiFi Controller",
+                "Humidifier"
+              ],
               "description": "Select the type of device you are adding."
             },
             "name": {
@@ -284,6 +296,16 @@
                   "title": "Fan Accessory",
                   "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
+                },
+                "sleepModeSwitch": {
+                  "title": "Sleep Mode Switch",
+                  "description": "Toggles if the sleep mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "comfortModeSwitch": {
+                  "title": "Comfort Mode Switch",
+                  "description": "Toggles if the comfort mode switch is created with the accessory.",
+                  "type": "boolean"
                 }
               }
             },
@@ -331,14 +353,94 @@
                 }
               }
             },
+            "CD_options": {
+              "title": "Heat Pump Water Heater Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Heat Pump Water Heater';"
+              },
+              "properties": {
+                "minTemp": {
+                  "title": "Minimum Temperature (°C)",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature (°C)",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step (°C)",
+                  "type": "number",
+                  "required": true,
+                  "enum": [0.5, 1]
+                },
+                "energySaveModeSwitch": {
+                  "title": "Energy Save Mode Switch",
+                  "description": "Toggles if the energy save mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "standardModeSwitch": {
+                  "title": "Standard Mode Switch",
+                  "description": "Toggles if the standard mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "eHeaterModeSwitch": {
+                  "title": "E-Heater Mode Switch",
+                  "description": "Toggles if the e-heater mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "smartModeSwitch": {
+                  "title": "Smart Mode Switch",
+                  "description": "Toggles if the smart mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "disinfectionSwitch": {
+                  "title": "Disinfection Mode Switch",
+                  "description": "Toggles if the disinfection mode switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "CE_options": {
+              "title": "Fresh Air Appliance Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fresh Air Appliance';"
+              },
+              "properties": {
+                "silentMode": {
+                  "title": "Silent Mode",
+                  "description": "Toggles if the silent mode switch alongside the level slider is created with the accessory.",
+                  "type": "boolean"
+                },
+                "minTemp": {
+                  "title": "Minimum Temperature (°C)",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature (°C)",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step (°C)",
+                  "type": "number",
+                  "required": true,
+                  "enum": [0.5, 1]
+                },
+                "autoSetModeSwitch": {
+                  "title": "Auto Set Mode Switch",
+                  "description": "Toggles if the auto set mode switch is created with the accessory.",
+                  "type": "boolean"
+                }
+              }
+            },
             "DB_options": {
               "title": "Front Load Washer Options",
               "type": "object",
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Front Load Washer';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "E1_options": {
               "title": "Dishwasher Options",
@@ -346,8 +448,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dishwasher';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "E2_options": {
               "title": "Electric Water Heater Options",
@@ -448,8 +549,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Fan';"
               },
-              "properties": {
-              }
+              "properties": {}
             },
             "FD_options": {
               "title": "Humidifier Options",
@@ -457,8 +557,7 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Humidifier';"
               },
-              "properties": {
-              }
+              "properties": {}
             }
           }
         }
@@ -541,14 +640,19 @@
                 "devices[].AC_options.rateSelector",
                 {
                   "key": "devices[].AC_options.displaySwitch",
-                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
+                  "items": [
+                    "devices[].AC_options.displaySwitch.flag",
+                    "devices[].AC_options.displaySwitch.command"
+                  ]
                 },
                 "devices[].AC_options.minTemp",
                 "devices[].AC_options.maxTemp",
                 "devices[].AC_options.tempStep",
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyModeSwitch",
-                "devices[].AC_options.fanAccessory"
+                "devices[].AC_options.fanAccessory",
+                "devices[].AC_options.sleepModeSwitch",
+                "devices[].AC_options.comfortModeSwitch"
               ]
             },
             {
@@ -563,6 +667,33 @@
                 "devices[].C3_options.silentSwitch",
                 "devices[].C3_options.tbhSwitch",
                 "devices[].C3_options.disinfectSwitch"
+              ]
+            },
+            {
+              "key": "devices[].CD_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].CD_options.minTemp",
+                "devices[].CD_options.maxTemp",
+                "devices[].CD_options.tempStep",
+                "devices[].CD_options.energySaveModeSwitch",
+                "devices[].CD_options.standardModeSwitch",
+                "devices[].CD_options.eHeaterModeSwitch",
+                "devices[].CD_options.smartModeSwitch",
+                "devices[].CD_options.disinfectionSwitch"
+              ]
+            },
+            {
+              "key": "devices[].CE_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].CE_options.silentMode",
+                "devices[].CE_options.minTemp",
+                "devices[].CE_options.maxTemp",
+                "devices[].CE_options.tempStep",
+                "devices[].CE_options.autoSetModeSwitch"
               ]
             },
             {

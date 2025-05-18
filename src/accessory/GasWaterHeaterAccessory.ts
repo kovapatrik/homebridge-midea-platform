@@ -15,6 +15,12 @@ import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
 
+const burningStateSubtype = 'burningState';
+const protectionSubtype = 'protection';
+const zeroColdWaterSubtype = 'zeroColdWater';
+const zeroColdPulseSubtype = 'zeroColdPulse';
+const smartVolumeSubtype = 'smartVolume';
+
 export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device> {
   protected service: Service;
 
@@ -64,33 +70,30 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
       });
 
     // Burning state sensor
-    this.burningStateService = this.accessory.getServiceById(this.platform.Service.MotionSensor, 'BurningState');
+    this.burningStateService = this.accessory.getServiceById(this.platform.Service.MotionSensor, burningStateSubtype);
     if (this.configDev.E3_options.burningStateSensor) {
-      this.burningStateService ??= this.accessory.addService(this.platform.Service.MotionSensor, `${this.device.name} Burning State`, 'BurningState');
-      this.burningStateService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name}  Burning State`);
-      this.burningStateService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name}  Burning State`);
+      this.burningStateService ??= this.accessory.addService(this.platform.Service.MotionSensor, undefined, burningStateSubtype);
+      this.handleConfiguredName(this.burningStateService, burningStateSubtype, 'Burning State');
       this.burningStateService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getBurningState.bind(this));
     } else if (this.burningStateService) {
       this.accessory.removeService(this.burningStateService);
     }
 
     // Protection sensor
-    this.protectionService = this.accessory.getServiceById(this.platform.Service.MotionSensor, 'Protection');
+    this.protectionService = this.accessory.getServiceById(this.platform.Service.MotionSensor, protectionSubtype);
     if (this.configDev.E3_options.protectionSensor) {
-      this.protectionService ??= this.accessory.addService(this.platform.Service.MotionSensor, `${this.device.name} Protection`, 'Protection');
-      this.protectionService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Protection`);
-      this.protectionService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Protection`);
+      this.protectionService ??= this.accessory.addService(this.platform.Service.MotionSensor, undefined, protectionSubtype);
+      this.handleConfiguredName(this.protectionService, protectionSubtype, 'Protection');
       this.protectionService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getProtection.bind(this));
     } else if (this.protectionService) {
       this.accessory.removeService(this.protectionService);
     }
 
     // Zero Cold Water switch
-    this.zeroColdWaterService = this.accessory.getServiceById(this.platform.Service.Switch, 'ZeroColdWater');
+    this.zeroColdWaterService = this.accessory.getServiceById(this.platform.Service.Switch, zeroColdWaterSubtype);
     if (this.configDev.E3_options.zeroColdWaterSwitch) {
-      this.zeroColdWaterService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Zero Cold Water`, 'ZeroColdWater');
-      this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Water`);
-      this.zeroColdWaterService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Water`);
+      this.zeroColdWaterService ??= this.accessory.addService(this.platform.Service.Switch, undefined, zeroColdWaterSubtype);
+      this.handleConfiguredName(this.zeroColdWaterService, zeroColdWaterSubtype, 'Zero Cold Water');
       this.zeroColdWaterService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getZeroColdWater.bind(this))
@@ -100,11 +103,10 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     }
 
     // Zero Cold Pulse switch
-    this.zeroColdPulseService = this.accessory.getServiceById(this.platform.Service.Switch, 'ZeroColdPulse');
+    this.zeroColdPulseService = this.accessory.getServiceById(this.platform.Service.Switch, zeroColdPulseSubtype);
     if (this.configDev.E3_options.zeroColdPulseSwitch) {
-      this.zeroColdPulseService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Zero Cold Pulse`, 'ZeroColdPulse');
-      this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Zero Cold Pulse`);
-      this.zeroColdPulseService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Zero Cold Pulse`);
+      this.zeroColdPulseService ??= this.accessory.addService(this.platform.Service.Switch, undefined, zeroColdPulseSubtype);
+      this.handleConfiguredName(this.zeroColdPulseService, zeroColdPulseSubtype, 'Zero Cold Pulse');
       this.zeroColdPulseService
         .getCharacteristic(this.platform.Characteristic.On)
         .onGet(this.getZeroColdPulse.bind(this))
@@ -114,11 +116,10 @@ export default class GasWaterHeaterAccessory extends BaseAccessory<MideaE3Device
     }
 
     // Smart Volume switch
-    this.smartVolumeService = this.accessory.getServiceById(this.platform.Service.Switch, 'SmartVolume');
+    this.smartVolumeService = this.accessory.getServiceById(this.platform.Service.Switch, smartVolumeSubtype);
     if (this.configDev.E3_options.smartVolumeSwitch) {
-      this.smartVolumeService ??= this.accessory.addService(this.platform.Service.Switch, `${this.device.name} Smart Volume`, 'SmartVolume');
-      this.smartVolumeService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Smart Volume`);
-      this.smartVolumeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Smart Volume`);
+      this.smartVolumeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, smartVolumeSubtype);
+      this.handleConfiguredName(this.smartVolumeService, smartVolumeSubtype, 'Smart Volume');
       this.smartVolumeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getSmartVolume.bind(this)).onSet(this.setSmartVolume.bind(this));
     } else if (this.smartVolumeService) {
       this.accessory.removeService(this.smartVolumeService);

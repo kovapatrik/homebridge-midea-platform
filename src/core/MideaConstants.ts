@@ -15,6 +15,8 @@ export enum DeviceType {
   AIR_CONDITIONER = 0xac,
   DEHUMIDIFIER = 0xa1,
   HEAT_PUMP_WIFI_CONTROLLER = 0xc3,
+  HEAT_PUMP_WATER_HEATER = 0xcd,
+  FRESH_AIR_APPLIANCE = 0xce,
   FRONT_LOAD_WASHER = 0xdb,
   DISHWASHER = 0xe1,
   ELECTRIC_WATER_HEATER = 0xe2,
@@ -22,6 +24,21 @@ export enum DeviceType {
   FAN = 0xfa,
   HUMIDIFIER = 0xfd,
 }
+
+export const DeviceTypeToName: { readonly [K in DeviceType]: string } = {
+  [DeviceType.UNKNOWN]: 'Unknown',
+  [DeviceType.AIR_CONDITIONER]: 'Air Conditioner',
+  [DeviceType.DEHUMIDIFIER]: 'Dehumidifier',
+  [DeviceType.HEAT_PUMP_WIFI_CONTROLLER]: 'Heat Pump Wifi Controller',
+  [DeviceType.HEAT_PUMP_WATER_HEATER]: 'Heat Pump Water Heater',
+  [DeviceType.FRESH_AIR_APPLIANCE]: 'Fresh Air Appliance',
+  [DeviceType.FRONT_LOAD_WASHER]: 'Front Load Washer',
+  [DeviceType.DISHWASHER]: 'Dishwasher',
+  [DeviceType.ELECTRIC_WATER_HEATER]: 'Electric Water Heater',
+  [DeviceType.GAS_WATER_HEATER]: 'Gas Water Heater',
+  [DeviceType.FAN]: 'Fan',
+  [DeviceType.HUMIDIFIER]: 'Humidifier',
+};
 
 export enum ParseMessageResult {
   SUCCESS = 0,

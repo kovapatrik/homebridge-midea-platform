@@ -121,3 +121,4 @@ dist
 
 # lua files are being used by the official application
 *.lua
+.luarc.json

@@ -28,6 +28,8 @@ export type DeviceConfig = {
   AC_options: ACOptions;
   A1_options: A1Options;
   C3_options: C3Options;
+  CD_options: CDOptions;
+  CE_options: CEOptions;
   DB_options: DBOptions;
   E1_options: E1Options;
   E2_options: E2Options;
@@ -82,6 +84,8 @@ type ACOptions = {
   outDoorTemp: boolean;
   audioFeedback: boolean;
   screenOff: boolean;
+  sleepModeSwitch: boolean;
+  comfortModeSwitch: boolean;
 };
 
 type A1Options = {
@@ -103,6 +107,25 @@ type C3Options = {
   ecoSwitch: boolean;
   silentSwitch: boolean;
   tbhSwitch: boolean;
+};
+
+type CDOptions = {
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  energySaveModeSwitch: boolean;
+  standardModeSwitch: boolean;
+  eHeaterModeSwitch: boolean;
+  smartModeSwitch: boolean;
+  disinfectionSwitch: boolean;
+};
+
+type CEOptions = {
+  silentMode: boolean;
+  autoSetModeSwitch: boolean;
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
 };
 
 type DBOptions = unknown;
@@ -174,6 +197,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     fahrenheit: false,
     fanOnlyModeSwitch: false,
     fanAccessory: false,
+    sleepModeSwitch: false,
+    comfortModeSwitch: false,
   },
   A1_options: {
     temperatureSensor: false,
@@ -193,6 +218,23 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoSwitch: false,
     silentSwitch: false,
     tbhSwitch: false,
+  },
+  CD_options: {
+    minTemp: 38,
+    maxTemp: 70,
+    tempStep: 0.5,
+    energySaveModeSwitch: false,
+    standardModeSwitch: false,
+    eHeaterModeSwitch: false,
+    smartModeSwitch: false,
+    disinfectionSwitch: false,
+  },
+  CE_options: {
+    autoSetModeSwitch: false,
+    minTemp: 16,
+    maxTemp: 30,
+    tempStep: 1,
+    silentMode: false,
   },
   DB_options: {},
   E1_options: {},

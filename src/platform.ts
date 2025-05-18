@@ -25,21 +25,10 @@ type MideaContext = {
   sn: string;
   model: string;
   serviceVersion: number;
+  configuredNames: { [key: string]: string };
 };
 
 export type MideaAccessory = PlatformAccessory<MideaContext>;
-
-// export interface MideaAccessory extends PlatformAccessory {
-//   context: {
-//     token: string;
-//     key: string;
-//     id: string;
-//     type: string;
-//     sn: string;
-//     model: string;
-//     serviceVersion: number;
-//   };
-// }
 
 export class MideaPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;

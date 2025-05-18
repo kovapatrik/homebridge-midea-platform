@@ -16,6 +16,13 @@ import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import { type DeviceConfig, WaterTankSensor } from '../platformUtils.js';
 import BaseAccessory from './BaseAccessory.js';
 
+const temperatureSubtype = 'temperature';
+const fanSubtype = 'fan';
+const humiditySubtype = 'humidity';
+const pumpSubtype = 'pump';
+const waterTankContactSubtype = 'waterTankContact';
+const waterTankLeakSubtype = 'waterTankLeak';
+
 export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> {
   protected service: Service;
 
@@ -104,20 +111,20 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
 
     // Temperature sensor
-    this.temperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, 'Temperature');
+    this.temperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, temperatureSubtype);
     if (this.configDev.A1_options.temperatureSensor) {
-      this.temperatureService ??= this.accessory.addService(this.platform.Service.TemperatureSensor, 'Temperature', 'Temperature');
+      this.temperatureService ??= this.accessory.addService(this.platform.Service.TemperatureSensor, undefined, temperatureSubtype);
+      this.handleConfiguredName(this.temperatureService, temperatureSubtype, 'Temperature');
       this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getTemperature.bind(this));
     } else if (this.temperatureService) {
       this.accessory.removeService(this.temperatureService);
     }
 
     // Fan
-    this.fanService = this.accessory.getServiceById(this.platform.Service.Fanv2, 'Fan');
+    this.fanService = this.accessory.getServiceById(this.platform.Service.Fanv2, fanSubtype);
     if (this.configDev.A1_options.fanAccessory) {
-      this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, 'Fan', 'Fan');
-      this.fanService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Fan`);
-      this.fanService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Fan`);
+      this.fanService ??= this.accessory.addService(this.platform.Service.Fanv2, undefined, fanSubtype);
+      this.handleConfiguredName(this.fanService, fanSubtype, 'Fan');
       this.fanService.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
       this.fanService
         .getCharacteristic(this.platform.Characteristic.RotationSpeed)
@@ -128,38 +135,41 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     }
 
     // Humidity sensor
-    this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, 'Humidity');
+    this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, humiditySubtype);
     if (this.configDev.A1_options.humiditySensor) {
-      this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, 'Humidity', 'Humidity');
+      this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, undefined, humiditySubtype);
+      this.handleConfiguredName(this.humiditySensorService, humiditySubtype, 'Humidity');
       this.humiditySensorService.getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity).onGet(this.getCurrentRelativeHumidity.bind(this));
     } else if (this.humiditySensorService) {
       this.accessory.removeService(this.humiditySensorService);
     }
 
     // Pump switch
-    this.pumpService = this.accessory.getServiceById(this.platform.Service.Switch, 'Pump');
+    this.pumpService = this.accessory.getServiceById(this.platform.Service.Switch, pumpSubtype);
     if (this.configDev.A1_options.pumpSwitch) {
-      this.pumpService ??= this.accessory.addService(this.platform.Service.Switch, 'Pump', 'Pump');
-      this.pumpService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Pump`);
-      this.pumpService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Pump`);
+      this.pumpService ??= this.accessory.addService(this.platform.Service.Switch, undefined, pumpSubtype);
+      this.handleConfiguredName(this.pumpService, pumpSubtype, 'Pump');
       this.pumpService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getPump.bind(this)).onSet(this.setPump.bind(this));
     } else if (this.pumpService) {
       this.accessory.removeService(this.pumpService);
     }
 
     this.waterTankService =
-      this.accessory.getServiceById(this.platform.Service.ContactSensor, 'WaterTankContact') ??
-      this.accessory.getServiceById(this.platform.Service.LeakSensor, 'WaterTankLeak');
+      this.accessory.getServiceById(this.platform.Service.ContactSensor, waterTankContactSubtype) ??
+      this.accessory.getServiceById(this.platform.Service.LeakSensor, waterTankLeakSubtype);
     if (this.configDev.A1_options.waterTankSensor !== WaterTankSensor.NONE) {
       if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, `${this.device.name} Water Tank Sensor`, 'WaterTankContact');
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, undefined, waterTankContactSubtype);
         this.waterTankService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
       } else {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, `${this.device.name} Water Tank Sensor`, 'WaterTankLeak');
+        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, undefined, waterTankLeakSubtype);
         this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
       }
-      this.waterTankService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Water Tank Sensor`);
-      this.waterTankService.setCharacteristic(this.platform.Characteristic.ConfiguredName, `${this.device.name} Water Tank Sensor`);
+      this.handleConfiguredName(
+        this.waterTankService,
+        this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR ? waterTankContactSubtype : waterTankLeakSubtype,
+        'Water Tank Sensor',
+      );
     } else if (this.waterTankService) {
       this.accessory.removeService(this.waterTankService);
     }
