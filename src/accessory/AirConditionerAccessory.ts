@@ -21,6 +21,7 @@ const fanOnlySubtype = 'fanOnly';
 const fanSubtype = 'fan';
 const ecoModeSubtype = 'ecoMode';
 const breezeAwaySubtype = 'breezeAway';
+const autoModeSubtype = 'autoMode';
 const dryModeSubtype = 'dryMode';
 const boostModeSubtype = 'boostMode';
 const auxSubtype = 'aux';
@@ -41,6 +42,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private fanService?: Service;
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
+  private autoModeService?: Service;
   private dryModeService?: Service;
   private boostModeService?: Service;
   private auxService?: Service;
@@ -84,13 +86,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       .onGet(this.getTargetHeaterCoolerState.bind(this))
       .onSet(this.setTargetHeaterCoolerState.bind(this))
       .setProps({
-        validValues: this.configDev.AC_options.heatingCapable
-          ? [
-              this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
-              this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
-              this.platform.Characteristic.TargetHeaterCoolerState.COOL,
-            ]
-          : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
+        validValues: [
+          ...(this.configDev.AC_options.autoModeSwitch ? [this.platform.Characteristic.TargetHeaterCoolerState.AUTO] : [])
+          ...(this.configDev.AC_options.heatingCapable ? [this.platform.Characteristic.TargetHeaterCoolerState.HEAT] : []),
+          this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+        ]
       });
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
@@ -194,6 +194,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.breezeAwayService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getBreezeAway.bind(this)).onSet(this.setBreezeAway.bind(this));
     } else if (this.breezeAwayService) {
       this.accessory.removeService(this.breezeAwayService);
+    }
+
+    // Auto mode switch
+    this.autoModeService = this.accessory.getServiceById(this.platform.Service.Switch, autoModeSubtype);
+    if (this.configDev.AC_options.autoModeSwitch) {
+      this.autoModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, autoModeSubtype);
+      this.handleConfiguredName(this.autoModeService, autoModeSubtype, 'Auto');
+      this.autoModeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getAutoMode.bind(this)).onSet(this.setAutoMode.bind(this));
+    } else if (this.autoModeService) {
+      this.accessory.removeService(this.autoModeService);
     }
 
     // Dry mode switch
@@ -430,6 +440,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.fanOnlyService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanOnlyMode());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+        this.autoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getAutoMode());
         this.dryModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getDryMode());
         this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
         this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
@@ -602,6 +613,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setBreezeAway(value: CharacteristicValue) {
     await this.device.set_attribute({ INDIRECT_WIND: !!value });
+  }
+
+  getAutoMode(): CharacteristicValue {
+    return this.device.attributes.POWER === true && this.device.attributes.MODE === 1;
+  }
+
+  async setAutoMode(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ POWER: true, MODE: 1 });
+    } else {
+      await this.device.set_attribute({ POWER: false, MODE: 0 });
+    }
   }
 
   getDryMode(): CharacteristicValue {
