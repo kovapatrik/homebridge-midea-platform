@@ -14,6 +14,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "audioFeedback": false,
     "screenOff": false,
     "ecoSwitch": false,
+    "autoModeSwitch": false,
     "dryModeSwitch": false,
     "boostModeSwitch": false,
     "breezeAwaySwitch": false,
@@ -45,6 +46,7 @@ Providing air conditioner settings is optional and the whole section or individu
 - **audioFeedback** *(optional)*: Toggles if the unit beeps when a command is sent, default is false.
 - **screenOff** *(optional)*: Toggles if the screen is turned off by default when the unit is turned on. Default is `false`.
 - **ecoSwitch** *(optional)*: Toggles if the eco switch is created with the accessory. Default is `false`.
+- **autoModeSwitch** *(optional)*: Seperates auto mode into it's own accessory. Default is `false`.
 - **dryModeSwitch** *(optional)*: Toggles if the dry mode switch is created with the accessory. Default is `false`.
 - **boostModeSwitch** *(optional)*: Toggles if the boost/turbo mode switch is created with the accessory. Default is `false`.
 - **breezeAwaySwitch** *(optional)*: Toggles if the breeze away switch is created with the accessory. Default is `false`.
