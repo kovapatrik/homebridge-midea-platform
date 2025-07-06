@@ -375,9 +375,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           }
           updateState = true;
           break;
-        case 'indoor_temperature':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+        case 'indoor_temperature': {
+          const temperature = this.getCurrentTemperature();
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, temperature);
+          this.temperatureSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, temperature);
           break;
+        }
         case 'outdoor_temperature':
           this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getOutdoorTemperature());
           break;
