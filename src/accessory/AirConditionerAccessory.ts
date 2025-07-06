@@ -31,6 +31,7 @@ const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
 const comfortModeSubtype = 'comfortMode';
+const temperatureSensorSubtype = 'temperatureSensor';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   protected service: Service;
@@ -51,6 +52,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private sleepModeService?: Service;
   private swingAngleService?: Service;
   private comfortModeService?: Service;
+  private temperatureSensorService?: Service;
 
   private swingAngleMainControl: SwingAngle;
 
@@ -286,6 +288,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.sleepModeService);
     }
 
+    // Comfort mode accessory
     this.comfortModeService = this.accessory.getServiceById(this.platform.Service.Switch, comfortModeSubtype);
     if (this.configDev.AC_options.comfortModeSwitch) {
       this.comfortModeService ??= this.accessory.addService(this.platform.Service.Switch, undefined, comfortModeSubtype);
@@ -293,6 +296,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.comfortModeService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getComfortMode.bind(this)).onSet(this.setComfortMode.bind(this));
     } else if (this.comfortModeService) {
       this.accessory.removeService(this.comfortModeService);
+    }
+
+    // Separate temperature sensor accessory
+    this.temperatureSensorService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, temperatureSensorSubtype);
+    if (this.configDev.AC_options.temperatureSensor) {
+      this.temperatureSensorService ??= this.accessory.addService(this.platform.Service.TemperatureSensor, undefined, temperatureSensorSubtype);
+      this.handleConfiguredName(this.temperatureSensorService, temperatureSensorSubtype, 'Indoor Temperature');
+      this.temperatureSensorService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
+    } else if (this.temperatureSensorService) {
+      this.accessory.removeService(this.temperatureSensorService);
     }
 
     const swingProps = this.configDev.AC_options.swing;

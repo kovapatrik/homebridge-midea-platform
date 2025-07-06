@@ -120,7 +120,7 @@
                 },
                 "humiditySensor": {
                   "title": "Humidity Sensor",
-                  "description": "Toggles if a seperated humidity sensor is created with the accessory. This sensor can be used for autmations as for some reason the internal humidity sensor is not usable for this.",
+                  "description": "Toggles if a seperated humidity sensor is created with the accessory. This sensor can be used for automations as for some reason the internal humidity sensor is not usable for this.",
                   "type": "boolean"
                 },
                 "pumpSwitch": {
@@ -305,6 +305,11 @@
                 "comfortModeSwitch": {
                   "title": "Comfort Mode Switch",
                   "description": "Toggles if the comfort mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "temperatureSensor": {
+                  "title": "Indoor Temperature Sensor",
+                  "description": "Toggles if a seperated indoor temperature is created with the accessory. This sensor can be used for automations as for some reason the internal sensors are not usable for this.",
                   "type": "boolean"
                 }
               }
@@ -652,7 +657,8 @@
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory",
                 "devices[].AC_options.sleepModeSwitch",
-                "devices[].AC_options.comfortModeSwitch"
+                "devices[].AC_options.comfortModeSwitch",
+                "devices[].AC_options.temperatureSensor"
               ]
             },
             {
