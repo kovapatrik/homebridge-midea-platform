@@ -56,6 +56,15 @@ export enum WaterTankSensor {
   CONTACT_SENSOR = 'Contact Sensor',
 }
 
+export enum ACMode {
+  OFF = 0,
+  AUTO = 1,
+  COOLING = 2,
+  DRY = 3,
+  HEATING = 4,
+  FAN_ONLY = 5,
+}
+
 type ACOptions = {
   swing: {
     mode: SwingMode;

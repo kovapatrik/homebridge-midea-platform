@@ -12,7 +12,7 @@ import type { CharacteristicValue, Service } from 'homebridge';
 import type MideaACDevice from '../devices/ac/MideaACDevice.js';
 import type { ACAttributes } from '../devices/ac/MideaACDevice.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
-import { type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
+import { ACMode, type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
 import BaseAccessory, { limitValue } from './BaseAccessory.js';
 
 const outDoorTemperatureSubtype = 'outdoor';
@@ -53,6 +53,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private comfortModeService?: Service;
 
   private swingAngleMainControl: SwingAngle;
+  private heatingThresholdTemperature: number;
+  private coolingThresholdTemperature: number;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -97,8 +99,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service
       .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
-      .onGet(this.getTargetTemperature.bind(this))
-      .onSet(this.setTargetTemperature.bind(this))
+      .onGet(this.getCoolingThresholdTemperature.bind(this))
+      .onSet(this.setCoolingThresholdTemperature.bind(this))
       .setProps({
         minValue: this.configDev.AC_options.minTemp,
         maxValue: this.configDev.AC_options.maxTemp,
@@ -107,8 +109,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     this.service
       .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
-      .onGet(this.getTargetTemperature.bind(this))
-      .onSet(this.setTargetTemperature.bind(this))
+      .onGet(this.getHeatingThresholdTemperature.bind(this))
+      .onSet(this.setHeatingThresholdTemperature.bind(this))
       .setProps({
         minValue: this.configDev.AC_options.minTemp,
         maxValue: this.configDev.AC_options.maxTemp,
@@ -330,8 +332,22 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       }
     }
     // Misc
-    this.device.attributes.PROMPT_TONE = this.configDev.AC_options.audioFeedback;
-    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options.fahrenheit;
+    this.device.attributes.PROMPT_TONE = configDev.AC_options.audioFeedback;
+    this.device.attributes.TEMP_FAHRENHEIT = configDev.AC_options.fahrenheit;
+
+    this.heatingThresholdTemperature = accessory.context?.thresholds?.heatingTemperature ?? configDev.AC_options.minTemp;
+    this.coolingThresholdTemperature = accessory.context?.thresholds?.coolingTemperature ?? configDev.AC_options.maxTemp;
+  }
+
+  private async withoutPromptTone<T>(fn: () => Promise<T>): Promise<T> {
+    const hadPromptTone = this.device.attributes.PROMPT_TONE;
+    this.device.attributes.PROMPT_TONE = false;
+
+    try {
+      return await fn();
+    } finally {
+      this.device.attributes.PROMPT_TONE = hadPromptTone;
+    }
   }
 
   /*********************************************************************
@@ -353,17 +369,30 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'screen_display_new':
           this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
           break;
-        case 'target_temperature':
-          // If MODE is 4 then device is heating.  Therefore target temperature value must be heating target? Right?
-          if (this.device.attributes.MODE === 4) {
-            this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
-          } else {
-            this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getTargetTemperature());
+        case 'target_temperature': {
+          const target = Number(this.getTargetTemperature());
+          /**
+           * If the device is heating, we map the target temperature to the heating threshold, if cooling we map to the cooling
+           * threshold and otherwise we assume an auto mode and only adjust the thresholds if the target value is outside their
+           * range. This should only happen if the temperature is changed outside of HomeKit and in this case we collapse the
+           * range to the target temperature set by the user.
+           */
+          if (this.device.attributes.MODE === ACMode.HEATING) {
+            this.setHeatingCoolingTemperatureThresholds({ heating: target });
+          } else if (this.device.attributes.MODE === ACMode.COOLING) {
+            this.setHeatingCoolingTemperatureThresholds({ cooling: target });
+          } else if (target < this.heatingThresholdTemperature || target > this.coolingThresholdTemperature) {
+            this.setHeatingCoolingTemperatureThresholds({ heating: target, cooling: target });
           }
           updateState = true;
           break;
+        }
         case 'indoor_temperature':
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+          if (this.device.attributes.POWER && this.device.attributes.MODE === ACMode.AUTO) {
+            await this.withoutPromptTone(this.setTargetTemperatureWithinThresholds.bind(this));
+            updateState = true;
+          }
           break;
         case 'outdoor_temperature':
           this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getOutdoorTemperature());
@@ -468,50 +497,55 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getCurrentHeaterCoolerState(): CharacteristicValue {
-    if (this.device.attributes.POWER && this.device.attributes.MODE > 0 && this.device.attributes.MODE < 5) {
-      if (this.device.attributes.TARGET_TEMPERATURE < (this.device.attributes.INDOOR_TEMPERATURE ?? 0)) {
-        if ([1, 2].includes(this.device.attributes.MODE)) {
-          return this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
-        }
-        return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
-      }
+    const { CurrentHeaterCoolerState } = this.platform.Characteristic;
 
-      if (this.device.attributes.TARGET_TEMPERATURE === this.device.attributes.INDOOR_TEMPERATURE) {
-        return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
-      }
-
-      if (this.device.attributes.MODE === 4) {
-        return this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
-      }
-
-      return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
+    if (!this.device.attributes.POWER || !this.device.attributes.MODE) {
+      return CurrentHeaterCoolerState.INACTIVE;
     }
 
-    return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
+    const isPossiblyCooling = [ACMode.COOLING, ACMode.AUTO].includes(this.device.attributes.MODE);
+    const isPossiblyHeating = [ACMode.HEATING, ACMode.AUTO].includes(this.device.attributes.MODE) && this.configDev.AC_options.heatingCapable;
+
+    const currentTemperature = Number(this.getCurrentTemperature());
+    const heatingThresholdTemperature = Number(this.getHeatingThresholdTemperature());
+    const coolingThresholdTemperature = Number(this.getCoolingThresholdTemperature());
+
+    if (isPossiblyCooling && currentTemperature > coolingThresholdTemperature) {
+      return CurrentHeaterCoolerState.COOLING;
+    }
+
+    if (isPossiblyHeating && currentTemperature < heatingThresholdTemperature) {
+      return CurrentHeaterCoolerState.HEATING;
+    }
+
+    return CurrentHeaterCoolerState.IDLE;
   }
 
   getTargetHeaterCoolerState(): CharacteristicValue {
-    if (this.device.attributes.MODE === 2) {
-      return this.platform.Characteristic.TargetHeaterCoolerState.COOL;
+    switch (this.device.attributes.MODE) {
+      case ACMode.COOLING:
+        return this.platform.Characteristic.TargetHeaterCoolerState.COOL;
+      case ACMode.HEATING:
+        return this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
+      default:
+        return this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
     }
-    if (this.device.attributes.MODE === 4) {
-      return this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
-    }
-    return this.platform.Characteristic.TargetHeaterCoolerState.AUTO;
   }
 
   async setTargetHeaterCoolerState(value: CharacteristicValue) {
     switch (value) {
       case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        await this.device.set_attribute({ POWER: true, MODE: 1 });
+        await this.device.set_attribute({ POWER: true, MODE: ACMode.AUTO });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
-        await this.device.set_attribute({ POWER: true, MODE: 2 });
+        await this.device.set_attribute({ POWER: true, MODE: ACMode.COOLING });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        await this.device.set_attribute({ POWER: true, MODE: 4 });
+        await this.device.set_attribute({ POWER: true, MODE: ACMode.HEATING });
         break;
     }
+
+    await this.setTargetTemperatureWithinThresholds();
   }
 
   getCurrentTemperature(): CharacteristicValue {
@@ -519,18 +553,60 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getTargetTemperature(): CharacteristicValue {
-    return limitValue(this.device.attributes.TARGET_TEMPERATURE, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp);
+    const { minTemp, maxTemp } = this.configDev.AC_options;
+    return limitValue(this.device.attributes.TARGET_TEMPERATURE, minTemp, maxTemp);
+  }
+
+  async setTargetTemperature(value: CharacteristicValue) {
+    const { minTemp, maxTemp, tempStep } = this.configDev.AC_options;
+    const target = limitValue(Math.round(+value / tempStep) * tempStep, minTemp, maxTemp);
+
+    if (this.getTargetTemperature() === target) return;
+    await this.device.set_target_temperature(target);
+  }
+
+  async setTargetTemperatureWithinThresholds() {
+    if (this.device.attributes.MODE === ACMode.COOLING) {
+      await this.setTargetTemperature(this.getCoolingThresholdTemperature());
+      return;
+    }
+    if (this.device.attributes.MODE === ACMode.HEATING) {
+      await this.setTargetTemperature(this.getHeatingThresholdTemperature());
+      return;
+    }
+
+    if (this.getCurrentTemperature() > this.getCoolingThresholdTemperature()) {
+      await this.setTargetTemperature(this.getCoolingThresholdTemperature());
+      return;
+    }
+
+    if (this.getCurrentTemperature() < this.getHeatingThresholdTemperature()) {
+      await this.setTargetTemperature(this.getHeatingThresholdTemperature());
+      return;
+    }
+
+    await this.setTargetTemperature(this.getCurrentTemperature());
+  }
+
+  getCoolingThresholdTemperature(): CharacteristicValue {
+    const { minTemp, maxTemp } = this.configDev.AC_options;
+    return limitValue(this.coolingThresholdTemperature, minTemp, maxTemp);
+  }
+
+  getHeatingThresholdTemperature(): CharacteristicValue {
+    const { minTemp, maxTemp } = this.configDev.AC_options;
+    return limitValue(this.heatingThresholdTemperature, minTemp, maxTemp);
   }
 
   getFanOnlyMode(): CharacteristicValue {
-    return this.device.attributes.POWER === true && this.device.attributes.MODE === 5;
+    return this.device.attributes.POWER === true && this.device.attributes.MODE === ACMode.FAN_ONLY;
   }
 
   async setFanOnlyMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, MODE: 5 });
+      await this.device.set_attribute({ POWER: true, MODE: ACMode.FAN_ONLY });
     } else {
-      await this.device.set_attribute({ POWER: false, MODE: 0 });
+      await this.device.set_attribute({ POWER: false, MODE: ACMode.OFF });
     }
   }
 
@@ -542,8 +618,35 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     await this.device.set_fan_auto(value === this.platform.Characteristic.TargetFanState.AUTO);
   }
 
-  async setTargetTemperature(value: CharacteristicValue) {
-    await this.device.set_target_temperature(limitValue(value as number, this.configDev.AC_options.minTemp, this.configDev.AC_options.maxTemp));
+  setHeatingCoolingTemperatureThresholds(thresholds: { heating?: number; cooling?: number }) {
+    const { minTemp, maxTemp, tempStep } = this.configDev.AC_options;
+    const heating = limitValue(thresholds?.heating ?? this.heatingThresholdTemperature, minTemp, maxTemp);
+    const cooling = limitValue(thresholds?.cooling ?? this.coolingThresholdTemperature, minTemp, maxTemp);
+
+    if (heating === this.heatingThresholdTemperature && cooling === this.coolingThresholdTemperature) return;
+
+    this.heatingThresholdTemperature = !thresholds?.cooling || heating < cooling ? heating : cooling - tempStep;
+    this.coolingThresholdTemperature = !thresholds?.heating || heating < cooling ? cooling : heating + tempStep;
+
+    this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getHeatingThresholdTemperature());
+    this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getCoolingThresholdTemperature());
+
+    const { context: ctx } = this.accessory;
+    ctx.thresholds ??= {};
+    this.platform.log.debug(`[${this.device.name}] Persisting updated heating and cooling thresholds`);
+    ctx.thresholds.heatingTemperature = this.heatingThresholdTemperature;
+    ctx.thresholds.coolingTemperature = this.coolingThresholdTemperature;
+    this.platform.api.updatePlatformAccessories([this.accessory]);
+  }
+
+  async setCoolingThresholdTemperature(value: CharacteristicValue) {
+    this.setHeatingCoolingTemperatureThresholds({ cooling: Number(value) });
+    await this.setTargetTemperatureWithinThresholds();
+  }
+
+  async setHeatingThresholdTemperature(value: CharacteristicValue) {
+    this.setHeatingCoolingTemperatureThresholds({ heating: Number(value) });
+    await this.setTargetTemperatureWithinThresholds();
   }
 
   getSwingMode(): CharacteristicValue {
@@ -605,14 +708,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getDryMode(): CharacteristicValue {
-    return this.device.attributes.POWER === true && this.device.attributes.MODE === 3;
+    return this.device.attributes.POWER === true && this.device.attributes.MODE === ACMode.DRY;
   }
 
   async setDryMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, MODE: 3 });
+      await this.device.set_attribute({ POWER: true, MODE: ACMode.DRY });
     } else {
-      await this.device.set_attribute({ POWER: false, MODE: 0 });
+      await this.device.set_attribute({ POWER: false, MODE: ACMode.OFF });
     }
   }
 

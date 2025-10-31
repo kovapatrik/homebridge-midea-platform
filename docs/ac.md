@@ -1,5 +1,16 @@
 # Air Conditioner
 
+## Auto mode
+
+This setting is only makes sense and works, if your device can handle heating, and if the `heatingCapable` option is set to `true`.
+
+The `Auto` mode is emulated, because Midea devices are only providing a single target temperature, there are no separate temperatures for cooling and heating. In `Auto` mode it's possible to change the cooling and heating target thresholds. Here is how they are working in each mode:
+- Cool: target temperature is the cooling threshold
+- Heat: target temperature is the heating threshold
+- Auto: if the indoor temperature is below the heating threshold, set the target temperature to the heating threshold; if the indoor temperature is above the cooling threshold, set the target temperature to the cooling threshold; if the temperature is within the band set the target temperature to the current indoor temperature so the devices stays idle and save energy
+
+## Configuration
+
 Providing air conditioner settings is optional and the whole section or individual options may be ommitted and default values (noted below) will be used. Within the *devices.config* object the following air conditioner specific options.
 
 ```json

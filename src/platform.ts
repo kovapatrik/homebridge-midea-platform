@@ -26,6 +26,7 @@ type MideaContext = {
   model: string;
   serviceVersion: number;
   configuredNames: { [key: string]: string };
+  thresholds: { [key: string]: number };
 };
 
 export type MideaAccessory = PlatformAccessory<MideaContext>;

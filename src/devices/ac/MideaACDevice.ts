@@ -224,9 +224,6 @@ export default class MideaACDevice extends MideaDevice {
     if (!this.attributes.POWER || this.attributes.SWING_VERTICAL) {
       this.attributes.INDIRECT_WIND = false;
     }
-    if (!this.attributes.POWER) {
-      this.attributes.SCREEN_DISPLAY = false;
-    }
     if (this.attributes.FRESH_AIR_1) {
       this.fresh_air_version = 1;
     } else if (this.attributes.FRESH_AIR_2) {
