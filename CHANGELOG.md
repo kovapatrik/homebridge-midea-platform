@@ -1,5 +1,13 @@
 # Changelog
 
+# v1.2.8
+- fix: boost/comfort/eco mode was not working for `Air Conditioner` (fixes #154)
+
+# v1.2.7
+- feat: emulate HomeKit heat and cool thresholds for `Air Conditioner` (fixes #134)
+  - this allows to use HomeKit's `Auto` mode for `Air Conditioner` devices in a way Midea using it
+- fix: removed not needed screen display setter for `Air Conditioner` devices
+
 # v1.2.6
 - feat: added partial support for `Fresh Air Appliance` (issue #118)
 - feat: added sleep mode switch for `Air Conditioner` (fixes #128)
