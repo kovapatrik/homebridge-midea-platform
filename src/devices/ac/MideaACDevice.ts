@@ -369,6 +369,7 @@ export default class MideaACDevice extends MideaDevice {
             messageToSend.GENERAL ??= this.make_message_unique_set();
             messageToSend.GENERAL[k.toLowerCase()] = v;
             if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
+              // disable all other modes, related to each other
               messageToSend.GENERAL.sleep_mode = false;
               messageToSend.GENERAL.boost_mode = false;
               messageToSend.GENERAL.eco_mode = false;
@@ -377,6 +378,9 @@ export default class MideaACDevice extends MideaDevice {
                 messageToSend.GENERAL.frost_protect = false;
                 messageToSend.GENERAL.comfort_mode = false;
               }
+
+              // set the mode again
+              messageToSend.GENERAL[k.toLowerCase()] = v;
             }
             if (k === 'POWER' && v === true && messageToSend.GENERAL instanceof MessageGeneralSet) {
               messageToSend.GENERAL.temp_fahrenheit = this.defaultFahrenheit;
