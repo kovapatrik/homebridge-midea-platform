@@ -4,6 +4,7 @@ import type { Config, DeviceConfig } from '../platformUtils.js';
 import MideaA1Device from './a1/MideaA1Device.js';
 import MideaACDevice from './ac/MideaACDevice.js';
 import MideaC3Device from './c3/MideaC3Device.js';
+import MideaCCDevice from './cc/MideaCCDevice.js';
 import MideaCDDevice from './cd/MideaCDDevice.js';
 import MideaCEDevice from './ce/MideaCEDevice.js';
 import MideaDBDevice from './db/MideaDBDevice.js';
@@ -23,6 +24,8 @@ export default class DeviceFactory {
         return new MideaACDevice(logger, device_info, config, deviceConfig);
       case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
         return new MideaC3Device(logger, device_info, config, deviceConfig);
+      case DeviceType.MDV_WIFI_CONTROLLER:
+        return new MideaCCDevice(logger, device_info, config, deviceConfig);
       case DeviceType.HEAT_PUMP_WATER_HEATER:
         return new MideaCDDevice(logger, device_info, config, deviceConfig);
       case DeviceType.FRESH_AIR_APPLIANCE:
