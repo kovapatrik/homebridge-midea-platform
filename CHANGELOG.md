@@ -1,5 +1,8 @@
 # Changelog
 
+# v1.2.9
+- feat: added separate temperature sensor creation option for `Air Conditioner` (fixes #141)
+
 # v1.2.8
 - fix: boost/comfort/eco mode was not working for `Air Conditioner` (fixes #154)
 
