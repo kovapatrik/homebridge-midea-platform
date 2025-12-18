@@ -26,6 +26,14 @@ enum NewProtocolTags {
 }
 
 const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
+const SCREEN_DISPLAY_BYTE_CHECK = 0x07;
+const CONFORT_MODE_MIN_LENGTH = 16;
+const SWING_LR_MIN_LENGTH = 21;
+const FROST_PROTECT_MIN_LENGTH = 22;
+
+const BYTE_CLIENT_MODE_MOBILE = 0x02;
+const BYTE_TIMER_METHOD_REL = 0x00;
+const BYTE_TIMER_SWITCH_ON = 0x80;
 
 abstract class MessageACBase extends MessageRequest {
   private static message_serial = 0;
@@ -284,15 +292,16 @@ export class MessageGeneralSet extends MessageACBase {
   public swing_vertical: boolean;
   public swing_horizontal: boolean;
   public boost_mode: boolean;
-  public smart_eye: boolean;
   public dry: boolean;
   public aux_heating: boolean;
+  public purifier: boolean;
   public eco_mode: boolean;
   public temp_fahrenheit: boolean;
   public sleep_mode: boolean;
   public natural_wind: boolean;
   public frost_protect: boolean;
   public comfort_mode: boolean;
+  public comfort_sleep_mode: boolean;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0x40);
@@ -304,15 +313,16 @@ export class MessageGeneralSet extends MessageACBase {
     this.swing_vertical = false;
     this.swing_horizontal = false;
     this.boost_mode = false;
-    this.smart_eye = false;
     this.dry = false;
     this.aux_heating = false;
+    this.purifier = false;
     this.eco_mode = false;
     this.temp_fahrenheit = false;
     this.sleep_mode = false;
     this.natural_wind = false;
     this.frost_protect = false;
     this.comfort_mode = false;
+    this.comfort_sleep_mode = false;
   }
 
   get _body() {
@@ -323,16 +333,18 @@ export class MessageGeneralSet extends MessageACBase {
     const mode = (this.mode << 5) & 0xe0;
     const target_temperature = ((this.target_temperature | 0) & 0xf) | ((Math.round(this.target_temperature * 2) | 0) % 2 !== 0 ? 0x10 : 0);
     // Byte 3, fan_speed
-    const fan_speed = this.fan_speed & 0x7f;
+    const fan_speed = this.fan_speed;
     // Byte 7, swing_mode
     const swing_mode = 0x30 | (this.swing_vertical ? 0x0c : 0) | (this.swing_horizontal ? 0x03 : 0);
-    // Byte 8, turbo
+    // Byte 8, turbo & comfort_sleep_value
     const boost_mode = this.boost_mode ? 0x20 : 0;
-    // Byte 9 aux_heating eco_mode
-    const smart_eye = this.smart_eye ? 0x01 : 0;
+    const comfort_sleep_value = this.comfort_sleep_mode ? 0x03 : 0x00;
+    // Byte 9 aux_heating eco_mode & comfort_sleep_switch
     const dry = this.dry ? 0x04 : 0;
     const aux_heating = this.aux_heating ? 0x08 : 0;
+    const purifier = this.purifier ? 0x20 : 0;
     const eco_mode = this.eco_mode ? 0x80 : 0;
+    const comfort_sleep_switch = this.comfort_sleep_mode ? 0x40 : 0x00;
     // Byte 10 temp_fahrenheit
     const temp_fahrenheit = this.temp_fahrenheit ? 0x04 : 0;
     const sleep_mode = this.sleep_mode ? 0x01 : 0;
@@ -345,13 +357,13 @@ export class MessageGeneralSet extends MessageACBase {
     const comfort_mode = this.comfort_mode ? 0x01 : 0;
     // biome-ignore format: easier to read
     return Buffer.from([
-      power | prompt_tone,
+      power | BYTE_CLIENT_MODE_MOBILE | BYTE_TIMER_METHOD_REL | prompt_tone,
       mode | target_temperature,
-      fan_speed,
+      fan_speed | BYTE_TIMER_SWITCH_ON,
       0x00, 0x00, 0x00,
       swing_mode,
-      boost_mode,
-      smart_eye | dry | aux_heating | eco_mode,
+      boost_mode | comfort_sleep_value,
+      purifier | dry | aux_heating | eco_mode | comfort_sleep_switch,
       temp_fahrenheit | sleep_mode | boost_mode_1,
       0x00, 0x00, 0x00, 0x00,
       0x00, 0x00,
@@ -471,43 +483,75 @@ export class MessageNewProtocolSet extends MessageACBase {
   }
 }
 
-class XA0MessageBody extends MessageBody {
-  public power: boolean;
-  public target_temperature: number;
-  public mode: number;
-  public fan_speed: number;
-  public fan_auto: boolean;
-  public swing_vertical: boolean;
-  public swing_horizontal: boolean;
-  public boost_mode: boolean;
-  public smart_eye: boolean;
-  public dry: boolean;
-  public aux_heating: boolean;
-  public eco_mode: boolean;
-  public sleep_mode: boolean;
-  public natural_wind: boolean;
-  public full_dust: boolean;
-  public comfort_mode: boolean;
+// Base class for A0 (dataType 0x05) and C0 (dataType 0x02/0x03) messages
+abstract class XA0C0BaseMessageBody extends MessageBody {
+  public power: boolean; // powerValue
+  public mode: number; // modeValue
+  public fan_speed: number; // fanspeedValue
+  public swing_vertical: boolean; // swingUDValue
+  public swing_horizontal: boolean; // swingLRValue
+  public boost_mode: boolean; // strongWindValue
+  public power_saving: number; // power_saving
+  public comfort_sleep_mode: boolean; // Computed from comfortableSleepValue & comfortableSleepSwitch
+  public comfort_sleep_value: number; // comfortableSleepValue
+  public comfort_sleep_switch: number; // comfortableSleepSwitch
+  public pmv: number; // pmv
+  public dry: boolean; // dryValue
+  public aux_heating: boolean; // PTCValue
+  public purifier: boolean; // purifierValue
+  public eco_mode: boolean; // ecoValue
+  public sleep_mode: number; // sleep_status
+  public natural_wind: boolean; // naturalWind
+  public prevent_cold: number; // preventCold
+  public full_dust: boolean; // dust_full_time
+  public swing_lr_switch: boolean; // swingLRUnderSwitch
+  public swing_lr_value: number; // swingLRValueUnder
+  public frost_protect: boolean; // arom
 
   constructor(body: Buffer) {
     super(body);
 
     this.power = (body[1] & 0x1) > 0;
-    this.target_temperature = ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
     this.mode = (body[2] & 0xe0) >> 5;
     this.fan_speed = body[3] & 0x7f;
-    this.fan_auto = this.fan_speed > 100;
     this.swing_vertical = (body[7] & 0xc) > 0;
     this.swing_horizontal = (body[7] & 0x3) > 0;
     this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
-    this.smart_eye = (body[9] & 0x01) > 0;
+    this.power_saving = body[8] & 0x08;
+    this.comfort_sleep_value = body[8] & 0x03;
+    this.comfort_sleep_switch = body[9] & 0x40;
+    this.pmv = (body[14] & 0x0F) * 0.5 - 3.5;
     this.dry = (body[9] & 0x04) > 0;
-    this.aux_heating = (body[9] & 0x08) > 0;
+    this.aux_heating = (body[9] & 0x18) > 0;
+    this.purifier = (body[9] & 0x20) > 0;
     this.eco_mode = (body[9] & 0x10) > 0;
-    this.sleep_mode = (body[10] & 0x01) > 0;
-    this.natural_wind = (body[10] & 0x40) > 0;
-    this.full_dust = (body[13] & 0x20) > 0;
-    this.comfort_mode = body.length > 16 ? (body[14] & 0x1) > 0 : false;
+    this.sleep_mode = body[10] & 0x01;
+    this.natural_wind = (body[9] & 0x02) > 0;
+    this.prevent_cold = (body[10] & 0x20) >> 5;
+    this.full_dust = ((body[13] & 0x20) >> 5) > 0;
+    this.swing_lr_switch = body.length >= SWING_LR_MIN_LENGTH ? (body[19] & 0x80) > 0 : false;
+    this.swing_lr_value = body.length >= SWING_LR_MIN_LENGTH ? body[20] & 0x80 : 0;
+    this.frost_protect = body.length >= FROST_PROTECT_MIN_LENGTH ? ((body[21] & 0x80) >> 7) > 0 : false;
+
+    this.comfort_sleep_mode = this.comfort_sleep_value === 0x03 && this.comfort_sleep_switch === 0x40;
+  }
+}
+
+class XA0MessageBody extends XA0C0BaseMessageBody {
+  public target_temperature: number; // temperature & smallTemperature
+  public smart_dry: boolean; // smartDryValue
+  public temp_fahrenheit: boolean; // temperature_unit
+  public screen_display: boolean; // screenDisplayNowValue
+  public comfort_mode: boolean; // comfortPowerSave
+
+  constructor(body: Buffer) {
+    super(body);
+
+    this.target_temperature = ((body[1] & 0x3e) >> 1) + 12.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
+    this.smart_dry = (body[13] & 0x7F) > 0;
+    this.temp_fahrenheit = ((body[9] & 0x80) >> 7) > 0;
+    this.screen_display = ((body[14] >> 4 & 0x7) != SCREEN_DISPLAY_BYTE_CHECK) && this.power;
+    this.comfort_mode = body.length > CONFORT_MODE_MIN_LENGTH ? (body[14] & 0x1) > 0 : false;
   }
 }
 
@@ -611,47 +655,23 @@ class XBXMessageBody extends NewProtocolMessageBody {
   }
 }
 
-class XC0MessageBody extends MessageBody {
-  public power: boolean;
-  public mode: number;
-  public target_temperature: number;
-  public fan_speed: number;
-  public fan_auto: boolean;
-  public swing_vertical: boolean;
-  public swing_horizontal: boolean;
-  public boost_mode: boolean;
-  public smart_eye: boolean;
-  public natural_wind: boolean;
-  public dry: boolean;
-  public eco_mode: boolean;
-  public aux_heating: boolean;
-  public temp_fahrenheit: boolean;
-  public sleep_mode: boolean;
-  public indoor_temperature?: number;
-  public outdoor_temperature?: number;
-  public full_dust: boolean;
-  public screen_display: boolean;
-  public frost_protect: boolean;
-  public comfort_mode: boolean;
+class XC0MessageBody extends XA0C0BaseMessageBody {
+  public target_temperature: number; // temperature & smallTemperature
+  public smart_dry: boolean; // smartDryValue
+  public temp_fahrenheit: boolean; // temperature_unit
+  public screen_display: boolean; // screenDisplayNowValue
+  public comfort_mode: boolean; // comfortPowerSave
+  public indoor_temperature?: number; // indoorTemperatureValue & smallIndoorTemperatureValue
+  public outdoor_temperature?: number; // outdoorTemperatureValue & smallOutdoorTemperatureValue
 
   constructor(body: Buffer) {
     super(body);
 
-    this.power = (body[1] & 0x1) > 0;
-    this.mode = (body[2] & 0xe0) >> 5;
     this.target_temperature = (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
-    this.fan_speed = body[3] & 0x7f;
-    this.fan_auto = this.fan_speed > 100;
-    this.swing_vertical = (body[7] & 0x0c) > 0;
-    this.swing_horizontal = (body[7] & 0x03) > 0;
-    this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
-    this.smart_eye = (body[8] & 0x40) > 0;
-    this.natural_wind = (body[9] & 0x2) > 0;
-    this.dry = (body[9] & 0x4) > 0;
-    this.eco_mode = (body[9] & 0x10) > 0;
-    this.aux_heating = (body[9] & 0x08) > 0;
+    this.smart_dry = body.length >= SWING_LR_MIN_LENGTH ? (body[19] & 0x7F) > 0 : false;
     this.temp_fahrenheit = (body[10] & 0x04) > 0;
-    this.sleep_mode = (body[10] & 0x01) > 0;
+    this.screen_display = (body[14] & 0x70) >> 4 !== 0x07;
+    this.comfort_mode = body.length > 24 ? (body[22] & 0x1) > 0 : false;
 
     if (body[11] !== 0xff) {
       const temp_integer = ((body[11] - 50) / 2) | 0;
@@ -663,9 +683,7 @@ class XC0MessageBody extends MessageBody {
       }
     }
 
-    if (body[12] === 0xff) {
-      this.outdoor_temperature = undefined;
-    } else {
+    if (body[12] !== 0xff) {
       const temp_integer = ((body[12] - 50) / 2) | 0;
       const temp_decimal = ((body[15] & 0xf0) >> 4) * 0.1;
       if (body[12] > 49) {
@@ -674,11 +692,6 @@ class XC0MessageBody extends MessageBody {
         this.outdoor_temperature = temp_integer - temp_decimal;
       }
     }
-
-    this.full_dust = (body[13] & 0x20) > 0;
-    this.screen_display = (body[14] & 0x70) >> 4 !== 0x07;
-    this.frost_protect = body.length > 23 ? (body[21] & 0x80) > 0 : false;
-    this.comfort_mode = body.length > 24 ? (body[22] & 0x1) > 0 : false;
   }
 }
 
@@ -727,7 +740,6 @@ class XBBMessageBody extends MessageBody {
   public mode?: number;
   public target_temperature?: number;
   public fan_speed?: number;
-  public fan_auto?: boolean;
   public timer?: boolean;
   public eco_mode?: boolean;
   public indoor_temperature?: number;
@@ -753,7 +765,6 @@ class XBBMessageBody extends MessageBody {
       }
       this.target_temperature = (subprotocol_body[6] - 30) / 2;
       this.fan_speed = subprotocol_body[7];
-      this.fan_auto = this.fan_speed > 100;
       this.timer = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
       this.eco_mode = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
     } else if (data_type === 0x10) {
