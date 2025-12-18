@@ -22,6 +22,8 @@ import {
   MessageSwitchDisplay,
 } from './MideaACMessage.js';
 
+export const AUTO_FAN_SPEED = 102;
+
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
 export interface ACAttributes extends DeviceAttributeBase {
@@ -31,7 +33,6 @@ export interface ACAttributes extends DeviceAttributeBase {
   MODE: number;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
-  FAN_AUTO: boolean;
   SWING_VERTICAL: boolean | undefined;
   // Vertical swing angle
   WIND_SWING_UD_ANGLE: number;
@@ -108,7 +109,7 @@ export default class MideaACDevice extends MideaDevice {
   private power_analysis_method?: number;
 
   private alternate_switch_display = false;
-  private last_fan_speed = 0;
+  private last_fan_speed = AUTO_FAN_SPEED; // default to Auto
 
   private defaultFahrenheit: boolean;
   private defaultScreenOff: boolean;
@@ -450,7 +451,7 @@ export default class MideaACDevice extends MideaDevice {
       // Save last fan speed before setting to auto
       this.last_fan_speed = this.attributes.FAN_SPEED;
     }
-    const fan_speed = fan_auto ? 102 : this.last_fan_speed;
+    const fan_speed = fan_auto ? AUTO_FAN_SPEED : this.last_fan_speed;
     message.fan_speed = fan_speed;
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;
