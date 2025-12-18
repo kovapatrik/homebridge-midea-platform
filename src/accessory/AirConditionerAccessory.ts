@@ -835,16 +835,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getSleepMode(): CharacteristicValue {
-    return this.device.attributes.POWER === true && this.device.attributes.SLEEP_MODE
+    return this.device.attributes.POWER === true && this.device.attributes.COMFORT_SLEEP_MODE
       ? this.platform.Characteristic.Active.ACTIVE
       : this.platform.Characteristic.Active.INACTIVE;
   }
 
   async setSleepMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, SLEEP_MODE: true });
+      await this.device.set_attribute({ POWER: true, COMFORT_SLEEP_MODE: true });
     } else {
-      await this.device.set_attribute({ SLEEP_MODE: false });
+      await this.device.set_attribute({ COMFORT_SLEEP_MODE: false });
     }
   }
 
