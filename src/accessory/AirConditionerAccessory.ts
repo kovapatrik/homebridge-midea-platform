@@ -10,7 +10,7 @@
  */
 import type { CharacteristicValue, Service } from 'homebridge';
 import type MideaACDevice from '../devices/ac/MideaACDevice.js';
-import type { ACAttributes } from '../devices/ac/MideaACDevice.js';
+import { AUTO_FAN_SPEED, type ACAttributes } from '../devices/ac/MideaACDevice.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import { ACMode, type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
 import BaseAccessory, { limitValue } from './BaseAccessory.js';
@@ -416,9 +416,6 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         case 'fan_speed':
           updateState = true;
           break;
-        case 'fan_auto':
-          this.fanService?.updateCharacteristic(this.platform.Characteristic.TargetFanState, this.getFanState());
-          break;
         case 'swing_vertical':
         case 'swing_horizontal':
           this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
@@ -627,7 +624,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getFanState(): CharacteristicValue {
-    return this.device.attributes.FAN_AUTO;
+    return this.device.attributes.FAN_SPEED === AUTO_FAN_SPEED;
   }
 
   async setFanState(value: CharacteristicValue) {
