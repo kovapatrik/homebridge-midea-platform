@@ -38,11 +38,12 @@ export interface ACAttributes extends DeviceAttributeBase {
   SWING_HORIZONTAL: boolean | undefined;
   // Horizontal swing angle
   WIND_SWING_LR_ANGLE: number;
-  SMART_EYE: boolean;
+  PURIFIER: boolean;
   DRY: boolean;
   AUX_HEATING: boolean;
   BOOST_MODE: boolean;
   SLEEP_MODE: boolean;
+  COMFORT_SLEEP_MODE: boolean;
   FROST_PROTECT: boolean;
   COMFORT_MODE: boolean;
   ECO_MODE: boolean;
@@ -88,6 +89,15 @@ export default class MideaACDevice extends MideaDevice {
     0: 'Off',
   };
 
+  readonly FAN_RELATED_MODES = [
+    'BOOST_MODE',
+    'SLEEP_MODE',
+    'FROST_PROTECT',
+    'COMFORT_MODE',
+    'ECO_MODE',
+    'COMFORT_SLEEP_MODE',
+  ];
+
   public attributes: ACAttributes;
 
   private fresh_air_version?: number;
@@ -117,16 +127,16 @@ export default class MideaACDevice extends MideaDevice {
       MODE: 0,
       TARGET_TEMPERATURE: 0,
       FAN_SPEED: 0,
-      FAN_AUTO: false,
       SWING_VERTICAL: undefined, // invalid
       WIND_SWING_UD_ANGLE: 0,
       SWING_HORIZONTAL: undefined, // invalid
       WIND_SWING_LR_ANGLE: 0,
-      SMART_EYE: false,
+      PURIFIER: false,
       DRY: false,
       AUX_HEATING: false,
       BOOST_MODE: false,
       SLEEP_MODE: false,
+      COMFORT_SLEEP_MODE: false,
       FROST_PROTECT: false,
       COMFORT_MODE: false,
       ECO_MODE: false,
@@ -248,15 +258,16 @@ export default class MideaACDevice extends MideaDevice {
     message.swing_vertical = !!this.attributes.SWING_VERTICAL; // force to boolean
     message.swing_horizontal = !!this.attributes.SWING_HORIZONTAL; // force to boolean
     message.boost_mode = this.attributes.BOOST_MODE;
-    message.smart_eye = this.attributes.SMART_EYE;
     message.dry = this.attributes.DRY;
-    message.eco_mode = this.attributes.ECO_MODE;
     message.aux_heating = this.attributes.AUX_HEATING;
+    message.purifier = this.attributes.PURIFIER;
+    message.eco_mode = this.attributes.ECO_MODE;
+    message.temp_fahrenheit = this.attributes.TEMP_FAHRENHEIT;
     message.sleep_mode = this.attributes.SLEEP_MODE;
+    message.natural_wind = this.attributes.NATURAL_WIND;
     message.frost_protect = this.attributes.FROST_PROTECT;
     message.comfort_mode = this.attributes.COMFORT_MODE;
-    message.natural_wind = this.attributes.NATURAL_WIND;
-    message.temp_fahrenheit = this.attributes.TEMP_FAHRENHEIT;
+    message.comfort_sleep_mode = this.attributes.COMFORT_SLEEP_MODE;
     return message;
   }
 
@@ -367,7 +378,7 @@ export default class MideaACDevice extends MideaDevice {
             messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
           } else {
             messageToSend.GENERAL ??= this.make_message_unique_set();
-            if (['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'].includes(k)) {
+            if (this.FAN_RELATED_MODES.includes(k)) {
               // disable all modes, related to each other
               messageToSend.GENERAL.sleep_mode = false;
               messageToSend.GENERAL.boost_mode = false;
