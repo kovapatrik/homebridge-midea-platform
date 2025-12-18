@@ -550,7 +550,7 @@ class XA0MessageBody extends XA0C0BaseMessageBody {
     this.target_temperature = ((body[1] & 0x3e) >> 1) + 12.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
     this.smart_dry = (body[13] & 0x7F) > 0;
     this.temp_fahrenheit = ((body[9] & 0x80) >> 7) > 0;
-    this.screen_display = ((body[14] >> 4 & 0x7) != SCREEN_DISPLAY_BYTE_CHECK) && this.power;
+    this.screen_display = ((body[14] >> 4 & 0x7) !== SCREEN_DISPLAY_BYTE_CHECK) && this.power;
     this.comfort_mode = body.length > CONFORT_MODE_MIN_LENGTH ? (body[14] & 0x1) > 0 : false;
   }
 }
