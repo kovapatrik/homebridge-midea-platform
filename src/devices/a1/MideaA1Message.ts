@@ -83,7 +83,11 @@ export class MessageSet extends MessageA1Base {
   public target_humidity: number;
   public swing: boolean;
   public anion: boolean;
+  public filter: boolean;
+  public pump: boolean;
+  public pump_enable: boolean;
   public water_level_set: number;
+  public purifier: number;
 
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0x48);
@@ -95,7 +99,11 @@ export class MessageSet extends MessageA1Base {
     this.target_humidity = 40;
     this.swing = false;
     this.anion = false;
+    this.filter = false;
+    this.pump = false;
+    this.pump_enable = false;
     this.water_level_set = 50;
+    this.purifier = 0;
   }
 
   get _body() {
@@ -110,12 +118,17 @@ export class MessageSet extends MessageA1Base {
     const target_humidity = this.target_humidity;
     // byte8 child_lock
     const child_lock = this.child_lock ? 0x80 : 0x00;
-    // byte9 anion
+    // byte9 anion, filter, pump, pump_enable
     const anion = this.anion ? 0x40 : 0x00;
-    // byte10 swing
+    const filter = this.filter ? 0x80 : 0x00;
+    const pump = this.pump ? 0x08 : 0x00;
+    const pump_enable = this.pump_enable ? 0x10 : 0x00;
+    // byte10 swing (swingUDValue << 3)
     const swing = this.swing ? 0x08 : 0x00;
-    // byte 13 water_level_set
+    // byte13 water_level_set
     const water_level_set = this.water_level_set;
+    // byte14 purifier
+    const purifier = this.purifier;
     // biome-ignore format: easier to read
     return Buffer.from([
       power | prompt_tone | 0x02,
@@ -124,12 +137,13 @@ export class MessageSet extends MessageA1Base {
       0x00, 0x00, 0x00,
       target_humidity,
       child_lock,
-      anion,
+      anion | filter | pump | pump_enable,
       swing,
       0x00, 0x00,
       water_level_set,
-      0x00, 0x00, 0x00, 0x00,
+      purifier,
       0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
     ]);
   }
 }
@@ -170,7 +184,7 @@ class A1GeneralMessageBody extends MessageBody {
   public filter_indicator: boolean;
   public anion: boolean;
   public sleep_mode: boolean;
-  public pump_switch_flag: boolean;
+  public pump_enable: boolean;
   public pump: boolean;
   public defrosting: boolean;
   public tank_level: number;
@@ -179,30 +193,42 @@ class A1GeneralMessageBody extends MessageBody {
   public current_humidity: number;
   public current_temperature: number;
   public swing: boolean;
+  public purifier: number;
 
   constructor(body: Buffer) {
     super(body);
 
+    // byte1 - power
     this.power = (body[1] & 0x01) > 0;
+    // byte2 - mode
     this.mode = body[2] & 0x0f;
+    // byte3 - fan_speed
     this.fan_speed = body[3] & 0x7f;
-    // Target humidity between 35% and 85%
+    // byte7 - target_humidity (between 35% and 85%)
     this.target_humidity = body[7] < 35 ? 35 : body[7] > 85 ? 85 : body[7];
+    // byte8 - child_lock
     this.child_lock = (body[8] & 0x80) > 0;
+    // byte9 - filter_indicator, anion, sleep_mode, pump_enable, pump
     this.filter_indicator = (body[9] & 0x80) > 0;
     this.anion = (body[9] & 0x40) > 0;
     this.sleep_mode = (body[9] & 0x20) > 0;
-    this.pump_switch_flag = (body[9] & 0x10) > 0;
+    this.pump_enable = (body[9] & 0x10) > 0;
     this.pump = (body[9] & 0x08) > 0;
+    // byte10 - defrosting, tank_level
     this.defrosting = (body[10] & 0x80) > 0;
     this.tank_level = body[10] & 0x7f;
     this.tank_full = this.tank_level >= 100;
+    // byte15 - water_level_set
     this.water_level_set = body[15];
+    // byte16 - current_humidity
     this.current_humidity = body[16];
+    // byte17 - current_temperature
     this.current_temperature = (body[17] - 50) / 2;
-    // vertical swing or horizontal swing
-    this.swing = (body[19] & 0x20) > 0 || (body[19] & 0x10) > 0;
-    // Not sure the purpose of thisfan speed check, but it is part of the original python code at
+    // byte19 - swing (vertical or horizontal)
+    this.swing = (body[19] & 0x20) > 0;
+    // byte23 - purifier (if available)
+    this.purifier = body.length >= 24 ? body[23] & 0x01 : 0;
+    // Not sure the purpose of this fan speed check, but it is part of the original python code at
     // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
     if (this.fan_speed < 5) {
       this.fan_speed = 1;

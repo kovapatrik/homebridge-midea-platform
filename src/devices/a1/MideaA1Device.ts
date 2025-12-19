@@ -34,7 +34,7 @@ export interface A1Attributes extends DeviceAttributeBase {
   DEFROSTING: boolean;
   FILTER_INDICATOR: boolean;
   PUMP: boolean;
-  PUMP_SWITCH_FLAG: boolean;
+  PUMP_ENABLE: boolean;
   SLEEP_MODE: boolean;
 }
 
@@ -94,7 +94,7 @@ export default class MideaA1Device extends MideaDevice {
       DEFROSTING: false,
       FILTER_INDICATOR: false,
       PUMP: false,
-      PUMP_SWITCH_FLAG: false,
+      PUMP_ENABLE: false,
       SLEEP_MODE: false,
     };
 
@@ -140,12 +140,13 @@ export default class MideaA1Device extends MideaDevice {
     message.power = !!this.attributes.POWER; // force to boolean
     message.prompt_tone = this.attributes.PROMPT_TONE;
     message.mode = this.attributes.MODE;
-    message.child_lock = !!this.attributes.CHILD_LOCK; // force to boolean
     message.fan_speed = this.attributes.FAN_SPEED;
     message.target_humidity = this.attributes.TARGET_HUMIDITY;
     message.swing = !!this.attributes.SWING;
     message.anion = this.attributes.ANION;
     message.water_level_set = this.attributes.WATER_LEVEL_SET;
+    message.pump = this.attributes.PUMP;
+    message.pump_enable = this.attributes.PUMP_ENABLE;
     return message;
   }
 
