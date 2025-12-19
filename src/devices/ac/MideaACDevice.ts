@@ -377,19 +377,14 @@ export default class MideaACDevice extends MideaDevice {
             const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
             messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
+          } else if (k === 'FAN_SPEED') {
+            messageToSend.GENERAL ??= this.make_message_unique_set();
+            this.set_fan_speed(v as number, messageToSend.GENERAL);
+          } else if (this.FAN_RELATED_MODES.includes(k)) {
+            messageToSend.GENERAL ??= this.make_message_unique_set();
+            this.set_fan_related_mode(k, v as boolean, messageToSend.GENERAL);
           } else {
             messageToSend.GENERAL ??= this.make_message_unique_set();
-            if (this.FAN_RELATED_MODES.includes(k)) {
-              // disable all modes, related to each other
-              messageToSend.GENERAL.sleep_mode = false;
-              messageToSend.GENERAL.boost_mode = false;
-              messageToSend.GENERAL.eco_mode = false;
-
-              if (messageToSend.GENERAL instanceof MessageGeneralSet) {
-                messageToSend.GENERAL.frost_protect = false;
-                messageToSend.GENERAL.comfort_mode = false;
-              }
-            }
             messageToSend.GENERAL[k.toLowerCase()] = v;
             if (k === 'POWER' && v === true && messageToSend.GENERAL instanceof MessageGeneralSet) {
               messageToSend.GENERAL.temp_fahrenheit = this.defaultFahrenheit;
@@ -444,9 +439,43 @@ export default class MideaACDevice extends MideaDevice {
     await this.build_send(message);
   }
 
+  private disable_all_fan_related_modes(message: MessageGeneralSet | MessageSubProtocolSet) {
+    // Check if any fan-related mode is currently active
+    const anyModeActive = this.FAN_RELATED_MODES.some(mode => this.attributes[mode]);
+    if (!anyModeActive) {
+      return; // No modes active, nothing to do
+    }
+
+    this.logger.debug(`[${this.name}] Disabling all fan-related modes`);
+
+    // Disable all modes in the message
+    message.sleep_mode = false;
+    message.boost_mode = false;
+    message.eco_mode = false;
+
+    if (message instanceof MessageGeneralSet) {
+      message.frost_protect = false;
+      message.comfort_mode = false;
+      message.comfort_sleep_mode = false;
+    }
+
+    // Update attributes
+    this.attributes.SLEEP_MODE = false;
+    this.attributes.BOOST_MODE = false;
+    this.attributes.ECO_MODE = false;
+    if (message instanceof MessageGeneralSet) {
+      this.attributes.FROST_PROTECT = false;
+      this.attributes.COMFORT_MODE = false;
+      this.attributes.COMFORT_SLEEP_MODE = false;
+    }
+  }
+
   async set_fan_auto(fan_auto: boolean) {
     this.logger.info(`[${this.name}] Set fan auto to: ${fan_auto}`);
     const message = this.make_message_unique_set();
+
+    this.disable_all_fan_related_modes(message);
+
     if (fan_auto) {
       // Save last fan speed before setting to auto
       this.last_fan_speed = this.attributes.FAN_SPEED;
@@ -456,6 +485,55 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;
     await this.build_send(message);
+  }
+
+  set_fan_speed(fan_speed: number, message: MessageGeneralSet | MessageSubProtocolSet) {
+    this.logger.info(`[${this.name}] Set fan speed to: ${fan_speed}`);
+
+    this.disable_all_fan_related_modes(message);
+
+    message.fan_speed = fan_speed;
+    this.attributes.FAN_SPEED = fan_speed;
+  }
+
+  set_fan_related_mode(mode: string, state: boolean, message: MessageGeneralSet | MessageSubProtocolSet) {
+    this.logger.info(`[${this.name}] Set ${mode} to: ${state}`);
+
+    if (!this.FAN_RELATED_MODES.includes(mode)) {
+      this.logger.error(`[${this.name}] ${mode} is not a fan-related mode`);
+      return;
+    }
+
+    // enabling a mode
+    if (state) {
+      const anyModeActive = this.FAN_RELATED_MODES.some(m => this.attributes[m]);
+
+      // If enabling a mode and no mode was previously active, save current fan speed
+      if (!anyModeActive) {
+        this.last_fan_speed = this.attributes.FAN_SPEED;
+        this.logger.debug(`[${this.name}] Saving fan speed ${this.last_fan_speed} before entering ${mode}`);
+      }
+
+      this.disable_all_fan_related_modes(message);
+
+      message[mode.toLowerCase()] = true;
+      this.attributes[mode] = true;
+      return;
+    }
+
+    // disabling a mode
+
+    message[mode.toLowerCase()] = false;
+    this.attributes[mode] = false;
+
+    const willAllModesBeOff = this.FAN_RELATED_MODES.every(m => !this.attributes[m]);
+
+    // restore fan speed
+    if (willAllModesBeOff && this.last_fan_speed !== undefined) {
+      this.logger.debug(`[${this.name}] Restoring fan speed to ${this.last_fan_speed} after exiting ${mode}`);
+      message.fan_speed = this.last_fan_speed;
+      this.attributes.FAN_SPEED = this.last_fan_speed;
+    }
   }
 
   async set_swing_angle(swing_direction: SwingAngle, swing_angle: number) {
