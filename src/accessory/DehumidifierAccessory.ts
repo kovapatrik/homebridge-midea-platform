@@ -211,6 +211,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
           break;
         case 'pump':
+        case 'pump_enable':
           this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
           break;
         case 'tank_full':
