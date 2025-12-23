@@ -12,7 +12,7 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageCCResponse, MessageQuery, MessageSet } from './MideaCCMessage.js';
+import { HeatStatus, MessageCCResponse, MessageQuery, MessageSet } from './MideaCCMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -21,17 +21,23 @@ export interface CCAttributes extends DeviceAttributeBase {
   MODE: number;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
-  ECO_MODE: boolean;
-  SLEEP_MODE: boolean;
-  NIGHT_LIGHT: boolean;
+  ECO: boolean;
+  SLEEP: boolean;
+  DISPLAY: boolean;
   AUX_HEATING: boolean;
-  SWING: boolean;
-  VENTILATION: boolean;
+  SWING_UD: boolean;
+  SWING_LR: boolean;
+  SWING_UD_SITE: number;
+  SWING_LR_SITE: number;
+  EXHAUST: boolean;
   TEMPERATURE_PRECISION: 1 | 0.5;
-  FAN_SPEED_LEVEL?: boolean;
+  CONTROL_FAN_SPEED: number;
   INDOOR_TEMPERATURE?: number;
-  AUX_HEAT_STATUS: number;
-  AUTO_AUX_HEAT_RUNNING: boolean;
+  EVAPORATOR_ENTRANCE_TEMPERATURE?: number;
+  EVAPORATOR_EXIT_TEMPERATURE?: number;
+  PTC_SETTING: number;
+  PTC_POWER: boolean;
+  ERROR_CODE?: number;
   TEMP_FAHRENHEIT: boolean;
 }
 
@@ -64,16 +70,22 @@ export default class MideaCCDevice extends MideaDevice {
       MODE: 1,
       TARGET_TEMPERATURE: 26,
       FAN_SPEED: 0x80,
-      SLEEP_MODE: false,
-      ECO_MODE: false,
-      NIGHT_LIGHT: false,
-      VENTILATION: false,
+      SLEEP: false,
+      ECO: false,
+      DISPLAY: false,
+      EXHAUST: false,
       AUX_HEATING: false,
-      AUX_HEAT_STATUS: 0,
-      AUTO_AUX_HEAT_RUNNING: false,
-      SWING: false,
-      FAN_SPEED_LEVEL: undefined,
+      PTC_SETTING: 0,
+      PTC_POWER: false,
+      SWING_UD: false,
+      SWING_LR: false,
+      SWING_UD_SITE: 0,
+      SWING_LR_SITE: 0,
+      CONTROL_FAN_SPEED: 0xFF,
       INDOOR_TEMPERATURE: undefined,
+      EVAPORATOR_ENTRANCE_TEMPERATURE: undefined,
+      EVAPORATOR_EXIT_TEMPERATURE: undefined,
+      ERROR_CODE: undefined,
       TEMPERATURE_PRECISION: 1,
       TEMP_FAHRENHEIT: false,
     };
@@ -103,7 +115,7 @@ export default class MideaCCDevice extends MideaDevice {
       }
     }
 
-    const aux_heating = this.attributes.AUX_HEAT_STATUS === 1 || this.attributes.AUTO_AUX_HEAT_RUNNING;
+    const aux_heating = this.attributes.PTC_SETTING === HeatStatus.On || this.attributes.PTC_POWER;
     if (aux_heating !== this.attributes.AUX_HEATING) {
       this.attributes.AUX_HEATING = aux_heating;
       changed.AUX_HEATING = aux_heating;
@@ -127,11 +139,15 @@ export default class MideaCCDevice extends MideaDevice {
     message.mode = this.attributes.MODE;
     message.target_temperature = this.attributes.TARGET_TEMPERATURE;
     message.fan_speed = this.attributes.FAN_SPEED;
-    message.eco_mode = this.attributes.ECO_MODE;
-    message.sleep_mode = this.attributes.SLEEP_MODE;
-    message.night_light = this.attributes.NIGHT_LIGHT;
-    message.aux_heat_status = this.attributes.AUX_HEAT_STATUS;
-    message.swing = this.attributes.SWING;
+    message.eco = this.attributes.ECO;
+    message.sleep = this.attributes.SLEEP;
+    message.display = this.attributes.DISPLAY;
+    message.exhaust = this.attributes.EXHAUST;
+    message.ptc_setting = this.attributes.PTC_SETTING;
+    message.swing_ud = this.attributes.SWING_UD;
+    message.swing_lr = this.attributes.SWING_LR;
+    message.swing_lr_site = this.attributes.SWING_LR_SITE;
+    message.swing_ud_site = this.attributes.SWING_UD_SITE;
     return message;
   }
 
