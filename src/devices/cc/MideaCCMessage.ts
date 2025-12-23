@@ -39,12 +39,12 @@ export class MessageSet extends MessageCCBase {
   mode: number;
   fan_speed: number;
   target_temperature: number;
-  eco_mode: boolean;
-  sleep_mode: boolean;
-  night_light: boolean;
-  ventilation: boolean;
-  aux_heat_status: HeatStatus;
-  swing: boolean;
+  eco: boolean;
+  sleep: boolean;
+  display: boolean;
+  exhaust: boolean;
+  ptc_setting: HeatStatus;
+  swing_ud: boolean;
   swing_lr: boolean;
   swing_lr_site: number;
   swing_ud_site: number;
@@ -55,12 +55,12 @@ export class MessageSet extends MessageCCBase {
     this.mode = 4;
     this.fan_speed = 0x80;
     this.target_temperature = 26;
-    this.eco_mode = false;
-    this.sleep_mode = false;
-    this.night_light = false;
-    this.ventilation = false;
-    this.aux_heat_status = HeatStatus.Auto;
-    this.swing = false;
+    this.eco = false;
+    this.sleep = false;
+    this.display = false;
+    this.exhaust = false;
+    this.ptc_setting = HeatStatus.Auto;
+    this.swing_ud = false;
     this.swing_lr = false;
     this.swing_lr_site = 0;
     this.swing_ud_site = 0;
@@ -74,14 +74,14 @@ export class MessageSet extends MessageCCBase {
     const fan_speed = this.fan_speed;
     // Byte2: Integer part of target_temperature
     const temperature_integer = this.target_temperature & 0xff;
-    // Byte5: eco_mode | ventilation | swing | aux_heating
-    const eco_mode = this.eco_mode ? 0x01 : 0;
-    const aux_heating = this.aux_heat_status & 0x30; // 0x00=Auto, 0x10=On, 0x20=Off
-    const swing = this.swing ? 0x04 : 0;
-    const ventilation = this.ventilation ? 0x08 : 0;
-    // Byte7: sleep_mode | night_light | swing_lr
-    const sleep_mode = this.sleep_mode ? 0x10 : 0;
-    const night_light = this.night_light ? 0x08 : 0;
+    // Byte5: eco | exhaust | swing_ud | ptc_setting
+    const eco = this.eco ? 0x01 : 0;
+    const ptc_setting = this.ptc_setting & 0x30; // 0x00=Auto, 0x10=On, 0x20=Off
+    const swing_ud = this.swing_ud ? 0x04 : 0;
+    const exhaust = this.exhaust ? 0x08 : 0;
+    // Byte7: sleep | display | swing_lr
+    const sleep = this.sleep ? 0x10 : 0;
+    const display = this.display ? 0x08 : 0;
     const swing_lr = this.swing_lr ? 0x01 : 0;
     // Byte10: Decimal part of target_temperature (multiplied by 10)
     const temperature_dot = ((this.target_temperature - temperature_integer) * 10) & 0xff;
@@ -94,10 +94,10 @@ export class MessageSet extends MessageCCBase {
       // timer (not supported)
       0x00,
       0x00,
-      eco_mode | ventilation | swing | aux_heating,
+      eco | exhaust | swing_ud | ptc_setting,
       // non-stepless fan speed
       0xFF,
-      sleep_mode | night_light | swing_lr,
+      sleep | display | swing_lr,
       this.swing_lr_site,
       this.swing_ud_site,
       temperature_dot,
@@ -125,15 +125,15 @@ export class CCGeneralMessageBody extends MessageBody {
   indoor_temperature: number;
   evaporator_entrance_temperature: number;
   evaporator_exit_temperature: number;
-  eco_mode: boolean;
-  sleep_mode: boolean;
-  night_light: boolean;
-  ventilation: boolean;
-  aux_heat_status: HeatStatus;
-  auto_aux_heat_running: boolean;
-  fan_speed_level: number;
+  eco: boolean;
+  sleep: boolean;
+  display: boolean;
+  exhaust: boolean;
+  ptc_setting: HeatStatus;
+  ptc_power: boolean;
+  control_fan_speed: number;
   temperature_precision: 1 | 0.5;
-  swing: boolean;
+  swing_ud: boolean;
   swing_lr: boolean;
   swing_ud_site: number;
   swing_lr_site: number;
@@ -159,18 +159,18 @@ export class CCGeneralMessageBody extends MessageBody {
     this.evaporator_exit_temperature = (body[6] - 40) / 2;
     // Byte 9: swing_ud_site
     this.swing_ud_site = body[9];
-    // Byte 13: eco_mode, swing, ventilation, auto_aux_heat_running, fan_speed_level
-    this.eco_mode = (body[13] & 0x01) > 0;
-    this.swing = (body[13] & 0x04) > 0;
-    this.ventilation = (body[13] & 0x08) > 0;
-    this.auto_aux_heat_running = (body[13] & 0x02) > 0;
-    this.fan_speed_level = body[13] & 0xFF; // Control fan speed value (always 0xFF per Lua)
-    // Byte 14: aux_heat_status, sleep_mode, night_light, swing_lr, temperature_precision
-    const ptc_setting = (body[14] & 0x60) >> 5;
+    // Byte 13: eco, swing_ud, exhaust, ptc_power, control_fan_speed
+    this.eco = (body[13] & 0x01) > 0;
+    this.swing_ud = (body[13] & 0x04) > 0;
+    this.exhaust = (body[13] & 0x08) > 0;
+    this.ptc_power = (body[13] & 0x02) > 0;
+    this.control_fan_speed = body[13] & 0xFF; // Control fan speed value (always 0xFF per Lua)
+    // Byte 14: ptc_setting, sleep, display, swing_lr, temperature_precision
+    const ptc_setting_bits = (body[14] & 0x60) >> 5;
     // Response uses different values: 0=Auto, 1=On, 2=Off (shifted from bits 5-6)
-    this.aux_heat_status = ptc_setting === 0 ? HeatStatus.Auto : ptc_setting === 1 ? HeatStatus.On : HeatStatus.Off;
-    this.sleep_mode = (body[14] & 0x10) > 0;
-    this.night_light = (body[14] & 0x08) > 0;
+    this.ptc_setting = ptc_setting_bits === 0 ? HeatStatus.Auto : ptc_setting_bits === 1 ? HeatStatus.On : HeatStatus.Off;
+    this.sleep = (body[14] & 0x10) > 0;
+    this.display = (body[14] & 0x08) > 0;
     this.swing_lr = (body[14] & 0x01) > 0;
     this.temperature_precision = (body[14] & 0x80) > 0 ? 1 : 0.5;
     // Byte 15 & 18: error_code
