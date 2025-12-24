@@ -19,6 +19,7 @@ const outDoorTemperatureSubtype = 'outdoor';
 const displaySubtype = 'display';
 const fanOnlySubtype = 'fanOnly';
 const fanSubtype = 'fan';
+const fanAutoSubtype = 'fanAuto';
 const ecoModeSubtype = 'ecoMode';
 const breezeAwaySubtype = 'breezeAway';
 const dryModeSubtype = 'dryMode';
@@ -40,6 +41,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private displayService?: Service;
   private fanOnlyService?: Service;
   private fanService?: Service;
+  private fanAutoService?: Service;
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
   private dryModeService?: Service;
@@ -167,6 +169,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.fanService.getCharacteristic(this.platform.Characteristic.SwingMode).onGet(this.getSwingMode.bind(this)).onSet(this.setSwingMode.bind(this));
     } else if (this.fanService) {
       this.accessory.removeService(this.fanService);
+    }
+
+    // Fan Auto switch
+    this.fanAutoService = this.accessory.getServiceById(this.platform.Service.Switch, fanAutoSubtype);
+    if (this.configDev.AC_options.fanAutoSwitch) {
+      this.fanAutoService ??= this.accessory.addService(this.platform.Service.Switch, undefined, fanAutoSubtype);
+      this.handleConfiguredName(this.fanAutoService, fanAutoSubtype, 'Fan Auto');
+      this.fanAutoService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getFanState.bind(this)).onSet(this.setFanAuto.bind(this));
+    } else if (this.fanAutoService) {
+      this.accessory.removeService(this.fanAutoService);
     }
 
     // Display switch
@@ -472,6 +484,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.fanOnlyService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanOnlyMode());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+        this.fanAutoService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanState());
         this.dryModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getDryMode());
         this.displayService?.updateCharacteristic(this.platform.Characteristic.On, this.getDisplayActive());
         this.ecoModeService?.updateCharacteristic(this.platform.Characteristic.On, this.getEcoMode());
@@ -629,6 +642,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setFanState(value: CharacteristicValue) {
     await this.device.set_fan_auto(value === this.platform.Characteristic.TargetFanState.AUTO);
+  }
+
+  async setFanAuto(value: CharacteristicValue) {
+    await this.device.set_fan_auto(value === true);
   }
 
   setHeatingCoolingTemperatureThresholds(thresholds: { heating?: number; cooling?: number }) {
