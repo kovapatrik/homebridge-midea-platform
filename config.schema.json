@@ -297,6 +297,11 @@
                   "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
                 },
+                "fanAutoSwitch": {
+                  "title": "Fan Auto Switch",
+                  "description": "Toggles if the fan auto switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "sleepModeSwitch": {
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
@@ -656,6 +661,7 @@
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory",
+                "devices[].AC_options.fanAutoSwitch",
                 "devices[].AC_options.sleepModeSwitch",
                 "devices[].AC_options.comfortModeSwitch",
                 "devices[].AC_options.temperatureSensor"
