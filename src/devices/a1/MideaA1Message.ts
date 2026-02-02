@@ -85,7 +85,6 @@ export class MessageSet extends MessageA1Base {
   public anion: boolean;
   public filter: boolean;
   public pump: boolean;
-  public pump_enable: boolean;
   public water_level_set: number;
   public purifier: number;
 
@@ -101,7 +100,6 @@ export class MessageSet extends MessageA1Base {
     this.anion = false;
     this.filter = false;
     this.pump = false;
-    this.pump_enable = false;
     this.water_level_set = 50;
     this.purifier = 0;
   }
@@ -122,7 +120,7 @@ export class MessageSet extends MessageA1Base {
     const anion = this.anion ? 0x40 : 0x00;
     const filter = this.filter ? 0x80 : 0x00;
     const pump = this.pump ? 0x08 : 0x00;
-    const pump_enable = this.pump_enable ? 0x10 : 0x00;
+    const pump_enable = this.pump ? 0x10 : 0x00;
     // byte10 swing (swingUDValue << 3)
     const swing = this.swing ? 0x08 : 0x00;
     // byte13 water_level_set
@@ -184,7 +182,6 @@ class A1GeneralMessageBody extends MessageBody {
   public filter_indicator: boolean;
   public anion: boolean;
   public sleep_mode: boolean;
-  public pump_enable: boolean;
   public pump: boolean;
   public defrosting: boolean;
   public tank_level: number;
@@ -212,8 +209,9 @@ class A1GeneralMessageBody extends MessageBody {
     this.filter_indicator = (body[9] & 0x80) > 0;
     this.anion = (body[9] & 0x40) > 0;
     this.sleep_mode = (body[9] & 0x20) > 0;
-    this.pump_enable = (body[9] & 0x10) > 0;
-    this.pump = (body[9] & 0x08) > 0;
+    const pump_enable = (body[9] & 0x10) > 0;
+    const pump = (body[9] & 0x08) > 0;
+    this.pump = pump && pump_enable;
     // byte10 - defrosting, tank_level
     this.defrosting = (body[10] & 0x80) > 0;
     this.tank_level = body[10] & 0x7f;
