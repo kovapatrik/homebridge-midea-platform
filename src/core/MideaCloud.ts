@@ -210,7 +210,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
     }
   }
 
-  async getProtocolLua(deviceType: number, serialNumber: string, manufacturerCode: string = '0000') {
+  async getProtocolLua(deviceType: number, serialNumber: string, manufacturerCode = '0000') {
     const response = await this.apiRequest('/v2/luaEncryption/luaGet', {
       ...this.buildRequestData(),
       applianceMFCode: manufacturerCode,

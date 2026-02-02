@@ -3,6 +3,7 @@
 # v1.2.10
 - fix: added logic to persist fan speed when toggling fan related modes (like sleep mode, boost mode, etc...) in `Air Conditioner` (fixes #158)
 - feat: added separate switch for setting `Air Conditioner` fan auto mode (fixes #152)
+- feat: added support for 0xCC `MDV WiFi Controller` (fixes #126)
 
 # v1.2.9
 - feat: added separate temperature sensor creation option for `Air Conditioner` (fixes #141)

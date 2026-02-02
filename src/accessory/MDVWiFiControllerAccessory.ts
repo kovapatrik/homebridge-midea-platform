@@ -237,18 +237,18 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
         case FanSpeed.High: return 100;
         default: return 66; // Default to Mid
       }
-    } else {
-      // 7-level mode: Sleep, Micron, Low, Mid, High, SuperHigh, Power
-      switch (fanSpeed) {
-        case FanSpeed.Sleep: return 14;
-        case FanSpeed.Micron: return 28;
-        case FanSpeed.Low: return 43;
-        case FanSpeed.Mid: return 57;
-        case FanSpeed.High: return 71;
-        case FanSpeed.SuperHigh: return 86;
-        case FanSpeed.Power: return 100;
-        default: return 57; // Default to Mid
-      }
+    }
+
+    // 7-level mode: Sleep, Micron, Low, Mid, High, SuperHigh, Power
+    switch (fanSpeed) {
+      case FanSpeed.Sleep: return 14;
+      case FanSpeed.Micron: return 28;
+      case FanSpeed.Low: return 43;
+      case FanSpeed.Mid: return 57;
+      case FanSpeed.High: return 71;
+      case FanSpeed.SuperHigh: return 86;
+      case FanSpeed.Power: return 100;
+      default: return 57; // Default to Mid
     }
   }
 
@@ -260,16 +260,16 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
       if (percentage <= 33) return FanSpeed.Low;
       if (percentage <= 66) return FanSpeed.Mid;
       return FanSpeed.High;
-    } else {
-      // 7-level mode: Sleep (14%), Micron (28%), Low (43%), Mid (57%), High (71%), SuperHigh (86%), Power (100%)
-      if (percentage <= 14) return FanSpeed.Sleep;
-      if (percentage <= 28) return FanSpeed.Micron;
-      if (percentage <= 43) return FanSpeed.Low;
-      if (percentage <= 57) return FanSpeed.Mid;
-      if (percentage <= 71) return FanSpeed.High;
-      if (percentage <= 86) return FanSpeed.SuperHigh;
-      return FanSpeed.Power;
     }
+
+    // 7-level mode: Sleep (14%), Micron (28%), Low (43%), Mid (57%), High (71%), SuperHigh (86%), Power (100%)
+    if (percentage <= 14) return FanSpeed.Sleep;
+    if (percentage <= 28) return FanSpeed.Micron;
+    if (percentage <= 43) return FanSpeed.Low;
+    if (percentage <= 57) return FanSpeed.Mid;
+    if (percentage <= 71) return FanSpeed.High;
+    if (percentage <= 86) return FanSpeed.SuperHigh;
+    return FanSpeed.Power;
   }
 
 }
