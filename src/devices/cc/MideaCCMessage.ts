@@ -16,6 +16,25 @@ export enum HeatStatus {
   Off = 0x20,
 }
 
+export enum Mode {
+  Fan = 0x01,
+  Dry = 0x02,
+  Heat = 0x04,
+  Cool = 0x08,
+  Auto = 0x10,
+}
+
+export enum FanSpeed {
+  Auto = 0x80,
+  Power = 0x40,
+  SuperHigh = 0x20,
+  High = 0x10,
+  Mid = 0x08,
+  Low = 0x04,
+  Micron = 0x02,
+  Sleep = 0x01,
+}
+
 abstract class MessageCCBase extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
     super(DeviceType.MDV_WIFI_CONTROLLER, message_type, body_type, device_protocol_version);
@@ -36,8 +55,8 @@ export class MessageSet extends MessageCCBase {
   // biome-ignore lint/suspicious/noExplicitAny: had to use any
   [key: string]: any;
   power: boolean;
-  mode: number;
-  fan_speed: number;
+  mode: Mode;
+  fan_speed: FanSpeed;
   target_temperature: number;
   eco: boolean;
   sleep: boolean;
@@ -52,8 +71,8 @@ export class MessageSet extends MessageCCBase {
   constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.SET, 0xc3);
     this.power = false;
-    this.mode = 4;
-    this.fan_speed = 0x80;
+    this.mode = Mode.Auto;
+    this.fan_speed = FanSpeed.Auto;
     this.target_temperature = 26;
     this.eco = false;
     this.sleep = false;
@@ -69,7 +88,7 @@ export class MessageSet extends MessageCCBase {
   get _body() {
     // Byte0: Power | Mode
     const power = this.power ? 0x80 : 0;
-    const mode = 1 << (this.mode - 1);
+    const mode = this.mode;
     // Byte1: fan_speed
     const fan_speed = this.fan_speed;
     // Byte2: Integer part of target_temperature
@@ -119,8 +138,8 @@ export class MessageSet extends MessageCCBase {
 
 export class CCGeneralMessageBody extends MessageBody {
   power: boolean;
-  mode: number;
-  fan_speed: number;
+  mode: Mode;
+  fan_speed: FanSpeed;
   target_temperature: number;
   indoor_temperature: number;
   evaporator_entrance_temperature: number;
@@ -144,11 +163,9 @@ export class CCGeneralMessageBody extends MessageBody {
     super(body);
     // Byte 1: power & mode
     this.power = (body[1] & 0x80) > 0;
-    const mode_byte = body[1] & 0x1f;
-    // Convert bit position to mode number
-    this.mode = mode_byte === 0x10 ? 4 : mode_byte === 0x08 ? 3 : mode_byte === 0x04 ? 2 : mode_byte === 0x02 ? 1 : 0;
+    this.mode = (body[1] & 0x1f) as Mode;
     // Byte 2: fan_speed
-    this.fan_speed = body[2];
+    this.fan_speed = body[2] as FanSpeed;
     // Byte 3 + Byte 19: target_temperature (integer + decimal)
     this.target_temperature = body[3] + body[19] / 10;
     // Byte 4: indoor_temperature
@@ -164,7 +181,7 @@ export class CCGeneralMessageBody extends MessageBody {
     this.swing_ud = (body[13] & 0x04) > 0;
     this.exhaust = (body[13] & 0x08) > 0;
     this.ptc_power = (body[13] & 0x02) > 0;
-    this.control_fan_speed = body[13] & 0xFF; // Control fan speed value (always 0xFF per Lua)
+    this.control_fan_speed = 0xFF; // Always 0xFF, not present in response (per Lua line 308)
     // Byte 14: ptc_setting, sleep, display, swing_lr, temperature_precision
     const ptc_setting_bits = (body[14] & 0x60) >> 5;
     // Response uses different values: 0=Auto, 1=On, 2=Off (shifted from bits 5-6)

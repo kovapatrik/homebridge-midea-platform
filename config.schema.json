@@ -399,6 +399,12 @@
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "fanSpeedMode": {
+                  "title": "Fan Speed Mode",
+                  "description": "Changes if the fan speed is 3 levels or 7 levels",
+                  "type": "string",
+                  "enum": ["3", "7"]
                 }
               }
             },
@@ -730,7 +736,8 @@
                 "devices[].CC_options.auxHeatingSwitch",
                 "devices[].CC_options.ecoModeSwitch",
                 "devices[].CC_options.nightLightSwitch",
-                "devices[].CC_options.sleepModeSwitch"
+                "devices[].CC_options.sleepModeSwitch",
+                "devices[].CC_options.fanSpeedMode"
               ]
             },
             {

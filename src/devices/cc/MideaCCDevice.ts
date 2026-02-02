@@ -12,15 +12,15 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { HeatStatus, MessageCCResponse, MessageQuery, MessageSet } from './MideaCCMessage.js';
+import { FanSpeed, HeatStatus, MessageCCResponse, MessageQuery, MessageSet, Mode } from './MideaCCMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
 export interface CCAttributes extends DeviceAttributeBase {
   POWER: boolean;
-  MODE: number;
+  MODE: Mode;
   TARGET_TEMPERATURE: number;
-  FAN_SPEED: number;
+  FAN_SPEED: FanSpeed;
   ECO: boolean;
   SLEEP: boolean;
   DISPLAY: boolean;
@@ -41,24 +41,6 @@ export interface CCAttributes extends DeviceAttributeBase {
   TEMP_FAHRENHEIT: boolean;
 }
 
-enum FAN_SPEEDS_7LEVEL {
-  'Level 1' = 0x01,
-  'Level 2' = 0x02,
-  'Level 3' = 0x04,
-  'Level 4' = 0x08,
-  'Level 5' = 0x10,
-  'Level 6' = 0x20,
-  'Level 7' = 0x40,
-  Auto = 0x80,
-}
-
-enum FAN_SPEEDS_3LEVEL {
-  Low = 0x01,
-  Medium = 0x08,
-  High = 0x40,
-  Auto = 0x80,
-}
-
 export default class MideaCCDevice extends MideaDevice {
   public attributes: CCAttributes;
 
@@ -67,9 +49,9 @@ export default class MideaCCDevice extends MideaDevice {
 
     this.attributes = {
       POWER: false,
-      MODE: 1,
+      MODE: Mode.Auto,
       TARGET_TEMPERATURE: 26,
-      FAN_SPEED: 0x80,
+      FAN_SPEED: FanSpeed.Auto,
       SLEEP: false,
       ECO: false,
       DISPLAY: false,
@@ -181,5 +163,20 @@ export default class MideaCCDevice extends MideaDevice {
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
     }
+  }
+
+  async set_target_temperature(target_temperature: number, mode?: number) {
+    this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
+    const message = this.make_message_set();
+    message.target_temperature = target_temperature;
+    this.attributes.TARGET_TEMPERATURE = target_temperature;
+    if (mode) {
+      message.mode = mode;
+      message.power = true;
+
+      this.attributes.MODE = mode;
+      this.attributes.POWER = true;
+    }
+    await this.build_send(message);
   }
 }
