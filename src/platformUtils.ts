@@ -28,6 +28,7 @@ export type DeviceConfig = {
   AC_options: ACOptions;
   A1_options: A1Options;
   C3_options: C3Options;
+  CC_options: CCOptions;
   CD_options: CDOptions;
   CE_options: CEOptions;
   DB_options: DBOptions;
@@ -118,6 +119,17 @@ type C3Options = {
   ecoSwitch: boolean;
   silentSwitch: boolean;
   tbhSwitch: boolean;
+};
+
+type CCOptions = {
+  minTemp: number;
+  maxTemp: number;
+  tempStep: number;
+  auxHeatingSwitch: boolean;
+  ecoModeSwitch: boolean;
+  nightLightSwitch: boolean;
+  sleepModeSwitch: boolean;
+  fanSpeedMode: '3' | '7';
 };
 
 type CDOptions = {
@@ -231,6 +243,16 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoSwitch: false,
     silentSwitch: false,
     tbhSwitch: false,
+  },
+  CC_options: {
+    minTemp: 16,
+    maxTemp: 30,
+    tempStep: 1,
+    auxHeatingSwitch: false,
+    ecoModeSwitch: false,
+    nightLightSwitch: false,
+    sleepModeSwitch: false,
+    fanSpeedMode: '7'
   },
   CD_options: {
     minTemp: 38,

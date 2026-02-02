@@ -210,10 +210,10 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
     }
   }
 
-  async getProtocolLua(deviceType: number, serialNumber: string) {
+  async getProtocolLua(deviceType: number, serialNumber: string, manufacturerCode: string = '0000') {
     const response = await this.apiRequest('/v2/luaEncryption/luaGet', {
       ...this.buildRequestData(),
-      applianceMFCode: '0000',
+      applianceMFCode: manufacturerCode,
       applianceSn: this.security.encryptAESAppKey(Buffer.from(serialNumber, 'utf8')).toString('hex'),
       applianceType: `0x${deviceType.toString(16).padStart(2, '0')}`,
       encryptedType: 2,
@@ -227,7 +227,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       if (file_data) {
         return file_data;
       }
-      throw new Error('Failed to decrypt plugin.');
+      throw new Error('Failed to decrypt protocol.');
     }
 
     throw new Error('Failed to get protocol.');

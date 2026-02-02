@@ -36,6 +36,9 @@ import FreshAirApplianceAccessory from './FreshAirApplianceAccessory.js';
 import type MideaCDDevice from '../devices/cd/MideaCDDevice.js';
 import HeatPumpWaterHeaterAccessory from './HeatPumpWaterHeaterAccessory.js';
 
+import MDVWiFiControllerAccessory from './MDVWiFiControllerAccessory.js';
+import type MideaCCDevice from '../devices/cc/MideaCCDevice.js';
+
 // biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
 export default class AccessoryFactory {
   public static createAccessory<T extends MideaDevice>(platform: MideaPlatform, accessory: MideaAccessory, device: T, configDev: DeviceConfig) {
@@ -62,6 +65,8 @@ export default class AccessoryFactory {
         return new FreshAirApplianceAccessory(platform, accessory, device as unknown as MideaCEDevice, configDev);
       case DeviceType.HEAT_PUMP_WATER_HEATER:
         return new HeatPumpWaterHeaterAccessory(platform, accessory, device as unknown as MideaCDDevice, configDev);
+      case DeviceType.MDV_WIFI_CONTROLLER:
+        return new MDVWiFiControllerAccessory(platform, accessory, device as unknown as MideaCCDevice, configDev);
       default:
         throw new Error(`Unsupported device type: ${device.type}`);
     }
