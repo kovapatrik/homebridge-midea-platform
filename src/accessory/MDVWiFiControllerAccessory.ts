@@ -1,10 +1,10 @@
 import type { CharacteristicValue, Service } from 'homebridge';
-import type { DeviceAttributeBase } from '../core/MideaDevice';
-import type MideaCCDevice from '../devices/cc/MideaCCDevice';
-import type { MideaAccessory, MideaPlatform } from '../platform';
-import type { DeviceConfig } from '../platformUtils';
-import BaseAccessory, { limitValue } from './BaseAccessory';
-import { Mode, FanSpeed } from '../devices/cc/MideaCCMessage';
+import type { DeviceAttributeBase } from '../core/MideaDevice.js';
+import type MideaCCDevice from '../devices/cc/MideaCCDevice.js';
+import type { MideaAccessory, MideaPlatform } from '../platform.js';
+import type { DeviceConfig } from '../platformUtils.js';
+import BaseAccessory, { limitValue } from './BaseAccessory.js';
+import { Mode, FanSpeed } from '../devices/cc/MideaCCMessage.js';
 
 export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDevice> {
   protected service: Service;

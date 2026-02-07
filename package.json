@@ -2,7 +2,7 @@
   "displayName": "Homebridge Midea Platform",
   "name": "homebridge-midea-platform",
   "type": "module",
-  "version": "1.2.10-beta.9",
+  "version": "1.2.10-beta.10",
   "description": "Homebridge plugin for Midea devices",
   "license": "Apache-2.0",
   "repository": {
@@ -41,7 +41,7 @@
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "axios": "^1.8.4",
-    "fast-xml-parser": "^4.5.0",
+    "fast-xml-parser": "^5.3.4",
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
     "semaphore-promise": "^1.4.2"
