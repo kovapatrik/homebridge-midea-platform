@@ -650,7 +650,7 @@ class XBXMessageBody extends NewProtocolMessageBody {
     }
 
     if (NewProtocolTags.ION in params) {
-      this.ion = params[NewProtocolTags.ION][0] === 0x1;
+      this.ion = params[NewProtocolTags.ION][0] > 0;
     }
   }
 }
