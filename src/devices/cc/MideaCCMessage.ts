@@ -9,6 +9,7 @@
 
 import { DeviceType } from '../../core/MideaConstants.js';
 import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
+import { calculate } from '../../core/MideaUtils.js';
 
 export enum HeatStatus {
   Auto = 0x00,
@@ -39,6 +40,13 @@ abstract class MessageCCBase extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
     super(DeviceType.MDV_WIFI_CONTROLLER, message_type, body_type, device_protocol_version);
   }
+
+  get body() {
+    const random = Math.floor(Math.random() * 101); // 0-100 like Lua's math.random(0, 100)
+    // biome-ignore lint/style/noNonNullAssertion: body_type is always set for CC messages
+    const data = Buffer.concat([Buffer.from([this.body_type!]), this._body, Buffer.from([random])]);
+    return Buffer.concat([data, Buffer.from([calculate(data)])]);
+  }
 }
 
 export class MessageQuery extends MessageCCBase {
@@ -47,7 +55,7 @@ export class MessageQuery extends MessageCCBase {
   }
 
   get _body() {
-    return Buffer.alloc(23);
+    return Buffer.alloc(21);
   }
 }
 
@@ -120,8 +128,6 @@ export class MessageSet extends MessageCCBase {
       this.swing_lr_site,
       this.swing_ud_site,
       temperature_dot,
-      0x00,
-      0x00,
       0x00,
       0x00,
       0x00,
@@ -206,7 +212,7 @@ export class MessageCCResponse extends MessageResponse {
     super(message);
     if (
       (this.message_type === MessageType.QUERY && this.body_type === 0x01) ||
-      ([MessageType.NOTIFY1, MessageType.NOTIFY2].includes(this.message_type) && this.body_type === 0x01) ||
+      ([MessageType.NOTIFY1, MessageType.NOTIFY2].includes(this.message_type) && (this.body_type === 0x01 || this.body_type === 0xc3)) ||
       (this.message_type === MessageType.SET && this.body_type === 0xc3)
     ) {
       this.set_body(new CCGeneralMessageBody(this.body));
