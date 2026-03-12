@@ -24,6 +24,7 @@ export type DeviceConfig = {
     logRecoverableErrors: boolean;
     logRefreshStatusErrors: boolean;
     registerIfOffline: boolean;
+    sub_type?: number;
   };
   AC_options: ACOptions;
   A1_options: A1Options;

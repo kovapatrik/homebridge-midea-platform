@@ -80,6 +80,8 @@ export default abstract class MideaDevice extends EventEmitter {
     this.type = device_info.type;
     this.version = device_info.version;
 
+    this._sub_type = configDev.advanced_options.sub_type;
+
     this.verbose = configDev.advanced_options.verbose;
     this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
     this.logRefreshStatusErrors = configDev.advanced_options.logRefreshStatusErrors;
@@ -97,7 +99,7 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   get sub_type(): number {
-    return this._sub_type || 0;
+    return this._sub_type ?? 0;
   }
 
   public setCredentials(token: KeyToken, key: KeyToken) {
@@ -291,7 +293,7 @@ export default abstract class MideaDevice extends EventEmitter {
       this._sub_type = msg.sub_type;
       this.set_subtype();
       this.device_protocol_version = msg.device_protocol_version;
-      this.logger.debug(`[${this.name}] Subtype: ${this._sub_type}, device protocol version: ${this.device_protocol_version}`);
+      this.logger.debug(`[${this.name}] Subtype: ${this.sub_type}, device protocol version: ${this.device_protocol_version}`);
       return false;
     }
     return true;
@@ -333,7 +335,8 @@ export default abstract class MideaDevice extends EventEmitter {
         const cryptographic = msg.subarray(40, -16);
         if (payload_length % 16 === 0) {
           const decrypted = this.security.aes_decrypt(cryptographic);
-          if (this.preprocess_message(decrypted)) {
+          const cont = this._sub_type === undefined ? this.preprocess_message(decrypted) : true;
+          if (cont) {
             if (this.verbose) {
               this.logger.debug(`[${this.name}] Decrypted data to parse:\n${decrypted.toString('hex')}`);
             }
