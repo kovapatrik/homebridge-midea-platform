@@ -264,6 +264,7 @@ class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: might use in the future
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
@@ -385,6 +386,7 @@ class NetHomePlusCloud extends SimpleCloud<NetHomePlusSecurity> {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: might use in the future
 class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   protected readonly APP_ID = '1005';
   protected readonly API_URL = 'https://mapp.appsmb.com';

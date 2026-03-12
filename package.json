@@ -35,7 +35,9 @@
     "format": "biome format ./src --write",
     "check": "biome check ./src --fix"
   },
-  "keywords": ["homebridge-plugin"],
+  "keywords": [
+    "homebridge-plugin"
+  ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.3",
     "axios": "^1.8.4",
@@ -45,7 +47,7 @@
     "semaphore-promise": "^1.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.0.6",
     "@types/lodash": "^4.17.12",
     "@types/luxon": "^3.4.2",
     "@types/node": "^22.8.1",

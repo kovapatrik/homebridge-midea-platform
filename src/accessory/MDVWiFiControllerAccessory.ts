@@ -84,7 +84,7 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
   protected async updateCharacteristics(attributes: DeviceAttributeBase) {
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
-      const updateState = false;
+      // const updateState = false;
     }
   }
 
@@ -222,7 +222,7 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
     return this.platform.Characteristic.SwingMode.SWING_DISABLED;
   }
 
-  async setSwingMode(value: CharacteristicValue) {
+  async setSwingMode(_: CharacteristicValue) {
     // TODO: Implement swing mode setter
   }
 
