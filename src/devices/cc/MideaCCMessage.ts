@@ -500,13 +500,15 @@ export class MessageCCResponse extends MessageResponse {
   constructor(message: Buffer) {
     super(message);
 
+    // if (
+    //   (this.message_type === MessageType.QUERY && this.body_type === 0x01) ||
+    //   ([MessageType.NOTIFY1, MessageType.NOTIFY2].includes(this.message_type) && (this.body_type === 0x01 || this.body_type === 0xc3)) ||
+    //   (this.message_type === MessageType.SET && this.body_type === 0xc3)
+    // ) {
+    //   this.set_body(new CCGeneralMessageBody(this.body));
+    // } else
+
     if (
-      (this.message_type === MessageType.QUERY && this.body_type === 0x01) ||
-      ([MessageType.NOTIFY1, MessageType.NOTIFY2].includes(this.message_type) && (this.body_type === 0x01 || this.body_type === 0xc3)) ||
-      (this.message_type === MessageType.SET && this.body_type === 0xc3)
-    ) {
-      this.set_body(new CCGeneralMessageBody(this.body));
-    } else if (
       // TLV protocol
       (this.message_type === MessageType.QUERY || [MessageType.NOTIFY1, MessageType.NOTIFY2].includes(this.message_type)) && this.body_type === 0xff ||
       (this.message_type === MessageType.SET && this.body_type !== 0xc3)
