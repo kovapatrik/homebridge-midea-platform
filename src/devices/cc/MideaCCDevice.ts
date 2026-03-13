@@ -12,7 +12,7 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { FanSpeed, HeatStatus, MessageCCResponse, MessageQuery, MessageSet, Mode } from './MideaCCMessage.js';
+import { FanSpeed, HeatStatus, MessageCCResponse, MessageQueryTLV, MessageSetTLV, Mode } from './MideaCCMessage.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -29,12 +29,9 @@ export interface CCAttributes extends DeviceAttributeBase {
   SWING_LR: boolean;
   SWING_UD_SITE: number;
   SWING_LR_SITE: number;
-  EXHAUST: boolean;
   TEMPERATURE_PRECISION: 1 | 0.5;
-  CONTROL_FAN_SPEED: number;
   INDOOR_TEMPERATURE?: number;
-  EVAPORATOR_ENTRANCE_TEMPERATURE?: number;
-  EVAPORATOR_EXIT_TEMPERATURE?: number;
+  OUTDOOR_TEMPERATURE?: number;
   PTC_SETTING: number;
   PTC_POWER: boolean;
   ERROR_CODE?: number;
@@ -55,7 +52,6 @@ export default class MideaCCDevice extends MideaDevice {
       SLEEP: false,
       ECO: false,
       DISPLAY: false,
-      EXHAUST: false,
       AUX_HEATING: false,
       PTC_SETTING: 0,
       PTC_POWER: false,
@@ -63,10 +59,8 @@ export default class MideaCCDevice extends MideaDevice {
       SWING_LR: false,
       SWING_UD_SITE: 0,
       SWING_LR_SITE: 0,
-      CONTROL_FAN_SPEED: 0xFF,
       INDOOR_TEMPERATURE: undefined,
-      EVAPORATOR_ENTRANCE_TEMPERATURE: undefined,
-      EVAPORATOR_EXIT_TEMPERATURE: undefined,
+      OUTDOOR_TEMPERATURE: undefined,
       ERROR_CODE: undefined,
       TEMPERATURE_PRECISION: 1,
       TEMP_FAHRENHEIT: false,
@@ -74,7 +68,7 @@ export default class MideaCCDevice extends MideaDevice {
   }
 
   build_query(): MessageRequest[] {
-    return [new MessageQuery(this.device_protocol_version)];
+    return [new MessageQueryTLV(this.device_protocol_version)];
   }
 
   process_message(msg: Buffer) {
@@ -115,8 +109,26 @@ export default class MideaCCDevice extends MideaDevice {
     this.logger.debug('No subtype for CC device');
   }
 
-  make_message_set(): MessageSet {
-    const message = new MessageSet(this.device_protocol_version);
+  // make_message_set(): MessageSet {
+  //   const message = new MessageSet(this.device_protocol_version);
+  //   message.power = this.attributes.POWER;
+  //   message.mode = this.attributes.MODE;
+  //   message.target_temperature = this.attributes.TARGET_TEMPERATURE;
+  //   message.fan_speed = this.attributes.FAN_SPEED;
+  //   message.eco = this.attributes.ECO;
+  //   message.sleep = this.attributes.SLEEP;
+  //   message.display = this.attributes.DISPLAY;
+  //   message.exhaust = this.attributes.EXHAUST;
+  //   message.ptc_setting = this.attributes.PTC_SETTING;
+  //   message.swing_ud = this.attributes.SWING_UD;
+  //   message.swing_lr = this.attributes.SWING_LR;
+  //   message.swing_lr_site = this.attributes.SWING_LR_SITE;
+  //   message.swing_ud_site = this.attributes.SWING_UD_SITE;
+  //   return message;
+  // }
+
+  make_message_set_tlv(): MessageSetTLV {
+    const message = new MessageSetTLV(this.device_protocol_version);
     message.power = this.attributes.POWER;
     message.mode = this.attributes.MODE;
     message.target_temperature = this.attributes.TARGET_TEMPERATURE;
@@ -124,7 +136,6 @@ export default class MideaCCDevice extends MideaDevice {
     message.eco = this.attributes.ECO;
     message.sleep = this.attributes.SLEEP;
     message.display = this.attributes.DISPLAY;
-    message.exhaust = this.attributes.EXHAUST;
     message.ptc_setting = this.attributes.PTC_SETTING;
     message.swing_ud = this.attributes.SWING_UD;
     message.swing_lr = this.attributes.SWING_LR;
@@ -135,9 +146,11 @@ export default class MideaCCDevice extends MideaDevice {
 
   async set_attribute(attributes: Partial<CCAttributes>) {
     const messageToSend: {
-      SET: MessageSet | undefined;
+      // SET: MessageSet | undefined;
+      TLV_SET: MessageSetTLV | undefined;
     } = {
-      SET: undefined,
+      // SET: undefined,
+      TLV_SET: undefined,
     };
 
     try {
@@ -149,8 +162,8 @@ export default class MideaCCDevice extends MideaDevice {
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
 
-        messageToSend.SET ??= this.make_message_set();
-        messageToSend.SET[k.toLowerCase()] = v;
+        messageToSend.TLV_SET ??= this.make_message_set_tlv();
+        messageToSend.TLV_SET[k.toLowerCase()] = v;
       }
 
       for (const [k, v] of Object.entries(messageToSend)) {
@@ -167,7 +180,7 @@ export default class MideaCCDevice extends MideaDevice {
 
   async set_target_temperature(target_temperature: number, mode?: number) {
     this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
-    const message = this.make_message_set();
+    const message = this.make_message_set_tlv();
     message.target_temperature = target_temperature;
     this.attributes.TARGET_TEMPERATURE = target_temperature;
     if (mode) {
