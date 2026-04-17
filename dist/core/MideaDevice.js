@@ -97,14 +97,9 @@ export default class MideaDevice extends EventEmitter {
                 await this.authenticate();
             }
             if (refresh_status) {
-                let success = await this.refresh_status(true);
-                let retries = 0;
-                while (!success && retries++ < 3) {
-                    success = await this.refresh_status(true, true);
-                }
-                if (!success) {
-                    this.logger.warn(`[${this.name}] Refresh status failed after ${retries} retries, device state may be stale.`);
-                }
+                // Send queries without waiting for synchronous responses.
+                // The network listener will pick up the device's responses asynchronously.
+                await this.refresh_status(false);
             }
             // Start listening for network traffic
             this.open();
@@ -136,8 +131,6 @@ export default class MideaDevice extends EventEmitter {
                 this.security.tcp_key_from_resp(resp, this.key);
                 this._authenticated = true;
                 this.logger.info(`[${this.name}] Authentication success.`);
-                // Brief delay before sending queries — device needs time after handshake
-                await new Promise((resolve) => setTimeout(resolve, 1000));
             }
             else {
                 this._authenticated = false;
