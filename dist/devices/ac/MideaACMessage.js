@@ -1,0 +1,725 @@
+/***********************************************************************
+ * Midea Air Conditioner Device message handler class
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan
+ *
+ */
+import { DeviceType } from '../../core/MideaConstants.js';
+import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage.js';
+import { calculate } from '../../core/MideaUtils.js';
+var NewProtocolTags;
+(function (NewProtocolTags) {
+    NewProtocolTags[NewProtocolTags["WIND_SWING_UD_ANGLE"] = 9] = "WIND_SWING_UD_ANGLE";
+    NewProtocolTags[NewProtocolTags["WIND_SWING_LR_ANGLE"] = 10] = "WIND_SWING_LR_ANGLE";
+    NewProtocolTags[NewProtocolTags["INDOOR_HUMIDITY"] = 21] = "INDOOR_HUMIDITY";
+    NewProtocolTags[NewProtocolTags["BREEZELESS"] = 24] = "BREEZELESS";
+    NewProtocolTags[NewProtocolTags["PROMPT_TONE"] = 26] = "PROMPT_TONE";
+    NewProtocolTags[NewProtocolTags["INDIRECT_WIND"] = 66] = "INDIRECT_WIND";
+    NewProtocolTags[NewProtocolTags["FRESH_AIR_1"] = 563] = "FRESH_AIR_1";
+    NewProtocolTags[NewProtocolTags["FRESH_AIR_2"] = 75] = "FRESH_AIR_2";
+    NewProtocolTags[NewProtocolTags["SELF_CLEAN"] = 57] = "SELF_CLEAN";
+    NewProtocolTags[NewProtocolTags["RATE_SELECT"] = 72] = "RATE_SELECT";
+    NewProtocolTags[NewProtocolTags["ION"] = 542] = "ION";
+    NewProtocolTags[NewProtocolTags["SCREEN_DISPLAY"] = 548] = "SCREEN_DISPLAY";
+})(NewProtocolTags || (NewProtocolTags = {}));
+const BB_AC_MODES = [0, 3, 1, 2, 4, 5];
+class MessageACBase extends MessageRequest {
+    static message_serial = 0;
+    message_id;
+    constructor(device_protocol_version, message_type, body_type) {
+        super(DeviceType.AIR_CONDITIONER, message_type, body_type, device_protocol_version);
+        MessageACBase.message_serial += 1;
+        if (MessageACBase.message_serial >= 254) {
+            MessageACBase.message_serial = 1;
+        }
+        this.message_id = MessageACBase.message_serial;
+    }
+    get body() {
+        // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
+        let body = Buffer.concat([Buffer.from([this.body_type]), this._body, Buffer.from([this.message_id])]);
+        body = Buffer.concat([body, Buffer.from([calculate(body)])]);
+        return body;
+    }
+}
+export class MessageQuery extends MessageACBase {
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.QUERY, 0x41);
+    }
+    get _body() {
+        // biome-ignore format: easier to read
+        return Buffer.from([
+            0x81, 0x00, 0xff, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00
+        ]);
+    }
+}
+export class MessageCapabilityQuery extends MessageACBase {
+    additional_capabilities;
+    constructor(device_protocol_version, additional_capabilities) {
+        super(device_protocol_version, MessageType.QUERY, 0xb5);
+        this.additional_capabilities = additional_capabilities;
+    }
+    get _body() {
+        return this.additional_capabilities ? Buffer.from([0x01, 0x01, 0x01]) : Buffer.from([0x01, 0x00]);
+    }
+}
+export class MessagePowerQuery extends MessageACBase {
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.QUERY, 0x41);
+    }
+    get _body() {
+        return Buffer.from([0x21, 0x01, 0x44, 0x00, 0x01]);
+    }
+    get body() {
+        // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
+        let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+        body = Buffer.concat([body, Buffer.from([calculate(body)])]);
+        return body;
+    }
+}
+export class MessageSwitchDisplay extends MessageACBase {
+    prompt_tone;
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.QUERY, 0x41);
+        this.prompt_tone = false;
+    }
+    get _body() {
+        const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
+        // biome-ignore format: easier to read
+        return Buffer.from([
+            0x02 | prompt_tone,
+            0x00,
+            0xFF,
+            0x02,
+            0x00,
+            0x02,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        ]);
+        // return Buffer.from([0x81, 0x00, 0xff, 0x02, 0xff, 0x02, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    }
+}
+export class MessageNewProtocolQuery extends MessageACBase {
+    alternate_display;
+    constructor(device_protocol_version, alternate_display = false) {
+        super(device_protocol_version, MessageType.QUERY, 0xb1);
+        this.alternate_display = alternate_display;
+    }
+    get _body() {
+        const query_params = [
+            NewProtocolTags.WIND_SWING_UD_ANGLE,
+            NewProtocolTags.WIND_SWING_LR_ANGLE,
+            NewProtocolTags.INDIRECT_WIND,
+            NewProtocolTags.BREEZELESS,
+            NewProtocolTags.INDOOR_HUMIDITY,
+            NewProtocolTags.SCREEN_DISPLAY,
+            NewProtocolTags.FRESH_AIR_1,
+            NewProtocolTags.FRESH_AIR_2,
+            NewProtocolTags.SELF_CLEAN,
+            NewProtocolTags.RATE_SELECT,
+            NewProtocolTags.ION,
+        ];
+        let body = Buffer.from([query_params.length]);
+        for (const param of query_params) {
+            if (param) {
+                body = Buffer.concat([body, Buffer.from([param & 0xff, param >> 8])]);
+            }
+        }
+        return body;
+    }
+}
+export class MessageSubProtocol extends MessageACBase {
+    subprotocol_query_type;
+    constructor(device_protocol_version, message_type, subprotocol_query_type) {
+        super(device_protocol_version, message_type, 0xaa);
+        this.subprotocol_query_type = subprotocol_query_type;
+    }
+    get body() {
+        // biome-ignore lint/style/noNonNullAssertion: we know body_type cannot be null
+        let body = Buffer.concat([Buffer.from([this.body_type]), this._body]);
+        body = Buffer.concat([body, Buffer.from([calculate(body)])]);
+        body = Buffer.concat([body, Buffer.from([this.checksum(body)])]);
+        return body;
+    }
+    get _body() {
+        let body = Buffer.from([6 + 2 + (this.subprotocol_body ? this.subprotocol_body.length : 0), 0x00, 0xff, 0xff, this.subprotocol_query_type]);
+        if (this.subprotocol_body) {
+            body = Buffer.concat([body, this.subprotocol_body]);
+        }
+        return body;
+    }
+}
+export class MessageSubProtocolQuery extends MessageSubProtocol {
+    subprotocol_body;
+    constructor(device_protocol_version, subprotocol_query_type) {
+        super(device_protocol_version, MessageType.QUERY, subprotocol_query_type);
+    }
+}
+export class MessageSubProtocolSet extends MessageSubProtocol {
+    power;
+    mode;
+    target_temperature;
+    fan_speed;
+    boost_mode;
+    aux_heating;
+    dry;
+    eco_mode;
+    sleep_mode;
+    sn8_flag;
+    timer;
+    prompt_tone;
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.SET, 0x20);
+        this.power = false;
+        this.mode = 0;
+        this.target_temperature = 20.0;
+        this.fan_speed = 102;
+        this.boost_mode = false;
+        this.aux_heating = false;
+        this.dry = false;
+        this.eco_mode = false;
+        this.sleep_mode = false;
+        this.sn8_flag = false;
+        this.timer = false;
+        this.prompt_tone = false;
+    }
+    get subprotocol_body() {
+        const power = this.power ? 0x01 : 0x00;
+        const dry = this.dry && this.power ? 0x10 : 0;
+        const boost_mode = this.boost_mode ? 0x20 : 0;
+        const aux_heating = this.aux_heating ? 0x40 : 0;
+        const sleep_mode = this.sleep_mode ? 0x80 : 0;
+        const mode = this.mode === 0 ? 0 : this.mode < BB_AC_MODES.length ? BB_AC_MODES[this.mode] - 1 : 2;
+        const target_temperature = (this.target_temperature * 2 + 30) | 0;
+        const water_model_temperature_set = ((this.target_temperature - 1) * 2 + 50) | 0;
+        const fan_speed = this.fan_speed;
+        const eco = this.eco_mode ? 0x40 : 0;
+        const prompt_tone = this.prompt_tone ? 0x01 : 0;
+        const timer = this.sn8_flag && this.timer ? 0x04 : 0;
+        // biome-ignore format: easier to read
+        return Buffer.from([
+            0x02 | boost_mode | power | dry,
+            aux_heating,
+            sleep_mode,
+            0x00, 0x00,
+            mode,
+            target_temperature,
+            fan_speed,
+            0x32, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
+            0x01, 0x00, 0x01,
+            water_model_temperature_set,
+            prompt_tone,
+            target_temperature,
+            0x32,
+            0x66,
+            0x00,
+            eco | timer,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+            0x08,
+        ]);
+    }
+}
+export class MessageGeneralSet extends MessageACBase {
+    power;
+    prompt_tone;
+    mode;
+    target_temperature;
+    fan_speed;
+    swing_vertical;
+    swing_horizontal;
+    boost_mode;
+    smart_eye;
+    dry;
+    aux_heating;
+    eco_mode;
+    temp_fahrenheit;
+    sleep_mode;
+    natural_wind;
+    frost_protect;
+    comfort_mode;
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.SET, 0x40);
+        this.power = false;
+        this.prompt_tone = true;
+        this.mode = 0;
+        this.target_temperature = 20.0;
+        this.fan_speed = 102;
+        this.swing_vertical = false;
+        this.swing_horizontal = false;
+        this.boost_mode = false;
+        this.smart_eye = false;
+        this.dry = false;
+        this.aux_heating = false;
+        this.eco_mode = false;
+        this.temp_fahrenheit = false;
+        this.sleep_mode = false;
+        this.natural_wind = false;
+        this.frost_protect = false;
+        this.comfort_mode = false;
+    }
+    get _body() {
+        // Byte1, Power, prompt_tone
+        const power = this.power ? 0x01 : 0x00;
+        const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
+        // Byte2, mode target_temperature
+        const mode = (this.mode << 5) & 0xe0;
+        const target_temperature = ((this.target_temperature | 0) & 0xf) | ((Math.round(this.target_temperature * 2) | 0) % 2 !== 0 ? 0x10 : 0);
+        // Byte 3, fan_speed
+        const fan_speed = this.fan_speed & 0x7f;
+        // Byte 7, swing_mode
+        const swing_mode = 0x30 | (this.swing_vertical ? 0x0c : 0) | (this.swing_horizontal ? 0x03 : 0);
+        // Byte 8, turbo
+        const boost_mode = this.boost_mode ? 0x20 : 0;
+        // Byte 9 aux_heating eco_mode
+        const smart_eye = this.smart_eye ? 0x01 : 0;
+        const dry = this.dry ? 0x04 : 0;
+        const aux_heating = this.aux_heating ? 0x08 : 0;
+        const eco_mode = this.eco_mode ? 0x80 : 0;
+        // Byte 10 temp_fahrenheit
+        const temp_fahrenheit = this.temp_fahrenheit ? 0x04 : 0;
+        const sleep_mode = this.sleep_mode ? 0x01 : 0;
+        const boost_mode_1 = this.boost_mode ? 0x02 : 0;
+        // Byte 17 natural_wind
+        const natural_wind = this.natural_wind ? 0x40 : 0;
+        // Byte 21 frost_protect
+        const frost_protect = this.frost_protect ? 0x80 : 0;
+        // Byte 22 comfort_mode
+        const comfort_mode = this.comfort_mode ? 0x01 : 0;
+        // biome-ignore format: easier to read
+        return Buffer.from([
+            power | prompt_tone,
+            mode | target_temperature,
+            fan_speed,
+            0x00, 0x00, 0x00,
+            swing_mode,
+            boost_mode,
+            smart_eye | dry | aux_heating | eco_mode,
+            temp_fahrenheit | sleep_mode | boost_mode_1,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+            natural_wind,
+            0x00, 0x00, 0x00,
+            frost_protect,
+            comfort_mode,
+        ]);
+    }
+}
+export class MessageNewProtocolSet extends MessageACBase {
+    wind_swing_ud_angle;
+    wind_swing_lr_angle;
+    indirect_wind;
+    prompt_tone = false;
+    breezeless;
+    screen_display;
+    fresh_air_1;
+    fresh_air_2;
+    self_clean;
+    rate_select;
+    ion;
+    constructor(device_protocol_version) {
+        super(device_protocol_version, MessageType.SET, 0xb0);
+    }
+    get _body() {
+        let pack_count = 0;
+        let payload = Buffer.from([0x00]);
+        if (this.wind_swing_ud_angle !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_UD_ANGLE, Buffer.from([this.wind_swing_ud_angle]))]);
+        }
+        if (this.wind_swing_lr_angle !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.WIND_SWING_LR_ANGLE, Buffer.from([this.wind_swing_lr_angle]))]);
+        }
+        if (this.breezeless !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.BREEZELESS, Buffer.from([this.breezeless ? 0x01 : 0x00]))]);
+        }
+        if (this.indirect_wind !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.INDIRECT_WIND, Buffer.from([this.indirect_wind ? 0x02 : 0x01]))]);
+        }
+        if (this.screen_display !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.SCREEN_DISPLAY, Buffer.from([this.screen_display ? 0x64 : 0x00]))]);
+        }
+        if (this.fresh_air_1 !== undefined && this.fresh_air_1.length === 2) {
+            pack_count += 1;
+            const fresh_air_power = this.fresh_air_1[0] > 0 ? 2 : 1;
+            const fresh_air_fan_speed = this.fresh_air_1[1];
+            payload = Buffer.concat([
+                payload,
+                NewProtocolMessageBody.packet(NewProtocolTags.FRESH_AIR_1, 
+                // biome-ignore format: easier to read
+                Buffer.from([
+                    fresh_air_power,
+                    fresh_air_fan_speed,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00
+                ])),
+            ]);
+        }
+        if (this.fresh_air_2 !== undefined && this.fresh_air_2.length === 2) {
+            pack_count += 1;
+            const fresh_air_power = this.fresh_air_2[0] > 0 ? 1 : 0;
+            const fresh_air_fan_speed = this.fresh_air_2[1];
+            // biome-ignore format: easier to read
+            payload = Buffer.concat([
+                payload,
+                NewProtocolMessageBody.packet(NewProtocolTags.FRESH_AIR_2, Buffer.from([
+                    fresh_air_power,
+                    fresh_air_fan_speed,
+                    0xff
+                ]))
+            ]);
+        }
+        if (this.self_clean !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.SELF_CLEAN, Buffer.from([this.self_clean ? 0x01 : 0x00]))]);
+        }
+        if (this.rate_select !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.RATE_SELECT, Buffer.from([this.rate_select]))]);
+        }
+        if (this.ion !== undefined) {
+            pack_count += 1;
+            payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.ION, Buffer.from([this.ion ? 0x01 : 0x00]))]);
+        }
+        pack_count += 1;
+        payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.PROMPT_TONE, Buffer.from([this.prompt_tone ? 0x01 : 0x00]))]);
+        payload[0] = pack_count;
+        return payload;
+    }
+}
+class XA0MessageBody extends MessageBody {
+    power;
+    target_temperature;
+    mode;
+    fan_speed;
+    fan_auto;
+    swing_vertical;
+    swing_horizontal;
+    boost_mode;
+    smart_eye;
+    dry;
+    aux_heating;
+    eco_mode;
+    sleep_mode;
+    natural_wind;
+    full_dust;
+    comfort_mode;
+    constructor(body) {
+        super(body);
+        this.power = (body[1] & 0x1) > 0;
+        this.target_temperature = ((body[1] & 0x3e) >> 1) - 4 + 16.0 + ((body[1] & 0x40) > 0 ? 0.5 : 0.0);
+        this.mode = (body[2] & 0xe0) >> 5;
+        this.fan_speed = body[3] & 0x7f;
+        this.fan_auto = this.fan_speed > 100;
+        this.swing_vertical = (body[7] & 0xc) > 0;
+        this.swing_horizontal = (body[7] & 0x3) > 0;
+        this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
+        this.smart_eye = (body[9] & 0x01) > 0;
+        this.dry = (body[9] & 0x04) > 0;
+        this.aux_heating = (body[9] & 0x08) > 0;
+        this.eco_mode = (body[9] & 0x10) > 0;
+        this.sleep_mode = (body[10] & 0x01) > 0;
+        this.natural_wind = (body[10] & 0x40) > 0;
+        this.full_dust = (body[13] & 0x20) > 0;
+        this.comfort_mode = body.length > 16 ? (body[14] & 0x1) > 0 : false;
+    }
+}
+class XA1MessageBody extends MessageBody {
+    indoor_temperature;
+    outdoor_temperature;
+    indoor_humidity;
+    constructor(body) {
+        super(body);
+        if (body[13] !== 0xff) {
+            const temp_integer = ((body[13] - 50) / 2) | 0;
+            const temp_decimal = body.length > 20 ? (body[18] & 0xf) * 0.1 : 0;
+            if (body[13] > 49) {
+                this.indoor_temperature = temp_integer + temp_decimal;
+            }
+            else {
+                this.indoor_temperature = temp_integer - temp_decimal;
+            }
+        }
+        if (body[14] === 0xff) {
+            this.outdoor_temperature = undefined;
+        }
+        else {
+            const temp_integer = ((body[14] - 50) / 2) | 0;
+            const temp_decimal = body.length > 20 ? ((body[18] & 0xf0) >> 4) * 0.1 : 0;
+            if (body[14] > 49) {
+                this.outdoor_temperature = temp_integer + temp_decimal;
+            }
+            else {
+                this.outdoor_temperature = temp_integer - temp_decimal;
+            }
+        }
+        this.indoor_humidity = body[17];
+    }
+}
+class XBXMessageBody extends NewProtocolMessageBody {
+    wind_swing_lr_angle;
+    wind_swing_ud_angle;
+    indirect_wind;
+    indoor_humidity;
+    breezeless;
+    screen_display;
+    screen_display_new;
+    fresh_air_1;
+    fresh_air_2;
+    fresh_air_power;
+    fresh_air_fan_speed;
+    self_clean;
+    rate_select; // 50% 75% 100%
+    ion;
+    constructor(body, body_type) {
+        super(body, body_type);
+        const params = this.parse();
+        if (NewProtocolTags.WIND_SWING_LR_ANGLE in params) {
+            this.wind_swing_lr_angle = params[NewProtocolTags.WIND_SWING_LR_ANGLE][0];
+        }
+        if (NewProtocolTags.WIND_SWING_UD_ANGLE in params) {
+            this.wind_swing_ud_angle = params[NewProtocolTags.WIND_SWING_UD_ANGLE][0];
+        }
+        if (NewProtocolTags.INDIRECT_WIND in params) {
+            this.indirect_wind = params[NewProtocolTags.INDIRECT_WIND][0] === 0x02;
+        }
+        if (NewProtocolTags.INDOOR_HUMIDITY in params) {
+            this.indoor_humidity = params[NewProtocolTags.INDOOR_HUMIDITY][0];
+        }
+        if (NewProtocolTags.BREEZELESS in params) {
+            this.breezeless = params[NewProtocolTags.BREEZELESS][0] === 1;
+        }
+        if (NewProtocolTags.SCREEN_DISPLAY in params) {
+            this.screen_display = params[NewProtocolTags.SCREEN_DISPLAY][0] > 0;
+            this.screen_display_new = true;
+        }
+        if (NewProtocolTags.FRESH_AIR_1 in params) {
+            this.fresh_air_1 = true;
+            const data = params[NewProtocolTags.FRESH_AIR_1];
+            this.fresh_air_power = data[0] === 0x02;
+            this.fresh_air_fan_speed = data[1];
+        }
+        if (NewProtocolTags.FRESH_AIR_2 in params) {
+            this.fresh_air_2 = true;
+            const data = params[NewProtocolTags.FRESH_AIR_2];
+            this.fresh_air_power = data[0] > 0;
+            this.fresh_air_fan_speed = data[1];
+        }
+        if (NewProtocolTags.SELF_CLEAN in params) {
+            this.self_clean = params[NewProtocolTags.SELF_CLEAN][0] === 0x1;
+        }
+        if (NewProtocolTags.RATE_SELECT in params) {
+            this.rate_select = params[NewProtocolTags.RATE_SELECT][0];
+        }
+        if (NewProtocolTags.ION in params) {
+            this.ion = params[NewProtocolTags.ION][0] === 0x1;
+        }
+    }
+}
+class XC0MessageBody extends MessageBody {
+    power;
+    mode;
+    target_temperature;
+    fan_speed;
+    fan_auto;
+    swing_vertical;
+    swing_horizontal;
+    boost_mode;
+    smart_eye;
+    natural_wind;
+    dry;
+    eco_mode;
+    aux_heating;
+    temp_fahrenheit;
+    sleep_mode;
+    indoor_temperature;
+    outdoor_temperature;
+    full_dust;
+    screen_display;
+    frost_protect;
+    comfort_mode;
+    constructor(body) {
+        super(body);
+        this.power = (body[1] & 0x1) > 0;
+        this.mode = (body[2] & 0xe0) >> 5;
+        this.target_temperature = (body[2] & 0x0f) + 16.0 + ((body[2] & 0x10) > 0 ? 0.5 : 0.0);
+        this.fan_speed = body[3] & 0x7f;
+        this.fan_auto = this.fan_speed > 100;
+        this.swing_vertical = (body[7] & 0x0c) > 0;
+        this.swing_horizontal = (body[7] & 0x03) > 0;
+        this.boost_mode = (body[8] & 0x20) > 0 || (body[10] & 0x2) > 0;
+        this.smart_eye = (body[8] & 0x40) > 0;
+        this.natural_wind = (body[9] & 0x2) > 0;
+        this.dry = (body[9] & 0x4) > 0;
+        this.eco_mode = (body[9] & 0x10) > 0;
+        this.aux_heating = (body[9] & 0x08) > 0;
+        this.temp_fahrenheit = (body[10] & 0x04) > 0;
+        this.sleep_mode = (body[10] & 0x01) > 0;
+        if (body[11] !== 0xff) {
+            const temp_integer = ((body[11] - 50) / 2) | 0;
+            const temp_decimal = (body[15] & 0x0f) * 0.1;
+            if (body[11] > 49) {
+                this.indoor_temperature = temp_integer + temp_decimal;
+            }
+            else {
+                this.indoor_temperature = temp_integer - temp_decimal;
+            }
+        }
+        if (body[12] === 0xff) {
+            this.outdoor_temperature = undefined;
+        }
+        else {
+            const temp_integer = ((body[12] - 50) / 2) | 0;
+            const temp_decimal = ((body[15] & 0xf0) >> 4) * 0.1;
+            if (body[12] > 49) {
+                this.outdoor_temperature = temp_integer + temp_decimal;
+            }
+            else {
+                this.outdoor_temperature = temp_integer - temp_decimal;
+            }
+        }
+        this.full_dust = (body[13] & 0x20) > 0;
+        this.screen_display = (body[14] & 0x70) >> 4 !== 0x07;
+        this.frost_protect = body.length > 23 ? (body[21] & 0x80) > 0 : false;
+        this.comfort_mode = body.length > 24 ? (body[22] & 0x1) > 0 : false;
+    }
+}
+class XC1MessageBody extends MessageBody {
+    total_energy_consumption;
+    current_energy_consumption;
+    realtime_power;
+    constructor(body, analysis_method = 3) {
+        super(body);
+        if (body[3] === 0x44) {
+            this.total_energy_consumption = XC1MessageBody.parse_consumption(analysis_method, body[4], body[5], body[6], body[7]);
+            this.current_energy_consumption = XC1MessageBody.parse_consumption(analysis_method, body[12], body[13], body[14], body[15]);
+            this.realtime_power = XC1MessageBody.parse_power(analysis_method, body[16], body[17], body[18]);
+        }
+    }
+    static parse_power(analysis_method, byte1, byte2, byte3) {
+        if (analysis_method === 1) {
+            return byte1 + byte2 / 100 + byte3 / 10000;
+        }
+        if (analysis_method === 2) {
+            return ((byte1 << 16) + (byte2 << 8) + byte3) / 1000;
+        }
+        return (byte1 * 10000 + byte2 * 100 + byte3) / 10;
+    }
+    static parse_consumption(analysis_method, byte1, byte2, byte3, byte4) {
+        if (analysis_method === 1) {
+            return byte1 * 10000 + byte2 * 100 + byte3 + byte4 / 100;
+        }
+        if (analysis_method === 2) {
+            return ((byte1 << 32) + (byte2 << 16) + (byte3 << 8) + byte4) / 1000;
+        }
+        return (byte1 * 1000000 + byte2 * 10000 + byte3 * 100 + byte4) / 100;
+    }
+}
+class XBBMessageBody extends MessageBody {
+    power;
+    dry;
+    boost_mode;
+    aux_heating;
+    sleep_mode;
+    mode;
+    target_temperature;
+    fan_speed;
+    fan_auto;
+    timer;
+    eco_mode;
+    indoor_temperature;
+    indoor_humidity;
+    sn8_flag;
+    outdoor_temperature;
+    constructor(body) {
+        super(body);
+        const subprotocol_head = body.subarray(0, 6);
+        const subprotocol_body = body.subarray(6, body.length);
+        const data_type = subprotocol_head[subprotocol_head.length - 1];
+        const subprotocol_body_len = subprotocol_body.length;
+        if (data_type === 0x20 || data_type === 0x11) {
+            this.power = (subprotocol_body[0] & 0x1) > 0;
+            this.dry = (subprotocol_body[0] & 0x10) > 0;
+            this.boost_mode = (subprotocol_body[0] & 0x20) > 0;
+            this.aux_heating = (subprotocol_body[1] & 0x40) > 0;
+            this.sleep_mode = (subprotocol_body[2] & 0x80) > 0;
+            this.mode = BB_AC_MODES.indexOf(subprotocol_body[5] + 1);
+            if (this.mode === -1) {
+                this.mode = 0;
+            }
+            this.target_temperature = (subprotocol_body[6] - 30) / 2;
+            this.fan_speed = subprotocol_body[7];
+            this.fan_auto = this.fan_speed > 100;
+            this.timer = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x04) > 0 : false;
+            this.eco_mode = subprotocol_body_len > 27 ? (subprotocol_body[25] & 0x40) > 0 : false;
+        }
+        else if (data_type === 0x10) {
+            if ((subprotocol_body[8] & 0x80) === 0x80) {
+                this.indoor_temperature = ((0 - (~(subprotocol_body[7] + subprotocol_body[8] * 256) + 1)) & 0xffff) / 100;
+            }
+            else {
+                this.indoor_temperature = (subprotocol_body[7] + subprotocol_body[8] * 256) / 100;
+            }
+            this.indoor_humidity = subprotocol_body[30];
+            this.sn8_flag = subprotocol_body[80] === 0x31;
+        }
+        else if (data_type === 0x30) {
+            if ((subprotocol_body[6] & 0x80) === 0x80) {
+                this.outdoor_temperature = ((0 - (~(subprotocol_body[5] + subprotocol_body[6] * 256) + 1)) & 0xffff) / 100;
+            }
+            else {
+                this.outdoor_temperature = (subprotocol_body[5] + subprotocol_body[6] * 256) / 100;
+            }
+        }
+    }
+}
+export class MessageACResponse extends MessageResponse {
+    message;
+    used_subprotocol;
+    constructor(message, power_analysis_method = 3) {
+        super(message);
+        this.message = message;
+        if (this.message_type === MessageType.NOTIFY2 && this.body_type === 0xa0) {
+            this.set_body(new XA0MessageBody(this.body));
+        }
+        else if (this.message_type === MessageType.NOTIFY1 && this.body_type === 0xa1) {
+            this.set_body(new XA1MessageBody(this.body));
+        }
+        else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) && [0xb0, 0xb1, 0xb5].includes(this.body_type)) {
+            this.set_body(new XBXMessageBody(this.body, this.body_type));
+        }
+        else if ([MessageType.QUERY, MessageType.SET].includes(this.message_type) && this.body_type === 0xc0) {
+            this.set_body(new XC0MessageBody(this.body));
+        }
+        else if (this.message_type === MessageType.QUERY && this.body_type === 0xc1) {
+            this.set_body(new XC1MessageBody(this.body, power_analysis_method));
+        }
+        else if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type) && this.body_type === 0xbb && this.body.length >= 21) {
+            this.used_subprotocol = true;
+            this.set_body(new XBBMessageBody(this.body));
+        }
+    }
+}
+//# sourceMappingURL=MideaACMessage.js.map

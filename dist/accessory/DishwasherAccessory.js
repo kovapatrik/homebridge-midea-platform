@@ -1,0 +1,58 @@
+import BaseAccessory from './BaseAccessory.js';
+export default class DishwasherAccessory extends BaseAccessory {
+    device;
+    configDev;
+    service;
+    /*********************************************************************
+     * Constructor registers all the service types with Homebridge, registers
+     * a callback function with the MideaDevice class, and requests device status.
+     */
+    constructor(platform, accessory, device, configDev) {
+        super(platform, accessory, device, configDev);
+        this.device = device;
+        this.configDev = configDev;
+        this.service = this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve);
+        this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.InUse).onGet(this.getInUse.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.ValveType).onGet(() => this.platform.Characteristic.ValveType.GENERIC_VALVE);
+        this.service
+            .getCharacteristic(this.platform.Characteristic.RemainingDuration)
+            .setProps({ minValue: 0, maxValue: 60 * 60 * 8, minStep: 1 })
+            .onGet(this.getRemainingDuration.bind(this));
+    }
+    async updateCharacteristics(attributes) {
+        let updateState = false;
+        for (const [k, v] of Object.entries(attributes)) {
+            this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
+            switch (k) {
+                case 'power':
+                    updateState = true;
+                    break;
+                case 'mode':
+                    updateState = true;
+                    break;
+                default:
+                    this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+                    break;
+            }
+        }
+        if (updateState) {
+            this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+            this.service.updateCharacteristic(this.platform.Characteristic.InUse, this.getInUse());
+            this.service.updateCharacteristic(this.platform.Characteristic.RemainingDuration, this.getRemainingDuration());
+        }
+    }
+    getActive() {
+        return this.device.attributes.POWER ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
+    }
+    async setActive(value) {
+        await this.device.set_attribute({ POWER: value === this.platform.Characteristic.Active.ACTIVE });
+    }
+    getInUse() {
+        return this.device.attributes.START ? this.platform.Characteristic.InUse.IN_USE : this.platform.Characteristic.InUse.NOT_IN_USE;
+    }
+    getRemainingDuration() {
+        return (this.device.attributes.TIME_REMAINING ?? 0) * 60; // in seconds
+    }
+}
+//# sourceMappingURL=DishwasherAccessory.js.map
