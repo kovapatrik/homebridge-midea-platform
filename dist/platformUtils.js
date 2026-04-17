@@ -31,6 +31,11 @@ export var ACMode;
     ACMode[ACMode["HEATING"] = 4] = "HEATING";
     ACMode[ACMode["FAN_ONLY"] = 5] = "FAN_ONLY";
 })(ACMode || (ACMode = {}));
+export var ACServiceType;
+(function (ACServiceType) {
+    ACServiceType["HEATER_COOLER"] = "HeaterCooler";
+    ACServiceType["THERMOSTAT"] = "Thermostat";
+})(ACServiceType || (ACServiceType = {}));
 export const defaultDeviceConfig = {
     id: 0,
     type: '',
@@ -44,6 +49,7 @@ export const defaultDeviceConfig = {
         registerIfOffline: false,
     },
     AC_options: {
+        serviceType: ACServiceType.HEATER_COOLER,
         swing: {
             mode: SwingMode.NONE,
             angleAccessory: false,

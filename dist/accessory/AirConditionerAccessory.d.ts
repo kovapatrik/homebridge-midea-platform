@@ -38,6 +38,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     private swingAngleMainControl;
     private heatingThresholdTemperature;
     private coolingThresholdTemperature;
+    private readonly useThermostat;
     /*********************************************************************
      * Constructor registers all the service types with Homebridge, registers
      * a callback function with the MideaDevice class, and requests device status.
@@ -55,6 +56,12 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
      */
     getActive(): CharacteristicValue;
     setActive(value: CharacteristicValue): Promise<void>;
+    /*********************************************************************
+     * Thermostat service methods
+     */
+    getThermostatCurrentState(): CharacteristicValue;
+    getThermostatTargetState(): CharacteristicValue;
+    setThermostatTargetState(value: CharacteristicValue): Promise<void>;
     getTemperatureDisplayUnits(): CharacteristicValue;
     setTemperatureDisplayUnits(value: CharacteristicValue): Promise<void>;
     getCurrentHeaterCoolerState(): CharacteristicValue;

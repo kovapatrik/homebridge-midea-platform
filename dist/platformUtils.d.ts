@@ -53,7 +53,12 @@ export declare enum ACMode {
     HEATING = 4,
     FAN_ONLY = 5
 }
+export declare enum ACServiceType {
+    HEATER_COOLER = "HeaterCooler",
+    THERMOSTAT = "Thermostat"
+}
 type ACOptions = {
+    serviceType: ACServiceType;
     swing: {
         mode: SwingMode;
         angleAccessory: boolean;

@@ -1,4 +1,4 @@
-import { ACMode, SwingAngle, SwingMode } from '../platformUtils.js';
+import { ACMode, ACServiceType, SwingAngle, SwingMode } from '../platformUtils.js';
 import BaseAccessory, { limitValue } from './BaseAccessory.js';
 const outDoorTemperatureSubtype = 'outdoor';
 const displaySubtype = 'display';
@@ -41,6 +41,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
     swingAngleMainControl;
     heatingThresholdTemperature;
     coolingThresholdTemperature;
+    useThermostat;
     /*********************************************************************
      * Constructor registers all the service types with Homebridge, registers
      * a callback function with the MideaDevice class, and requests device status.
@@ -49,50 +50,102 @@ export default class AirConditionerAccessory extends BaseAccessory {
         super(platform, accessory, device, configDev);
         this.device = device;
         this.configDev = configDev;
-        this.service = this.accessory.getService(this.platform.Service.HeaterCooler) || this.accessory.addService(this.platform.Service.HeaterCooler);
-        this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
-        this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
-        this.service
-            .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
-            .onGet(this.getTemperatureDisplayUnits.bind(this))
-            .onSet(this.setTemperatureDisplayUnits.bind(this));
-        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(this.getCurrentHeaterCoolerState.bind(this));
-        this.service
-            .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
-            .onGet(this.getTargetHeaterCoolerState.bind(this))
-            .onSet(this.setTargetHeaterCoolerState.bind(this))
-            .setProps({
-            validValues: this.configDev.AC_options.heatingCapable
-                ? [
-                    this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
-                    this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
-                    this.platform.Characteristic.TargetHeaterCoolerState.COOL,
-                ]
-                : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
-        });
-        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
-        this.service
-            .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
-            .onGet(this.getCoolingThresholdTemperature.bind(this))
-            .onSet(this.setCoolingThresholdTemperature.bind(this))
-            .setProps({
-            minValue: this.configDev.AC_options.minTemp,
-            maxValue: this.configDev.AC_options.maxTemp,
-            minStep: this.configDev.AC_options.tempStep,
-        });
-        this.service
-            .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
-            .onGet(this.getHeatingThresholdTemperature.bind(this))
-            .onSet(this.setHeatingThresholdTemperature.bind(this))
-            .setProps({
-            minValue: this.configDev.AC_options.minTemp,
-            maxValue: this.configDev.AC_options.maxTemp,
-            minStep: this.configDev.AC_options.tempStep,
-        });
-        this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onGet(this.getRotationSpeed.bind(this)).onSet(this.setRotationSpeed.bind(this));
-        // Swing modes
-        if (this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
-            this.service.getCharacteristic(this.platform.Characteristic.SwingMode).onGet(this.getSwingMode.bind(this)).onSet(this.setSwingMode.bind(this));
+        this.useThermostat = this.configDev.AC_options.serviceType === ACServiceType.THERMOSTAT;
+        if (this.useThermostat) {
+            // Remove HeaterCooler service if switching from it
+            const oldHeaterCooler = this.accessory.getService(this.platform.Service.HeaterCooler);
+            if (oldHeaterCooler) {
+                this.accessory.removeService(oldHeaterCooler);
+            }
+            this.service = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
+            this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
+            this.service
+                .getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
+                .onGet(this.getThermostatCurrentState.bind(this));
+            this.service
+                .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
+                .onGet(this.getThermostatTargetState.bind(this))
+                .onSet(this.setThermostatTargetState.bind(this))
+                .setProps({
+                validValues: this.configDev.AC_options.heatingCapable
+                    ? [
+                        this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+                        this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
+                        this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+                        this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+                    ]
+                    : [
+                        this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+                        this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+                        this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+                    ],
+            });
+            this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
+            this.service
+                .getCharacteristic(this.platform.Characteristic.TargetTemperature)
+                .onGet(this.getTargetTemperature.bind(this))
+                .onSet(this.setTargetTemperature.bind(this))
+                .setProps({
+                minValue: this.configDev.AC_options.minTemp,
+                maxValue: this.configDev.AC_options.maxTemp,
+                minStep: this.configDev.AC_options.tempStep,
+            });
+            this.service
+                .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+                .onGet(this.getTemperatureDisplayUnits.bind(this))
+                .onSet(this.setTemperatureDisplayUnits.bind(this));
+        }
+        else {
+            // Remove Thermostat service if switching from it
+            const oldThermostat = this.accessory.getService(this.platform.Service.Thermostat);
+            if (oldThermostat) {
+                this.accessory.removeService(oldThermostat);
+            }
+            this.service = this.accessory.getService(this.platform.Service.HeaterCooler) || this.accessory.addService(this.platform.Service.HeaterCooler);
+            this.service.setCharacteristic(this.platform.Characteristic.Name, this.device.name);
+            this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
+            this.service
+                .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+                .onGet(this.getTemperatureDisplayUnits.bind(this))
+                .onSet(this.setTemperatureDisplayUnits.bind(this));
+            this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(this.getCurrentHeaterCoolerState.bind(this));
+            this.service
+                .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
+                .onGet(this.getTargetHeaterCoolerState.bind(this))
+                .onSet(this.setTargetHeaterCoolerState.bind(this))
+                .setProps({
+                validValues: this.configDev.AC_options.heatingCapable
+                    ? [
+                        this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
+                        this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
+                        this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+                    ]
+                    : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
+            });
+            this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
+            this.service
+                .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
+                .onGet(this.getCoolingThresholdTemperature.bind(this))
+                .onSet(this.setCoolingThresholdTemperature.bind(this))
+                .setProps({
+                minValue: this.configDev.AC_options.minTemp,
+                maxValue: this.configDev.AC_options.maxTemp,
+                minStep: this.configDev.AC_options.tempStep,
+            });
+            this.service
+                .getCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature)
+                .onGet(this.getHeatingThresholdTemperature.bind(this))
+                .onSet(this.setHeatingThresholdTemperature.bind(this))
+                .setProps({
+                minValue: this.configDev.AC_options.minTemp,
+                maxValue: this.configDev.AC_options.maxTemp,
+                minStep: this.configDev.AC_options.tempStep,
+            });
+            this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onGet(this.getRotationSpeed.bind(this)).onSet(this.setRotationSpeed.bind(this));
+            // Swing modes (HeaterCooler only — Thermostat uses the fan accessory for swing)
+            if (this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
+                this.service.getCharacteristic(this.platform.Characteristic.SwingMode).onGet(this.getSwingMode.bind(this)).onSet(this.setSwingMode.bind(this));
+            }
         }
         // Outdoor temperature sensor
         this.outDoorTemperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, outDoorTemperatureSubtype);
@@ -335,6 +388,10 @@ export default class AirConditionerAccessory extends BaseAccessory {
             let updateState = false;
             switch (k.toLowerCase()) {
                 case 'power':
+                    if (this.useThermostat) {
+                        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, this.getThermostatCurrentState());
+                        this.service.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, this.getThermostatTargetState());
+                    }
                     updateState = true;
                     break;
                 case 'temp_fahrenheit':
@@ -346,20 +403,25 @@ export default class AirConditionerAccessory extends BaseAccessory {
                     break;
                 case 'target_temperature': {
                     const target = Number(this.getTargetTemperature());
-                    /**
-                     * If the device is heating, we map the target temperature to the heating threshold, if cooling we map to the cooling
-                     * threshold and otherwise we assume an auto mode and only adjust the thresholds if the target value is outside their
-                     * range. This should only happen if the temperature is changed outside of HomeKit and in this case we collapse the
-                     * range to the target temperature set by the user.
-                     */
-                    if (this.device.attributes.MODE === ACMode.HEATING) {
-                        this.setHeatingCoolingTemperatureThresholds({ heating: target });
+                    if (this.useThermostat) {
+                        this.service.updateCharacteristic(this.platform.Characteristic.TargetTemperature, target);
                     }
-                    else if (this.device.attributes.MODE === ACMode.COOLING) {
-                        this.setHeatingCoolingTemperatureThresholds({ cooling: target });
-                    }
-                    else if (target < this.heatingThresholdTemperature || target > this.coolingThresholdTemperature) {
-                        this.setHeatingCoolingTemperatureThresholds({ heating: target, cooling: target });
+                    else {
+                        /**
+                         * If the device is heating, we map the target temperature to the heating threshold, if cooling we map to the cooling
+                         * threshold and otherwise we assume an auto mode and only adjust the thresholds if the target value is outside their
+                         * range. This should only happen if the temperature is changed outside of HomeKit and in this case we collapse the
+                         * range to the target temperature set by the user.
+                         */
+                        if (this.device.attributes.MODE === ACMode.HEATING) {
+                            this.setHeatingCoolingTemperatureThresholds({ heating: target });
+                        }
+                        else if (this.device.attributes.MODE === ACMode.COOLING) {
+                            this.setHeatingCoolingTemperatureThresholds({ cooling: target });
+                        }
+                        else if (target < this.heatingThresholdTemperature || target > this.coolingThresholdTemperature) {
+                            this.setHeatingCoolingTemperatureThresholds({ heating: target, cooling: target });
+                        }
                     }
                     updateState = true;
                     break;
@@ -368,7 +430,7 @@ export default class AirConditionerAccessory extends BaseAccessory {
                     const temperature = this.getCurrentTemperature();
                     this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, temperature);
                     this.temperatureSensorService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, temperature);
-                    if (this.device.attributes.POWER && this.device.attributes.MODE === ACMode.AUTO) {
+                    if (!this.useThermostat && this.device.attributes.POWER && this.device.attributes.MODE === ACMode.AUTO) {
                         await this.withoutPromptTone(this.setTargetTemperatureWithinThresholds.bind(this));
                         updateState = true;
                     }
@@ -388,6 +450,10 @@ export default class AirConditionerAccessory extends BaseAccessory {
                     this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
                     break;
                 case 'mode':
+                    if (this.useThermostat) {
+                        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, this.getThermostatCurrentState());
+                        this.service.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, this.getThermostatTargetState());
+                    }
                     updateState = true;
                     break;
                 case 'eco_mode':
@@ -427,10 +493,16 @@ export default class AirConditionerAccessory extends BaseAccessory {
                     this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
             }
             if (updateState) {
-                this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
-                this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
-                this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
-                this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+                if (this.useThermostat) {
+                    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState, this.getThermostatCurrentState());
+                    this.service.updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, this.getThermostatTargetState());
+                }
+                else {
+                    this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+                    this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
+                    this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+                    this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
+                }
                 this.fanOnlyService?.updateCharacteristic(this.platform.Characteristic.On, this.getFanOnlyMode());
                 this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
                 this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
@@ -455,6 +527,61 @@ export default class AirConditionerAccessory extends BaseAccessory {
         await this.device.set_attribute({ POWER: !!value });
         this.device.attributes.SCREEN_DISPLAY = !!value;
         this.displayService?.updateCharacteristic(this.platform.Characteristic.On, !!value);
+    }
+    /*********************************************************************
+     * Thermostat service methods
+     */
+    getThermostatCurrentState() {
+        const { CurrentHeatingCoolingState } = this.platform.Characteristic;
+        if (!this.device.attributes.POWER) {
+            return CurrentHeatingCoolingState.OFF;
+        }
+        const currentTemp = Number(this.getCurrentTemperature());
+        const targetTemp = Number(this.getTargetTemperature());
+        if ([ACMode.COOLING, ACMode.AUTO, ACMode.DRY].includes(this.device.attributes.MODE)) {
+            if (currentTemp > targetTemp) {
+                return CurrentHeatingCoolingState.COOL;
+            }
+        }
+        if ([ACMode.HEATING].includes(this.device.attributes.MODE) && this.configDev.AC_options.heatingCapable) {
+            if (currentTemp < targetTemp) {
+                return CurrentHeatingCoolingState.HEAT;
+            }
+        }
+        return CurrentHeatingCoolingState.OFF;
+    }
+    getThermostatTargetState() {
+        const { TargetHeatingCoolingState } = this.platform.Characteristic;
+        if (!this.device.attributes.POWER) {
+            return TargetHeatingCoolingState.OFF;
+        }
+        switch (this.device.attributes.MODE) {
+            case ACMode.COOLING:
+                return TargetHeatingCoolingState.COOL;
+            case ACMode.HEATING:
+                return TargetHeatingCoolingState.HEAT;
+            case ACMode.AUTO:
+                return TargetHeatingCoolingState.AUTO;
+            default:
+                return TargetHeatingCoolingState.AUTO;
+        }
+    }
+    async setThermostatTargetState(value) {
+        const { TargetHeatingCoolingState } = this.platform.Characteristic;
+        switch (value) {
+            case TargetHeatingCoolingState.OFF:
+                await this.device.set_attribute({ POWER: false });
+                break;
+            case TargetHeatingCoolingState.COOL:
+                await this.device.set_attribute({ POWER: true, MODE: ACMode.COOLING });
+                break;
+            case TargetHeatingCoolingState.HEAT:
+                await this.device.set_attribute({ POWER: true, MODE: ACMode.HEATING });
+                break;
+            case TargetHeatingCoolingState.AUTO:
+                await this.device.set_attribute({ POWER: true, MODE: ACMode.AUTO });
+                break;
+        }
     }
     getTemperatureDisplayUnits() {
         return this.device.attributes.TEMP_FAHRENHEIT

@@ -64,8 +64,14 @@ export enum ACMode {
   HEATING = 4,
   FAN_ONLY = 5,
 }
+ 
+export enum ACServiceType {
+  HEATER_COOLER = 'HeaterCooler',
+  THERMOSTAT = 'Thermostat',
+}
 
 type ACOptions = {
+  serviceType: ACServiceType;
   swing: {
     mode: SwingMode;
     angleAccessory: boolean;
@@ -180,6 +186,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     registerIfOffline: false,
   },
   AC_options: {
+    serviceType: ACServiceType.HEATER_COOLER,
     swing: {
       mode: SwingMode.NONE,
       angleAccessory: false,
