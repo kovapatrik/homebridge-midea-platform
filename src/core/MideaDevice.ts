@@ -35,6 +35,7 @@ export default abstract class MideaDevice extends EventEmitter {
 
   protected is_running = false;
   protected available = false;
+  private _authenticated = false;
 
   private unsupported_protocol: string[] = [];
   protected device_protocol_version = 0;
@@ -132,47 +133,55 @@ export default abstract class MideaDevice extends EventEmitter {
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
       }
-      let retries = 0;
       if (refresh_status) {
         let success = await this.refresh_status(true);
+        let retries = 0;
         while (!success && retries++ < 3) {
           success = await this.refresh_status(true, true);
         }
-      }
-      if (retries > 3) {
-        this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}): Refresh status failed.`);
-        return false;
+        if (!success) {
+          this.logger.warn(`[${this.name}] Refresh status failed after ${retries} retries, device state may be stale.`);
+        }
       }
       // Start listening for network traffic
       this.open();
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
-      this.logger.debug(`[${this.name}] Error when connecting to device ${this.name} (${this.ip}:${this.port}):\n${msg}`);
-      // Even though error thrown, it is probably because device is offline.  Start listening anyway.
-      this.open();
-      return true;
+      this.logger.error(`[${this.name}] Failed to connect to device (${this.ip}:${this.port}):\n${msg}`);
+      // Do NOT start the run loop with a broken connection — clean up instead
+      this.close_socket();
+      return false;
     }
   }
 
   private async authenticate() {
     if (!(this.token && this.key)) {
+      this._authenticated = false;
       throw new Error('Token or key is missing!');
     }
-
-    const request = this.security.encode_8370(this.token, TCPMessageType.HANDSHAKE_REQUEST);
-    await this.promiseSocket.write(request);
-    const response = await this.promiseSocket.read();
-
-    if (response) {
-      if (response.length < 20) {
-        throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
+ 
+    try {
+      const request = this.security.encode_8370(this.token, TCPMessageType.HANDSHAKE_REQUEST);
+      await this.promiseSocket.write(request);
+      const response = await this.promiseSocket.read();
+ 
+      if (response) {
+        if (response.length < 20) {
+          this._authenticated = false;
+          throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}. (Data length mismatch)`);
+        }
+        const resp = response.subarray(8, 72);
+        this.security.tcp_key_from_resp(resp, this.key);
+        this._authenticated = true;
+        this.logger.info(`[${this.name}] Authentication success.`);
+      } else {
+        this._authenticated = false;
+        throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
       }
-      const resp = response.subarray(8, 72);
-      this.security.tcp_key_from_resp(resp, this.key);
-      this.logger.debug(`[${this.name}] Authentication success.`);
-    } else {
-      throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
+    } catch (err) {
+      this._authenticated = false;
+      throw err;
     }
   }
 
@@ -207,6 +216,10 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   private async send_message_v3(data: Buffer, message_type: TCPMessageType = TCPMessageType.ENCRYPTED_REQUEST) {
+    if (!this._authenticated) {
+      this.logger.warn(`[${this.name}] Cannot send V3 message — not authenticated. Dropping message.`);
+      return;
+    }
     const encrypted_data = this.security.encode_8370(data, message_type);
     await this.send_message_v2(encrypted_data);
   }
@@ -394,6 +407,7 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   private close_socket() {
+    this._authenticated = false;
     this.unsupported_protocol = [];
     this.buffer = Buffer.alloc(0);
     if (this.promiseSocket) {
@@ -409,14 +423,33 @@ export default abstract class MideaDevice extends EventEmitter {
   private async run() {
     this.logger.info(`[${this.name}] Starting network listener.`);
     while (this.is_running) {
-      while (this.promiseSocket.destroyed) {
+      while (this.promiseSocket.destroyed && this.is_running) {
         if (this.logRecoverableErrors) {
           this.logger.info(`[${this.name}] Create new socket, reconnect`);
         } else {
           this.logger.debug(`[${this.name}] Create new socket, reconnect`);
         }
         this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
-        await this.connect(true); // need to refresh_status on connect as we reset start time below.
+        // Reconnect inline — do NOT call this.connect() which would call this.open()
+        try {
+          await this.promiseSocket.connect(this.port, this.ip);
+          this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
+          if (this.version === ProtocolVersion.V3) {
+            await this.authenticate();
+          }
+          // Refresh status after successful reconnect
+          await this.refresh_status(true, true);
+          this.logger.info(`[${this.name}] Reconnected successfully.`);
+          break; // Exit reconnect loop
+        } catch (err) {
+          const msg = err instanceof Error ? err.stack : err;
+          this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
+          this._authenticated = false;
+          if (this.promiseSocket) {
+            this.promiseSocket.destroy();
+          }
+          this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
+        }
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
       }
