@@ -433,7 +433,7 @@ export default abstract class MideaDevice extends EventEmitter {
             await this.authenticate();
           }
           // Refresh status after successful reconnect
-          await this.refresh_status(true, true);
+          await this.refresh_status(false);
           this.logger.info(`[${this.name}] Reconnected successfully.`);
           break; // Exit reconnect loop
         } catch (err) {
