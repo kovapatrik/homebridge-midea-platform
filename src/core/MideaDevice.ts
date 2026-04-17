@@ -175,6 +175,8 @@ export default abstract class MideaDevice extends EventEmitter {
         this.security.tcp_key_from_resp(resp, this.key);
         this._authenticated = true;
         this.logger.info(`[${this.name}] Authentication success.`);
+        // Brief delay before sending queries — device needs time after handshake
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       } else {
         this._authenticated = false;
         throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
