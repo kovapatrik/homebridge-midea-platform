@@ -590,17 +590,23 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       await this.setTargetTemperature(this.getHeatingThresholdTemperature());
       return;
     }
-
+ 
+    // For cooling-only units in AUTO mode, treat like COOL — just use cooling threshold
+    if (!this.configDev.AC_options.heatingCapable) {
+      await this.setTargetTemperature(this.getCoolingThresholdTemperature());
+      return;
+    }
+ 
     if (this.getCurrentTemperature() > this.getCoolingThresholdTemperature()) {
       await this.setTargetTemperature(this.getCoolingThresholdTemperature());
       return;
     }
-
+ 
     if (this.getCurrentTemperature() < this.getHeatingThresholdTemperature()) {
       await this.setTargetTemperature(this.getHeatingThresholdTemperature());
       return;
     }
-
+ 
     await this.setTargetTemperature(this.getCurrentTemperature());
   }
 
