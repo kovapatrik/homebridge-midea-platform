@@ -1,0 +1,253 @@
+/***********************************************************************
+ * Midea Heat Pump WiFi Controller Device class
+ *
+ * Copyright (c) 2024 Kovalovszky Patrik, https://github.com/kovapatrik
+ *
+ * With thanks to https://github.com/georgezhao2010/midea_ac_lan and
+                  https://github.com/midea-lan/midea-local
+ *
+ */
+import MideaDevice from '../../core/MideaDevice.js';
+import { MessageC3Response, MessageQueryBasic, MessageQueryDisinfect, MessageQueryECO, MessageQueryHMIPara, MessageQueryInstall, MessageQuerySilence, MessageQueryUnitPara, MessageSet, MessageSetDisinfect, MessageSetECO, MessageSetSilent, } from './MideaC3Message.js';
+export default class MideaC3Device extends MideaDevice {
+    attributes;
+    /*********************************************************************
+     * Constructor initializes all the attributes.  We set some to invalid
+     * values so that they are detected as "changed" on the first status
+     * refresh... and passed back to the Homebridge/HomeKit accessory callback
+     * function to set their initial values.
+     */
+    constructor(logger, device_info, config, deviceConfig) {
+        super(logger, device_info, config, deviceConfig);
+        this.attributes = {
+            ZONE1_POWER: false,
+            ZONE2_POWER: false,
+            DHW_POWER: false,
+            ZONE1_CURVE: false,
+            ZONE2_CURVE: false,
+            FAST_DHW: false,
+            ZONE_TEMPERATURE_TYPE: [false, false],
+            ZONE1_ROOM_TEMPERATURE_MODE: false,
+            ZONE2_ROOM_TEMPERATURE_MODE: false,
+            ZONE1_WATER_TEMPERATURE_MODE: false,
+            ZONE2_WATER_TEMPERATURE_MODE: false,
+            MODE: 0,
+            MODE_AUTO: 0,
+            ZONE_TARGET_TEMPERATURE: [25, 25],
+            DHW_TARGET_TEMPERATURE: 25,
+            ROOM_TARGET_TEMPERATURE: 30,
+            ZONE_HEATING_TEMPERATURE_MAX: [55, 55],
+            ZONE_HEATING_TEMPERATURE_MIN: [25, 25],
+            ZONE_COOLING_TEMPERATURE_MAX: [25, 25],
+            ZONE_COOLING_TEMPERATURE_MIN: [5, 5],
+            TANK_ACTUAL_TEMPERATURE: undefined,
+            ROOM_TEMPERATURE_MAX: 60,
+            ROOM_TEMPERATURE_MIN: 34,
+            DHW_TEMPERATURE_MAX: 60,
+            DHW_TEMPERATURE_MIN: 20,
+            TARGET_TEMPERATURE: [25, 25],
+            TEMPERATURE_MAX: [0, 0],
+            TEMPERATURE_MIN: [0, 0],
+            STATUS_HEATING: undefined,
+            STATUS_DHW: undefined,
+            STATUS_TBH: undefined,
+            STATUS_IBH: undefined,
+            TOTAL_ENERGY_CONSUMPTION: undefined,
+            TOTAL_PRODUCED_ENERGY: undefined,
+            OUTDOOR_TEMPERATURE: undefined,
+            SILENT_MODE: false,
+            ECO_MODE: false,
+            TBH: false,
+            ERROR_CODE: 0,
+            TEMP_TA: undefined,
+        };
+    }
+    build_query() {
+        return [
+            new MessageQueryBasic(this.device_protocol_version),
+            new MessageQuerySilence(this.device_protocol_version),
+            new MessageQueryECO(this.device_protocol_version),
+            new MessageQueryInstall(this.device_protocol_version),
+            new MessageQueryDisinfect(this.device_protocol_version),
+            new MessageQueryUnitPara(this.device_protocol_version),
+            new MessageQueryHMIPara(this.device_protocol_version),
+        ];
+    }
+    process_message(msg) {
+        const message = new MessageC3Response(msg);
+        if (this.verbose) {
+            this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
+        }
+        const changed = {};
+        for (const status of Object.keys(this.attributes)) {
+            const value = message.get_body_attribute(status.toLowerCase());
+            if (value !== undefined) {
+                if (this.attributes[status] !== value) {
+                    // Track only those attributes that change value.  So when we send to the Homebridge /
+                    // HomeKit accessory we only update values that change.  First time through this
+                    // should be most/all attributes having initialized them to invalid values.
+                    this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
+                    changed[status] = value;
+                }
+                this.attributes[status] = value;
+            }
+        }
+        if (Object.keys(changed).includes('ZONE_TEMPERATURE_TYPE')) {
+            for (const zone of [0, 1]) {
+                if (this.attributes.ZONE_TEMPERATURE_TYPE[zone]) {
+                    // water temperature mode
+                    this.attributes.TARGET_TEMPERATURE[zone] = this.attributes.ZONE_TARGET_TEMPERATURE[zone];
+                    if (this.attributes.MODE_AUTO === 2) {
+                        // cooling mode
+                        this.attributes.TEMPERATURE_MAX[zone] = this.attributes.ZONE_COOLING_TEMPERATURE_MAX[zone];
+                        this.attributes.TEMPERATURE_MIN[zone] = this.attributes.ZONE_COOLING_TEMPERATURE_MIN[zone];
+                    }
+                    else if (this.attributes.MODE_AUTO === 3) {
+                        // heating mode
+                        this.attributes.TEMPERATURE_MAX[zone] = this.attributes.ZONE_HEATING_TEMPERATURE_MAX[zone];
+                        this.attributes.TEMPERATURE_MIN[zone] = this.attributes.ZONE_HEATING_TEMPERATURE_MIN[zone];
+                    }
+                }
+                else {
+                    // room temperature mode
+                    this.attributes.TARGET_TEMPERATURE[zone] = this.attributes.ROOM_TARGET_TEMPERATURE;
+                    this.attributes.TEMPERATURE_MAX[zone] = this.attributes.ROOM_TEMPERATURE_MAX;
+                    this.attributes.TEMPERATURE_MIN[zone] = this.attributes.ROOM_TEMPERATURE_MIN;
+                }
+            }
+            if (this.attributes.ZONE1_POWER) {
+                if (this.attributes.ZONE_TEMPERATURE_TYPE[0]) {
+                    this.attributes.ZONE1_WATER_TEMPERATURE_MODE = true;
+                    this.attributes.ZONE1_ROOM_TEMPERATURE_MODE = false;
+                }
+                else {
+                    this.attributes.ZONE1_WATER_TEMPERATURE_MODE = false;
+                    this.attributes.ZONE1_ROOM_TEMPERATURE_MODE = true;
+                }
+            }
+            else {
+                this.attributes.ZONE1_WATER_TEMPERATURE_MODE = false;
+                this.attributes.ZONE1_ROOM_TEMPERATURE_MODE = false;
+            }
+            if (this.attributes.ZONE2_POWER) {
+                if (this.attributes.ZONE_TEMPERATURE_TYPE[1]) {
+                    this.attributes.ZONE2_WATER_TEMPERATURE_MODE = true;
+                    this.attributes.ZONE2_ROOM_TEMPERATURE_MODE = false;
+                }
+                else {
+                    this.attributes.ZONE2_WATER_TEMPERATURE_MODE = false;
+                    this.attributes.ZONE2_ROOM_TEMPERATURE_MODE = true;
+                }
+            }
+            else {
+                this.attributes.ZONE2_WATER_TEMPERATURE_MODE = false;
+                this.attributes.ZONE2_ROOM_TEMPERATURE_MODE = false;
+            }
+            changed.ZONE1_WATER_TEMPERATURE_MODE = this.attributes.ZONE1_WATER_TEMPERATURE_MODE;
+            changed.ZONE1_ROOM_TEMPERATURE_MODE = this.attributes.ZONE1_ROOM_TEMPERATURE_MODE;
+            changed.ZONE2_WATER_TEMPERATURE_MODE = this.attributes.ZONE2_WATER_TEMPERATURE_MODE;
+            changed.ZONE2_ROOM_TEMPERATURE_MODE = this.attributes.ZONE2_ROOM_TEMPERATURE_MODE;
+        }
+        // Now we update Homebridge / Homekit accessory
+        if (Object.keys(changed).length > 0) {
+            this.update(changed);
+        }
+        else {
+            this.logger.debug(`[${this.name}] Status unchanged`);
+        }
+    }
+    make_message_set() {
+        const message = new MessageSet(this.device_protocol_version);
+        message.zone1_power = this.attributes.ZONE1_POWER;
+        message.zone2_power = this.attributes.ZONE2_POWER;
+        message.dhw_power = this.attributes.DHW_POWER;
+        message.mode = this.attributes.MODE;
+        message.zone_target_temperature = this.attributes.ZONE_TARGET_TEMPERATURE;
+        message.dhw_target_temperature = this.attributes.DHW_TARGET_TEMPERATURE;
+        message.room_target_temperature = this.attributes.ROOM_TARGET_TEMPERATURE;
+        message.zone1_curve = this.attributes.ZONE1_CURVE;
+        message.zone2_curve = this.attributes.ZONE2_CURVE;
+        message.tbh = this.attributes.TBH;
+        message.fast_dhw = this.attributes.FAST_DHW;
+        return message;
+    }
+    async set_attribute(attributes) {
+        const messageToSend = {
+            SET: undefined,
+            SILENT: undefined,
+            ECO: undefined,
+            DISINFECT: undefined,
+        };
+        try {
+            for (const [k, v] of Object.entries(attributes)) {
+                if (v === this.attributes[k]) {
+                    this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
+                    continue;
+                }
+                this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
+                if (['ZONE1_POWER', 'ZONE2_POWER', 'DHW_POWER', 'ZONE1_CURVE', 'ZONE2_CURVE', 'FAST_DHW', 'DHW_TARGET_TEMPERATURE', 'TBH'].includes(k)) {
+                    messageToSend.SET ??= new MessageSet(this.device_protocol_version);
+                    messageToSend.SET[k.toLowerCase()] = v;
+                }
+                else if (['SILENT_MODE', 'SILENT_LEVEL'].includes(k)) {
+                    messageToSend.SILENT ??= new MessageSetSilent(this.device_protocol_version);
+                    messageToSend.SILENT[k.toLowerCase()] = v;
+                }
+                else if (k === 'ECO_MODE') {
+                    messageToSend.ECO ??= new MessageSetECO(this.device_protocol_version);
+                    messageToSend.ECO[k.toLowerCase()] = v;
+                }
+                else if (k === 'DISINFECT') {
+                    messageToSend.DISINFECT ??= new MessageSetDisinfect(this.device_protocol_version);
+                    messageToSend.DISINFECT[k.toLowerCase()] = v;
+                }
+            }
+            for (const [k, v] of Object.entries(messageToSend)) {
+                if (v !== undefined) {
+                    this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
+                    await this.build_send(v);
+                }
+            }
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.stack : err;
+            this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
+        }
+    }
+    async set_mode(zone, mode) {
+        this.logger.info(`[${this.name}] Set mode for zone ${zone} to ${mode}`);
+        const message = new MessageSet(this.device_protocol_version);
+        if (zone === 0) {
+            message.zone1_power = true;
+        }
+        else {
+            message.zone2_power = true;
+        }
+        message.mode = mode;
+        await this.build_send(message);
+    }
+    async set_target_temperature(zone, target_temperature, mode) {
+        this.logger.info(`[${this.name}] Set target temperature for zone ${zone} using mode ${mode} to ${target_temperature}`);
+        const message = new MessageSet(this.device_protocol_version);
+        if (this.attributes.ZONE_TEMPERATURE_TYPE[zone]) {
+            message.zone_target_temperature[zone] = target_temperature;
+        }
+        else {
+            message.room_target_temperature = target_temperature;
+        }
+        if (mode !== undefined) {
+            if (zone === 0) {
+                message.zone1_power = true;
+            }
+            else {
+                message.zone2_power = true;
+            }
+            message.mode = mode;
+        }
+        await this.build_send(message);
+    }
+    set_subtype() {
+        this.logger.debug('No subtype for C3 device');
+    }
+}
+//# sourceMappingURL=MideaC3Device.js.map
