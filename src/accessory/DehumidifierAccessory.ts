@@ -30,7 +30,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private fanService?: Service;
   private humiditySensorService?: Service;
   private pumpService?: Service;
-  private waterTankService?: Service;
+  private waterTankContactService?: Service;
+  private waterTankLeakService?: Service;
   // Increment this every time we make a change to accessory that requires
   // previously cached Homebridge service to be deleted/replaced.
   private serviceVersion = 1;
@@ -154,24 +155,33 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       this.accessory.removeService(this.pumpService);
     }
 
-    this.waterTankService =
-      this.accessory.getServiceById(this.platform.Service.ContactSensor, waterTankContactSubtype) ??
-      this.accessory.getServiceById(this.platform.Service.LeakSensor, waterTankLeakSubtype);
-    if (this.configDev.A1_options.waterTankSensor !== WaterTankSensor.NONE) {
-      if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.ContactSensor, undefined, waterTankContactSubtype);
-        this.waterTankService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
-      } else {
-        this.waterTankService ??= this.accessory.addService(this.platform.Service.LeakSensor, undefined, waterTankLeakSubtype);
-        this.waterTankService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
+    this.waterTankContactService = this.accessory.getServiceById(this.platform.Service.ContactSensor, waterTankContactSubtype);
+    this.waterTankLeakService = this.accessory.getServiceById(this.platform.Service.LeakSensor, waterTankLeakSubtype);
+    if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
+      if (this.waterTankLeakService) {
+        this.accessory.removeService(this.waterTankLeakService);
+        this.waterTankLeakService = undefined;
       }
-      this.handleConfiguredName(
-        this.waterTankService,
-        this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR ? waterTankContactSubtype : waterTankLeakSubtype,
-        'Water Tank Sensor',
-      );
-    } else if (this.waterTankService) {
-      this.accessory.removeService(this.waterTankService);
+      this.waterTankContactService ??= this.accessory.addService(this.platform.Service.ContactSensor, undefined, waterTankContactSubtype);
+      this.waterTankContactService.getCharacteristic(this.platform.Characteristic.ContactSensorState).onGet(this.getWaterTankFull.bind(this));
+      this.handleConfiguredName(this.waterTankContactService, waterTankContactSubtype, 'Water Tank Sensor');
+    } else if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
+      if (this.waterTankContactService) {
+        this.accessory.removeService(this.waterTankContactService);
+        this.waterTankContactService = undefined;
+      }
+      this.waterTankLeakService ??= this.accessory.addService(this.platform.Service.LeakSensor, undefined, waterTankLeakSubtype);
+      this.waterTankLeakService.getCharacteristic(this.platform.Characteristic.LeakDetected).onGet(this.getWaterTankFull.bind(this));
+      this.handleConfiguredName(this.waterTankLeakService, waterTankLeakSubtype, 'Water Tank Sensor');
+    } else {
+      if (this.waterTankContactService) {
+        this.accessory.removeService(this.waterTankContactService);
+        this.waterTankContactService = undefined;
+      }
+      if (this.waterTankLeakService) {
+        this.accessory.removeService(this.waterTankLeakService);
+        this.waterTankLeakService = undefined;
+      }
     }
   }
 
@@ -214,11 +224,8 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
           break;
         case 'tank_full':
-          if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.LEAK_SENSOR) {
-            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.LeakDetected, v as CharacteristicValue);
-          } else if (this.configDev.A1_options.waterTankSensor === WaterTankSensor.CONTACT_SENSOR) {
-            this.waterTankService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, v as CharacteristicValue);
-          }
+          this.waterTankLeakService?.updateCharacteristic(this.platform.Characteristic.LeakDetected, v as CharacteristicValue);
+          this.waterTankContactService?.updateCharacteristic(this.platform.Characteristic.ContactSensorState, v as CharacteristicValue);
           break;
         case 'water_level_set':
           // No HomeKit characteristic

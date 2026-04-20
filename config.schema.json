@@ -47,7 +47,8 @@
                 "Gas Water Heater",
                 "Heat Pump Water Heater",
                 "Heat Pump WiFi Controller",
-                "Humidifier"
+                "Humidifier",
+                "MDV WiFi Controller"
               ],
               "description": "Select the type of device you are adding."
             },
@@ -168,6 +169,16 @@
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Air Conditioner';"
               },
               "properties": {
+                "serviceType": {
+                  "title": "HomeKit Service Type",
+                  "type": "string",
+                  "default": "HeaterCooler",
+                  "oneOf": [
+                    { "title": "Heater/Cooler (range slider)", "enum": ["HeaterCooler"] },
+                    { "title": "Thermostat (single temperature)", "enum": ["Thermostat"] }
+                  ],
+                  "description": "HeaterCooler shows a temperature range slider in AUTO mode. Thermostat shows a single target temperature. Thermostat is recommended for cooling-only units."
+                },
                 "swing": {
                   "type": "object",
                   "title": "Swing Options",
@@ -297,6 +308,11 @@
                   "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
                 },
+                "fanAutoSwitch": {
+                  "title": "Fan Auto Switch",
+                  "description": "Toggles if the fan auto switch is created with the accessory.",
+                  "type": "boolean"
+                },
                 "sleepModeSwitch": {
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
@@ -355,6 +371,55 @@
                   "title": "Disinfect Mode Switch",
                   "description": "Toggles if the disinfect mode switch is created with the accessory.",
                   "type": "boolean"
+                }
+              }
+            },
+            "CC_options": {
+              "title": "MDV WiFi Controller Options",
+              "type": "object",
+              "condition": {
+                "functionBody": "return model.devices && model.devices[arrayIndices].type === 'MDV WiFi Controller';"
+              },
+              "properties": {
+                "minTemp": {
+                  "title": "Minimum Temperature (°C)",
+                  "type": "number"
+                },
+                "maxTemp": {
+                  "title": "Maximum Temperature (°C)",
+                  "type": "number"
+                },
+                "tempStep": {
+                  "title": "Temperature Step (°C)",
+                  "type": "number",
+                  "required": true,
+                  "enum": [0.5, 1]
+                },
+                "auxHeatingSwitch": {
+                  "title": "Aux Heating Switch",
+                  "description": "Toggles if the aux heating switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "ecoModeSwitch": {
+                  "title": "ECO Mode Switch",
+                  "description": "Toggles if the ECO mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "nightLightSwitch": {
+                  "title": "Night Light Switch",
+                  "description": "Toggles if the night light switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "sleepModeSwitch": {
+                  "title": "Sleep Mode Switch",
+                  "description": "Toggles if the sleep mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "fanSpeedMode": {
+                  "title": "Fan Speed Mode",
+                  "description": "Changes if the fan speed is 3 levels or 7 levels",
+                  "type": "string",
+                  "enum": ["3", "7"]
                 }
               }
             },
@@ -623,6 +688,7 @@
               "expandable": true,
               "expanded": false,
               "items": [
+                "devices[].AC_options.serviceType",
                 {
                   "key": "devices[].AC_options.swing",
                   "items": [
@@ -656,6 +722,7 @@
                 "devices[].AC_options.fahrenheit",
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory",
+                "devices[].AC_options.fanAutoSwitch",
                 "devices[].AC_options.sleepModeSwitch",
                 "devices[].AC_options.comfortModeSwitch",
                 "devices[].AC_options.temperatureSensor"
@@ -673,6 +740,21 @@
                 "devices[].C3_options.silentSwitch",
                 "devices[].C3_options.tbhSwitch",
                 "devices[].C3_options.disinfectSwitch"
+              ]
+            },
+            {
+              "key": "devices[].CC_options",
+              "expandable": true,
+              "expanded": false,
+              "items": [
+                "devices[].CC_options.minTemp",
+                "devices[].CC_options.maxTemp",
+                "devices[].CC_options.tempStep",
+                "devices[].CC_options.auxHeatingSwitch",
+                "devices[].CC_options.ecoModeSwitch",
+                "devices[].CC_options.nightLightSwitch",
+                "devices[].CC_options.sleepModeSwitch",
+                "devices[].CC_options.fanSpeedMode"
               ]
             },
             {

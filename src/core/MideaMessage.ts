@@ -48,7 +48,8 @@ export abstract class MessageRequest extends MessageBase {
   }
 
   get body() {
-    return Buffer.from(this.body_type && this._body ? [this.body_type, ...this._body] : this.body_type ? [this.body_type] : this._body ? this._body : []);
+    const prefix = this.body_type !== null ? Buffer.from([this.body_type]) : Buffer.alloc(0);
+    return Buffer.concat([prefix, this._body ?? Buffer.alloc(0)]);
   }
 
   get header() {
@@ -84,10 +85,14 @@ export abstract class MessageRequest extends MessageBase {
 }
 
 export class MessageQuerySubtype extends MessageRequest {
-  protected _body = Buffer.alloc(18);
+  protected _body = Buffer.alloc(0);
 
   constructor(device_type: DeviceType) {
     super(device_type, MessageType.QUERY_SUBTYPE, 0x00, 0);
+  }
+
+  get body(): Buffer {
+    return Buffer.alloc(19)
   }
 }
 
