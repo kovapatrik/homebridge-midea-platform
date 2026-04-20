@@ -98,30 +98,39 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getCurrentTemperature.bind(this));
 
     // Service-specific characteristic registration
+    this.service
+      .getCharacteristic(this.useThermostat ? this.platform.Characteristic.CurrentHeatingCoolingState : this.platform.Characteristic.CurrentHeaterCoolerState)
+      .onGet(this.getCurrentState.bind(this));
+
+    const thermostatStateValues = this.configDev.AC_options.heatingCapable ? [
+      this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+      this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
+      this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+      this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+    ]
+      : [
+        this.platform.Characteristic.TargetHeatingCoolingState.OFF,
+        this.platform.Characteristic.TargetHeatingCoolingState.COOL,
+        this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
+      ];
+
+    const heaterCoolerStateValues = this.configDev.AC_options.heatingCapable
+      ? [
+        this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
+        this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
+        this.platform.Characteristic.TargetHeaterCoolerState.COOL,
+      ]
+      : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL];
+
+    this.service
+      .getCharacteristic(this.useThermostat ? this.platform.Characteristic.TargetHeatingCoolingState : this.platform.Characteristic.TargetHeaterCoolerState)
+      .onGet(this.getTargetState.bind(this))
+      .onSet(this.setTargetState.bind(this))
+      .setProps({
+        validValues: this.useThermostat ? thermostatStateValues : heaterCoolerStateValues
+      });
+
     if (this.useThermostat) {
-      this.service
-        .getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
-        .onGet(this.getCurrentState.bind(this));
-
-      this.service
-        .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
-        .onGet(this.getTargetState.bind(this))
-        .onSet(this.setTargetState.bind(this))
-        .setProps({
-          validValues: this.configDev.AC_options.heatingCapable
-            ? [
-                this.platform.Characteristic.TargetHeatingCoolingState.OFF,
-                this.platform.Characteristic.TargetHeatingCoolingState.HEAT,
-                this.platform.Characteristic.TargetHeatingCoolingState.COOL,
-                this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
-              ]
-            : [
-                this.platform.Characteristic.TargetHeatingCoolingState.OFF,
-                this.platform.Characteristic.TargetHeatingCoolingState.COOL,
-                this.platform.Characteristic.TargetHeatingCoolingState.AUTO,
-              ],
-        });
-
       this.service
         .getCharacteristic(this.platform.Characteristic.TargetTemperature)
         .onGet(this.getTargetTemperature.bind(this))
@@ -134,22 +143,6 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     } else {
       this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
-
-      this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(this.getCurrentState.bind(this));
-
-      this.service
-        .getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState)
-        .onGet(this.getTargetState.bind(this))
-        .onSet(this.setTargetState.bind(this))
-        .setProps({
-          validValues: this.configDev.AC_options.heatingCapable
-            ? [
-                this.platform.Characteristic.TargetHeaterCoolerState.AUTO,
-                this.platform.Characteristic.TargetHeaterCoolerState.HEAT,
-                this.platform.Characteristic.TargetHeaterCoolerState.COOL,
-              ]
-            : [this.platform.Characteristic.TargetHeaterCoolerState.AUTO, this.platform.Characteristic.TargetHeaterCoolerState.COOL],
-        });
 
       this.service
         .getCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature)
@@ -550,10 +543,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
    */
   getCurrentState(): CharacteristicValue {
     if (this.useThermostat) {
-      const { CurrentHeatingCoolingState } = this.platform.Characteristic;
-
       if (!this.device.attributes.POWER) {
-        return CurrentHeatingCoolingState.OFF;
+        return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
       }
 
       const currentTemp = Number(this.getCurrentTemperature());
@@ -561,23 +552,21 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
       if ([ACMode.COOLING, ACMode.AUTO, ACMode.DRY].includes(this.device.attributes.MODE)) {
         if (currentTemp > targetTemp) {
-          return CurrentHeatingCoolingState.COOL;
+          return this.platform.Characteristic.CurrentHeatingCoolingState.COOL;
         }
       }
 
       if ([ACMode.HEATING].includes(this.device.attributes.MODE) && this.configDev.AC_options.heatingCapable) {
         if (currentTemp < targetTemp) {
-          return CurrentHeatingCoolingState.HEAT;
+          return this.platform.Characteristic.CurrentHeatingCoolingState.HEAT;
         }
       }
 
-      return CurrentHeatingCoolingState.OFF;
+      return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
     }
 
-    const { CurrentHeaterCoolerState } = this.platform.Characteristic;
-
     if (!this.device.attributes.POWER || !this.device.attributes.MODE) {
-      return CurrentHeaterCoolerState.INACTIVE;
+      return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
 
     const isPossiblyCooling = [ACMode.COOLING, ACMode.AUTO].includes(this.device.attributes.MODE);
@@ -588,33 +577,31 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     const coolingThresholdTemperature = Number(this.getCoolingThresholdTemperature());
 
     if (isPossiblyCooling && currentTemperature > coolingThresholdTemperature) {
-      return CurrentHeaterCoolerState.COOLING;
+      return this.platform.Characteristic.CurrentHeaterCoolerState.COOLING;
     }
 
     if (isPossiblyHeating && currentTemperature < heatingThresholdTemperature) {
-      return CurrentHeaterCoolerState.HEATING;
+      return this.platform.Characteristic.CurrentHeaterCoolerState.HEATING;
     }
 
-    return CurrentHeaterCoolerState.IDLE;
+    return this.platform.Characteristic.CurrentHeaterCoolerState.IDLE;
   }
 
   getTargetState(): CharacteristicValue {
     if (this.useThermostat) {
-      const { TargetHeatingCoolingState } = this.platform.Characteristic;
-
       if (!this.device.attributes.POWER) {
-        return TargetHeatingCoolingState.OFF;
+        return this.platform.Characteristic.TargetHeatingCoolingState.OFF;
       }
 
       switch (this.device.attributes.MODE) {
         case ACMode.COOLING:
-          return TargetHeatingCoolingState.COOL;
+          return this.platform.Characteristic.TargetHeatingCoolingState.COOL;
         case ACMode.HEATING:
-          return TargetHeatingCoolingState.HEAT;
+          return this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
         case ACMode.AUTO:
-          return TargetHeatingCoolingState.AUTO;
+          return this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
         default:
-          return TargetHeatingCoolingState.AUTO;
+          return this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
       }
     }
 
@@ -630,19 +617,17 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setTargetState(value: CharacteristicValue) {
     if (this.useThermostat) {
-      const { TargetHeatingCoolingState } = this.platform.Characteristic;
-
       switch (value) {
-        case TargetHeatingCoolingState.OFF:
+        case  this.platform.Characteristic.TargetHeatingCoolingState.OFF:
           await this.device.set_attribute({ POWER: false });
           break;
-        case TargetHeatingCoolingState.COOL:
+        case  this.platform.Characteristic.TargetHeatingCoolingState.COOL:
           await this.device.set_attribute({ POWER: true, MODE: ACMode.COOLING });
           break;
-        case TargetHeatingCoolingState.HEAT:
+        case  this.platform.Characteristic.TargetHeatingCoolingState.HEAT:
           await this.device.set_attribute({ POWER: true, MODE: ACMode.HEATING });
           break;
-        case TargetHeatingCoolingState.AUTO:
+        case  this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
           await this.device.set_attribute({ POWER: true, MODE: ACMode.AUTO });
           break;
       }
