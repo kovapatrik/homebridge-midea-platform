@@ -169,6 +169,16 @@
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Air Conditioner';"
               },
               "properties": {
+                "serviceType": {
+                  "title": "HomeKit Service Type",
+                  "type": "string",
+                  "default": "HeaterCooler",
+                  "oneOf": [
+                    { "title": "Heater/Cooler (range slider)", "enum": ["HeaterCooler"] },
+                    { "title": "Thermostat (single temperature)", "enum": ["Thermostat"] }
+                  ],
+                  "description": "HeaterCooler shows a temperature range slider in AUTO mode. Thermostat shows a single target temperature. Thermostat is recommended for cooling-only units."
+                },
                 "swing": {
                   "type": "object",
                   "title": "Swing Options",
@@ -678,6 +688,7 @@
               "expandable": true,
               "expanded": false,
               "items": [
+                "devices[].AC_options.serviceType",
                 {
                   "key": "devices[].AC_options.swing",
                   "items": [
