@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kovapatrik/homebridge-midea.git"
+    "url": "git+https://github.com/kovapatrik/homebridge-midea-platform.git"
   },
   "bugs": {
     "url": "https://github.com/kovapatrik/homebridge-midea/issues"
