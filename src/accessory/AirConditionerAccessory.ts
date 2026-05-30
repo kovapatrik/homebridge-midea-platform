@@ -374,7 +374,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, humiditySensorSubtype);
     if (this.configDev.AC_options.humiditySensor) {
       this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, undefined, humiditySensorSubtype);
-      this.handleConfiguredName(this.humiditySensorService, humiditySensorSubtype, 'Humidity');
+      this.humiditySensorService.setCharacteristic(this.platform.Characteristic.Name, `${this.device.name} Humidity`);
       this.humiditySensorService
         .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
         .onGet(this.getIndoorHumidity.bind(this));
