@@ -730,7 +730,8 @@
                 "devices[].AC_options.fanAutoSwitch",
                 "devices[].AC_options.sleepModeSwitch",
                 "devices[].AC_options.comfortModeSwitch",
-                "devices[].AC_options.temperatureSensor"
+                "devices[].AC_options.temperatureSensor",
+                "devices[].AC_options.humiditySensor"
               ]
             },
             {
