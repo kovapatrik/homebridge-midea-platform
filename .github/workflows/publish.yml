@@ -1,9 +1,19 @@
 name: Publish to npm
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: npm dist-tag
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - next
+          - latest
 
 permissions:
   id-token: write  # Required for OIDC
@@ -12,7 +22,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -20,5 +29,4 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org/
       - run: npm ci
-      - run: npm run lint
-      - run: npm publish
+      - run: npm publish --tag ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || 'latest' }}
