@@ -44,6 +44,18 @@
 - version bump to fix the npm package
 
 # v1.2.1
+## [1.3.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.2.10...v1.3.0) (2026-05-31)
+
+
+### Features
+
+* use release please ([1cb1c16](https://github.com/kovapatrik/homebridge-midea-platform/commit/1cb1c167baa8f92767897968f7873133a8a71a59))
+
+
+### Bug Fixes
+
+* gate reconnect lifecycle logs behind logRecoverableErrors ([#170](https://github.com/kovapatrik/homebridge-midea-platform/issues/170)) ([efc1217](https://github.com/kovapatrik/homebridge-midea-platform/commit/efc12178695258843b68d3ab849f94bd579aa5ed))
+
 ## 2024-10-26
 - BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.
 - BREAKING CHANGE: Node version support is now `^18.20.4 || ^20.18.0 || ^22.10.0`.
