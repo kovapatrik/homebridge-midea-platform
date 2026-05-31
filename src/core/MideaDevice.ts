@@ -135,7 +135,7 @@ export default abstract class MideaDevice extends EventEmitter {
       if (this.version === ProtocolVersion.V3) {
         await this.authenticate();
       }
-            if (refresh_status) {
+      if (refresh_status) {
         // Send queries without waiting for synchronous responses.
         // The network listener will pick up the device's responses asynchronously.
         await this.refresh_status(false);
@@ -157,12 +157,12 @@ export default abstract class MideaDevice extends EventEmitter {
       this._authenticated = false;
       throw new Error('Token or key is missing!');
     }
- 
+
     try {
       const request = this.security.encode_8370(this.token, TCPMessageType.HANDSHAKE_REQUEST);
       await this.promiseSocket.write(request);
       const response = await this.promiseSocket.read();
- 
+
       if (response) {
         if (response.length < 20) {
           this._authenticated = false;
@@ -171,7 +171,11 @@ export default abstract class MideaDevice extends EventEmitter {
         const resp = response.subarray(8, 72);
         this.security.tcp_key_from_resp(resp, this.key);
         this._authenticated = true;
-        this.logger.info(`[${this.name}] Authentication success.`);
+        if (this.logRecoverableErrors) {
+          this.logger.info(`[${this.name}] Authentication success.`);
+        } else {
+          this.logger.debug(`[${this.name}] Authentication success.`);
+        }
       } else {
         this._authenticated = false;
         throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
@@ -437,7 +441,11 @@ export default abstract class MideaDevice extends EventEmitter {
           }
           // Refresh status after successful reconnect
           await this.refresh_status(false);
-          this.logger.info(`[${this.name}] Reconnected successfully.`);
+          if (this.logRecoverableErrors) {
+            this.logger.info(`[${this.name}] Reconnected successfully.`);
+          } else {
+            this.logger.debug(`[${this.name}] Reconnected successfully.`);
+          }
           break; // Exit reconnect loop
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
