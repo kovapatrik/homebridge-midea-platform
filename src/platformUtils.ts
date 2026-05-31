@@ -105,6 +105,7 @@ type ACOptions = {
   sleepModeSwitch: boolean;
   comfortModeSwitch: boolean;
   temperatureSensor: boolean;
+  humiditySensor: boolean;
 };
 
 type A1Options = {
@@ -231,7 +232,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     fanAutoSwitch: false,
     sleepModeSwitch: false,
     comfortModeSwitch: false,
-    temperatureSensor: false
+    temperatureSensor: false,
+    humiditySensor: false,
   },
   A1_options: {
     temperatureSensor: false,

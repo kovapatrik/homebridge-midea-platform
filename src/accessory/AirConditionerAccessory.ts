@@ -33,6 +33,7 @@ const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
 const comfortModeSubtype = 'comfortMode';
 const temperatureSensorSubtype = 'temperatureSensor';
+const humiditySensorSubtype = 'humidity';
 
 export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice> {
   protected service: Service;
@@ -55,6 +56,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private swingAngleService?: Service;
   private comfortModeService?: Service;
   private temperatureSensorService?: Service;
+  private humiditySensorService?: Service;
 
   private swingAngleMainControl: SwingAngle;
   private heatingThresholdTemperature: number;
@@ -368,6 +370,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.temperatureSensorService);
     }
 
+    // Separate humidity sensor accessory
+    this.humiditySensorService = this.accessory.getServiceById(this.platform.Service.HumiditySensor, humiditySensorSubtype);
+    if (this.configDev.AC_options.humiditySensor) {
+      this.humiditySensorService ??= this.accessory.addService(this.platform.Service.HumiditySensor, undefined, humiditySensorSubtype);
+      this.handleConfiguredName(this.humiditySensorService, humiditySensorSubtype, 'Humidity');
+      this.humiditySensorService
+        .getCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity)
+        .onGet(this.getIndoorHumidity.bind(this));
+    } else if (this.humiditySensorService) {
+      this.accessory.removeService(this.humiditySensorService);
+    }
+
     const swingProps = this.configDev.AC_options.swing;
     this.swingAngleMainControl =
       swingProps.mode === SwingMode.VERTICAL || (swingProps.mode === SwingMode.BOTH && swingProps.angleMainControl === SwingAngle.VERTICAL)
@@ -466,6 +480,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           }
           break;
         }
+        case 'indoor_humidity':
+          this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, this.getIndoorHumidity());
+          break;
         case 'outdoor_temperature':
           this.outDoorTemperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getOutdoorTemperature());
           break;
@@ -821,6 +838,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setRotationSpeed(value: CharacteristicValue) {
     await this.device.set_attribute({ FAN_SPEED: value as number });
+  }
+
+  getIndoorHumidity(): CharacteristicValue {
+    return this.device.attributes.INDOOR_HUMIDITY ?? 0;
   }
 
   getOutdoorTemperature(): CharacteristicValue {
