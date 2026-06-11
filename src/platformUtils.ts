@@ -2,6 +2,8 @@ export type Config = {
   refreshInterval: number;
   heartbeatInterval: number;
   uiDebug: boolean;
+  account?: string;
+  password?: string;
   devices: DeviceConfig[];
 };
 
@@ -66,7 +68,7 @@ export enum ACMode {
   HEATING = 4,
   FAN_ONLY = 5,
 }
- 
+
 export enum ACServiceType {
   HEATER_COOLER = 'HeaterCooler',
   THERMOSTAT = 'Thermostat',
@@ -262,7 +264,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoModeSwitch: false,
     nightLightSwitch: false,
     sleepModeSwitch: false,
-    fanSpeedMode: '7'
+    fanSpeedMode: '7',
   },
   CD_options: {
     minTemp: 38,

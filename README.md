@@ -62,6 +62,32 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 
 You should use the UI to discover and add devices. More information on the settings can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki#device-discovery).
 
+### Automatic Token Refresh
+
+If your Midea devices are occasionally re-paired with the NetHome Plus app (for example after a firmware update or Wi-Fi reset), their local authentication tokens may rotate. When this happens the plugin will be unable to connect to the device until the new token is entered.
+
+You can enable **optional automatic token refresh** by providing your NetHome Plus credentials at the platform level:
+
+```json
+{
+  "platform": "midea-platform",
+  "account": "your-email@example.com",
+  "password": "your-password",
+  "devices": [...]
+}
+```
+
+When `account` and `password` are provided the plugin will:
+
+1. Log into NetHome Plus on startup and fetch fresh tokens for every configured device.
+2. Automatically update `config.json` if any tokens have changed.
+3. Attempt to refresh tokens at runtime if a device fails authentication (for example after a re-pair).
+
+**Notes:**
+- This feature is completely optional. If no credentials are supplied behaviour is unchanged.
+- Credentials are never logged.
+- Only **NetHome Plus** is supported for token fetching.
+
 ## License
 
 Copyright (c) 2023 [Kovalovszky Patrik](https://github.com/kovapatrik),

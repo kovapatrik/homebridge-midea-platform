@@ -182,6 +182,7 @@ export default abstract class MideaDevice extends EventEmitter {
       }
     } catch (err) {
       this._authenticated = false;
+      this.emit('authFailure', { id: this.id, ip: this.ip });
       throw err;
     }
   }

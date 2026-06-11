@@ -7,14 +7,18 @@
  * Based on https://github.com/homebridge/homebridge-plugin-template
  *
  */
+
+import { readFileSync, writeFileSync } from 'node:fs';
 import type { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import lodash from 'lodash';
 import AccessoryFactory from './accessory/AccessoryFactory.js';
+import CloudFactory from './core/MideaCloud.js';
 import { type DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import Discover from './core/MideaDiscover.js';
 import DeviceFactory from './devices/DeviceFactory.js';
 import { type Config, type DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+
 const { defaultsDeep } = lodash;
 
 type MideaContext = {
@@ -45,6 +49,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   private readonly discover: Discover;
   // Need seperate variable because the DynamicPlatformPlugin constructor won't accept anything but the PlatformConfig type
   private readonly platformConfig: Config;
+
+  private tokenRefreshPromise?: Promise<void>;
 
   constructor(
     public readonly log: Logger,
@@ -81,10 +87,118 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   }
 
   /*********************************************************************
+   * refreshTokens
+   * Optionally fetch fresh token/key pairs from NetHome Plus cloud.
+   * Called once at startup and on authentication failures at runtime.
+   */
+  private async refreshTokens(): Promise<void> {
+    if (!this.platformConfig.account || !this.platformConfig.password) {
+      return; // auto-refresh disabled
+    }
+
+    if (this.tokenRefreshPromise) {
+      this.log.debug('Token refresh already in progress, waiting...');
+      await this.tokenRefreshPromise;
+      return;
+    }
+
+    this.tokenRefreshPromise = this.doRefreshTokens();
+    try {
+      await this.tokenRefreshPromise;
+    } finally {
+      this.tokenRefreshPromise = undefined;
+    }
+  }
+
+  private async doRefreshTokens(): Promise<void> {
+    const account = this.platformConfig.account;
+    const password = this.platformConfig.password;
+    if (!account || !password) {
+      return;
+    }
+    let cloud: ReturnType<typeof CloudFactory.createCloud>;
+    try {
+      cloud = CloudFactory.createCloud(account, password, 'NetHome Plus');
+      await cloud.login();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : err;
+      this.log.warn(`Cloud login failed, cannot refresh tokens: ${msg}`);
+      return;
+    }
+
+    let changed = false;
+    for (const device of this.platformConfig.devices) {
+      if (!device.id) {
+        continue;
+      }
+      try {
+        const [tokenBuf, keyBuf] = await cloud.getTokenKey(device.id, 0);
+        const newToken = tokenBuf.toString('hex');
+        const newKey = keyBuf.toString('hex');
+
+        const oldToken = device.advanced_options?.token || '';
+        const oldKey = device.advanced_options?.key || '';
+
+        if (newToken !== oldToken || newKey !== oldKey) {
+          this.log.info(`[${device.name || device.id}] Token rotated — updating config`);
+          if (!device.advanced_options) {
+            device.advanced_options = { ...defaultDeviceConfig.advanced_options };
+          }
+          device.advanced_options.token = newToken;
+          device.advanced_options.key = newKey;
+          changed = true;
+
+          // Also update any already-discovered accessory context
+          const uuid = this.api.hap.uuid.generate(device.id.toString());
+          const accessory = this.accessories.get(uuid);
+          if (accessory) {
+            accessory.context.token = newToken;
+            accessory.context.key = newKey;
+            this.api.updatePlatformAccessories([accessory]);
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : err;
+        this.log.warn(`[${device.name || device.id}] Failed to refresh token: ${msg}`);
+      }
+    }
+
+    if (changed) {
+      this.saveConfig();
+    }
+  }
+
+  /*********************************************************************
+   * saveConfig
+   * Persist updated platform configuration to config.json.
+   */
+  private saveConfig(): void {
+    try {
+      const configPath = this.api.user.configPath();
+      const raw = readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+
+      for (const platform of config.platforms || []) {
+        if (platform.platform === PLATFORM_NAME) {
+          platform.devices = this.platformConfig.devices;
+          break;
+        }
+      }
+
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+      this.log.info('Updated config.json with refreshed tokens');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : err;
+      this.log.error(`Failed to persist updated config: ${msg}`);
+    }
+  }
+
+  /*********************************************************************
    * finishedLaunching
    * Function called when Homebridge has finished loading the plugin.
    */
-  private finishedLaunching() {
+  private async finishedLaunching() {
+    await this.refreshTokens();
     this.log.info('Start device discovery...');
     // If IP address is in config then probe them directly
     for (let device of this.platformConfig.devices) {
@@ -197,6 +311,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             }
           }
+          device.on('authFailure', async ({ id }: { id: number }) => {
+            this.log.warn(`[${id}] Authentication failed, attempting token refresh...`);
+            await this.refreshTokens();
+          });
           await device.connect(true);
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
@@ -220,6 +338,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               throw new Error('Token/key not provided in config file, cannot add new device');
             }
           }
+          device.on('authFailure', async ({ id }: { id: number }) => {
+            this.log.warn(`[${id}] Authentication failed, attempting token refresh...`);
+            await this.refreshTokens();
+          });
           await device.connect(false);
           await device.refresh_status();
           // Set serial number and model into the context if they are provided.

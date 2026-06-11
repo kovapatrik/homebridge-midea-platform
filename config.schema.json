@@ -27,6 +27,18 @@
         "type": "boolean",
         "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
+      "account": {
+        "title": "NetHome Plus Account",
+        "type": "string",
+        "required": false,
+        "description": "Email for NetHome Plus cloud API (optional, enables automatic token refresh)"
+      },
+      "password": {
+        "title": "NetHome Plus Password",
+        "type": "string",
+        "required": false,
+        "description": "Password for NetHome Plus cloud API (optional, enables automatic token refresh)"
+      },
       "devices": {
         "type": "array",
         "items": {
