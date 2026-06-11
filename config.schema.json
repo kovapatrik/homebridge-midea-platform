@@ -271,7 +271,12 @@
                 },
                 "ionSwitch": {
                   "title": "ION Switch",
-                  "descriptION": "Toggles if the ION switch is created with the accessory.",
+                  "description": "Toggles if the ION switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "outSilentSwitch": {
+                  "title": "Out Silent Mode switch",
+                  "description": "Toggles if the Out Silent Mode switch is created with the accessory. This mode reduces the outdoor unit noise by about 6dB.",
                   "type": "boolean"
                 },
                 "rateSelector": {
@@ -696,11 +701,7 @@
                 "devices[].AC_options.serviceType",
                 {
                   "key": "devices[].AC_options.swing",
-                  "items": [
-                    "devices[].AC_options.swing.mode",
-                    "devices[].AC_options.swing.angleAccessory",
-                    "devices[].AC_options.swing.angleMainControl"
-                  ]
+                  "items": ["devices[].AC_options.swing.mode", "devices[].AC_options.swing.angleAccessory", "devices[].AC_options.swing.angleMainControl"]
                 },
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
@@ -713,13 +714,11 @@
                 "devices[].AC_options.auxHeatingSwitches",
                 "devices[].AC_options.selfCleanSwitch",
                 "devices[].AC_options.ionSwitch",
+                "devices[].AC_options.outSilentSwitch",
                 "devices[].AC_options.rateSelector",
                 {
                   "key": "devices[].AC_options.displaySwitch",
-                  "items": [
-                    "devices[].AC_options.displaySwitch.flag",
-                    "devices[].AC_options.displaySwitch.command"
-                  ]
+                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
                 },
                 "devices[].AC_options.minTemp",
                 "devices[].AC_options.maxTemp",

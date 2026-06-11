@@ -92,7 +92,7 @@ export class MessageQuerySubtype extends MessageRequest {
   }
 
   get body(): Buffer {
-    return Buffer.alloc(19)
+    return Buffer.alloc(19);
   }
 }
 
