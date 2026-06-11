@@ -12,7 +12,11 @@ import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js
 import { type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
 import {
   MessageACResponse,
+  MessageCapabilitiesAdditionalQuery,
+  MessageCapabilitiesQuery,
   MessageGeneralSet,
+  MessageGroupZeroQuery,
+  MessageHumidityQuery,
   MessageNewProtocolQuery,
   MessageNewProtocolSet,
   MessagePowerQuery,
@@ -34,24 +38,19 @@ export interface ACAttributes extends DeviceAttributeBase {
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
   SWING_VERTICAL: boolean | undefined;
-  // Vertical swing angle
-  WIND_SWING_UD_ANGLE: number;
   SWING_HORIZONTAL: boolean | undefined;
-  // Horizontal swing angle
-  WIND_SWING_LR_ANGLE: number;
-  PURIFIER: boolean;
   DRY: boolean;
   AUX_HEATING: boolean;
   BOOST_MODE: boolean;
+  SMART_EYE: boolean;
   SLEEP_MODE: boolean;
-  COMFORT_SLEEP_MODE: boolean;
   FROST_PROTECT: boolean;
   COMFORT_MODE: boolean;
   ECO_MODE: boolean;
   NATURAL_WIND: boolean;
   TEMP_FAHRENHEIT: boolean;
   SCREEN_DISPLAY: boolean | undefined;
-  SCREEN_DISPLAY_NEW: boolean;
+  SCREEN_DISPLAY_ALTERNATE: boolean;
   FULL_DUST: boolean;
   INDOOR_TEMPERATURE?: number;
   OUTDOOR_TEMPERATURE?: number;
@@ -59,16 +58,25 @@ export interface ACAttributes extends DeviceAttributeBase {
   INDOOR_HUMIDITY: number | undefined;
   BREEZELESS: boolean;
   TOTAL_ENERGY_CONSUMPTION?: number;
+  TOTAL_OPERATING_CONSUMPTION?: number;
   CURRENT_ENERGY_CONSUMPTION?: number;
-  REALTIME_POWER: number;
+  REALTIME_POWER?: number;
+  ELECTRIFY_TIME?: number;
+  TOTAL_OPERATING_TIME?: number;
+  CURRENT_OPERATING_TIME?: number;
   FRESH_AIR_POWER: boolean;
   FRESH_AIR_FAN_SPEED: number;
   FRESH_AIR_MODE?: string;
   FRESH_AIR_1: boolean;
   FRESH_AIR_2: boolean;
+  // Horizontal swing angle
+  WIND_SWING_LR_ANGLE: number;
+  // Vertical swing angle
+  WIND_SWING_UD_ANGLE: number;
+  OUT_SILENT?: boolean;
+  ANION: boolean;
   RATE_SELECT?: number; // GEAR
   SELF_CLEAN?: boolean;
-  ION?: boolean;
 }
 
 export default class MideaACDevice extends MideaDevice {
@@ -90,14 +98,7 @@ export default class MideaACDevice extends MideaDevice {
     0: 'Off',
   };
 
-  readonly FAN_RELATED_MODES = [
-    'BOOST_MODE',
-    'SLEEP_MODE',
-    'FROST_PROTECT',
-    'COMFORT_MODE',
-    'ECO_MODE',
-    'COMFORT_SLEEP_MODE',
-  ];
+  readonly FAN_RELATED_MODES = ['BOOST_MODE', 'SLEEP_MODE', 'FROST_PROTECT', 'COMFORT_MODE', 'ECO_MODE'];
 
   public attributes: ACAttributes;
 
@@ -132,19 +133,18 @@ export default class MideaACDevice extends MideaDevice {
       WIND_SWING_UD_ANGLE: 0,
       SWING_HORIZONTAL: undefined, // invalid
       WIND_SWING_LR_ANGLE: 0,
-      PURIFIER: false,
       DRY: false,
       AUX_HEATING: false,
       BOOST_MODE: false,
+      SMART_EYE: false,
       SLEEP_MODE: false,
-      COMFORT_SLEEP_MODE: false,
       FROST_PROTECT: false,
       COMFORT_MODE: false,
       ECO_MODE: false,
       NATURAL_WIND: false,
       TEMP_FAHRENHEIT: false,
       SCREEN_DISPLAY: undefined, // invalid
-      SCREEN_DISPLAY_NEW: false,
+      SCREEN_DISPLAY_ALTERNATE: false,
       FULL_DUST: false,
       INDOOR_TEMPERATURE: undefined, // invalid
       OUTDOOR_TEMPERATURE: undefined, // invalid
@@ -152,8 +152,10 @@ export default class MideaACDevice extends MideaDevice {
       INDOOR_HUMIDITY: undefined, // invalid
       BREEZELESS: false,
       TOTAL_ENERGY_CONSUMPTION: undefined,
+      TOTAL_OPERATING_CONSUMPTION: undefined,
       CURRENT_ENERGY_CONSUMPTION: undefined,
       REALTIME_POWER: 0,
+      ELECTRIFY_POWER: 0,
       FRESH_AIR_POWER: false,
       FRESH_AIR_FAN_SPEED: 0,
       FRESH_AIR_MODE: undefined, // invalid
@@ -161,7 +163,8 @@ export default class MideaACDevice extends MideaDevice {
       FRESH_AIR_2: false,
       SELF_CLEAN: undefined,
       RATE_SELECT: undefined,
-      ION: undefined,
+      ANION: false,
+      OUT_SILENT: undefined,
     };
 
     this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
@@ -178,8 +181,12 @@ export default class MideaACDevice extends MideaDevice {
     }
     return [
       new MessageQuery(this.device_protocol_version),
-      new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display),
+      new MessageNewProtocolQuery(this.device_protocol_version),
       new MessagePowerQuery(this.device_protocol_version),
+      new MessageHumidityQuery(this.device_protocol_version),
+      new MessageGroupZeroQuery(this.device_protocol_version),
+      new MessageCapabilitiesQuery(this.device_protocol_version),
+      new MessageCapabilitiesAdditionalQuery(this.device_protocol_version),
     ];
   }
 
@@ -259,16 +266,16 @@ export default class MideaACDevice extends MideaDevice {
     message.swing_vertical = !!this.attributes.SWING_VERTICAL; // force to boolean
     message.swing_horizontal = !!this.attributes.SWING_HORIZONTAL; // force to boolean
     message.boost_mode = this.attributes.BOOST_MODE;
+    message.smart_eye = this.attributes.SMART_EYE;
     message.dry = this.attributes.DRY;
-    message.aux_heating = this.attributes.AUX_HEATING;
-    message.purifier = this.attributes.PURIFIER;
     message.eco_mode = this.attributes.ECO_MODE;
-    message.temp_fahrenheit = this.attributes.TEMP_FAHRENHEIT;
+    message.aux_heating = this.attributes.AUX_HEATING;
     message.sleep_mode = this.attributes.SLEEP_MODE;
     message.natural_wind = this.attributes.NATURAL_WIND;
+    message.temp_fahrenheit = this.attributes.TEMP_FAHRENHEIT;
     message.frost_protect = this.attributes.FROST_PROTECT;
     message.comfort_mode = this.attributes.COMFORT_MODE;
-    message.comfort_sleep_mode = this.attributes.COMFORT_SLEEP_MODE;
+    message.anion = this.attributes.ANION;
     return message;
   }
 
@@ -441,7 +448,7 @@ export default class MideaACDevice extends MideaDevice {
 
   private disable_all_fan_related_modes(message: MessageGeneralSet | MessageSubProtocolSet) {
     // Check if any fan-related mode is currently active
-    const anyModeActive = this.FAN_RELATED_MODES.some(mode => this.attributes[mode]);
+    const anyModeActive = this.FAN_RELATED_MODES.some((mode) => this.attributes[mode]);
     if (!anyModeActive) {
       return; // No modes active, nothing to do
     }
@@ -456,7 +463,6 @@ export default class MideaACDevice extends MideaDevice {
     if (message instanceof MessageGeneralSet) {
       message.frost_protect = false;
       message.comfort_mode = false;
-      message.comfort_sleep_mode = false;
     }
 
     // Update attributes
@@ -466,7 +472,6 @@ export default class MideaACDevice extends MideaDevice {
     if (message instanceof MessageGeneralSet) {
       this.attributes.FROST_PROTECT = false;
       this.attributes.COMFORT_MODE = false;
-      this.attributes.COMFORT_SLEEP_MODE = false;
     }
   }
 
@@ -506,7 +511,7 @@ export default class MideaACDevice extends MideaDevice {
 
     // enabling a mode
     if (state) {
-      const anyModeActive = this.FAN_RELATED_MODES.some(m => this.attributes[m]);
+      const anyModeActive = this.FAN_RELATED_MODES.some((m) => this.attributes[m]);
 
       // If enabling a mode and no mode was previously active, save current fan speed
       if (!anyModeActive) {
@@ -526,7 +531,7 @@ export default class MideaACDevice extends MideaDevice {
     message[mode.toLowerCase()] = false;
     this.attributes[mode] = false;
 
-    const willAllModesBeOff = this.FAN_RELATED_MODES.every(m => !this.attributes[m]);
+    const willAllModesBeOff = this.FAN_RELATED_MODES.every((m) => !this.attributes[m]);
 
     // restore fan speed
     if (willAllModesBeOff && this.last_fan_speed !== undefined) {
@@ -564,29 +569,20 @@ export default class MideaACDevice extends MideaDevice {
     await this.build_send(message);
   }
 
-  async set_ion(ion: boolean) {
-    this.logger.info(`[${this.name}] Set ion to: ${ion}`);
-
-    // If ion is enabled, we need to turn on the device first
-    if (ion === true) {
-      this.logger.info(`[${this.name}] Powering on device to enable ion`);
-      this.attributes.POWER = true;
-      const message = this.make_message_unique_set();
-      await this.build_send(message);
-    }
-
-    const message = new MessageNewProtocolSet(this.device_protocol_version);
-    message.ion = ion;
-    this.attributes.ION = ion;
-    message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-  }
-
   async set_rate_select(rate_select: number) {
     this.logger.info(`[${this.name}] Set rate select to: ${rate_select}`);
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     message.rate_select = rate_select;
     this.attributes.RATE_SELECT = rate_select;
+    message.prompt_tone = this.attributes.PROMPT_TONE;
+    await this.build_send(message);
+  }
+
+  async set_out_silent(out_silent: boolean) {
+    this.logger.info(`[${this.name}] Set out silent to: ${out_silent}`);
+    const message = new MessageNewProtocolSet(this.device_protocol_version);
+    message.out_silent = out_silent;
+    this.attributes.OUT_SILENT = out_silent;
     message.prompt_tone = this.attributes.PROMPT_TONE;
     await this.build_send(message);
   }
