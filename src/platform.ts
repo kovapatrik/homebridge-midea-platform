@@ -9,6 +9,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createConnection } from 'node:net';
 import type { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import lodash from 'lodash';
 import AccessoryFactory from './accessory/AccessoryFactory.js';
@@ -42,12 +43,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
   public readonly accessories: Map<string, MideaAccessory> = new Map();
   public readonly discoveredCacheUUIDs: string[] = [];
 
-  // Keep track of all devices discovered by broadcast
   private discoveredDevices: Map<number, boolean> = new Map();
-  private discoveryInterval = 60; // seconds
+  private discoveryInterval = 60;
 
   private readonly discover: Discover;
-  // Need seperate variable because the DynamicPlatformPlugin constructor won't accept anything but the PlatformConfig type
   private readonly platformConfig: Config;
 
   private tokenRefreshPromise?: Promise<void>;
@@ -61,39 +60,21 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.Characteristic = api.hap.Characteristic;
     Error.stackTraceLimit = 100;
 
-    // Add default config values
     this.platformConfig = defaultsDeep(config, defaultConfig);
-    // Enforce min/max values
     this.platformConfig.refreshInterval = Math.max(0, Math.min(this.platformConfig.refreshInterval, 86400));
     this.platformConfig.heartbeatInterval = Math.max(10, Math.min(this.platformConfig.heartbeatInterval, 120));
-    // debug log configuration
     this.log.debug(`Configuration:\n${JSON.stringify(this.platformConfig, null, 2)}`);
 
     this.discover = new Discover(log);
 
-    // Register callback with Discover class that is called for each device as
-    // they are discovered on the network.
     this.discover.on('device', this.deviceDiscovered.bind(this));
-
-    // Register callback with Discover class that is called when we have exhausted
-    // all retries to discover devices.  We can now check what was found.
     this.discover.on('complete', this.discoveryComplete.bind(this));
-
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', this.finishedLaunching.bind(this));
   }
 
-  /*********************************************************************
-   * refreshTokens
-   * Optionally fetch fresh token/key pairs from NetHome Plus cloud.
-   * Called once at startup and on authentication failures at runtime.
-   */
-  private async refreshTokens(): Promise<void> {
+  private async refreshTokens(forceRefresh = false): Promise<void> {
     if (!this.platformConfig.account || !this.platformConfig.password) {
-      return; // auto-refresh disabled
+      return;
     }
 
     if (this.tokenRefreshPromise) {
@@ -102,7 +83,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       return;
     }
 
-    this.tokenRefreshPromise = this.doRefreshTokens();
+    this.tokenRefreshPromise = this.doRefreshTokens(forceRefresh);
     try {
       await this.tokenRefreshPromise;
     } finally {
@@ -110,7 +91,50 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  private async doRefreshTokens(): Promise<void> {
+  private async validateToken(ip: string, port: number, token: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      let resolved = false;
+      const doResolve = (val: boolean) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(val);
+        }
+      };
+
+      const socket = createConnection({ host: ip, port: port || 6444, timeout: 5000 });
+
+      socket.on('connect', () => {
+        const tokenBuf = Buffer.from(token, 'hex');
+        const packet = Buffer.concat([
+          Buffer.from([0x83, 0x70]),
+          Buffer.from([0x00, tokenBuf.length]),
+          Buffer.from([0x20, 0x00]),
+          Buffer.from([0x00, 0x00]),
+          tokenBuf,
+        ]);
+        socket.write(packet);
+      });
+
+      let buffer = Buffer.alloc(0);
+      socket.on('data', (data) => {
+        buffer = Buffer.concat([buffer, data]);
+        if (buffer.length >= 6) {
+          const size = buffer.readUInt16BE(2);
+          if (buffer.length >= size + 6) {
+            const msgType = buffer[5] & 0x0f;
+            doResolve(msgType === 0x01);
+            socket.destroy();
+          }
+        }
+      });
+
+      socket.on('error', () => doResolve(false));
+      socket.on('timeout', () => { socket.destroy(); doResolve(false); });
+      socket.on('close', () => doResolve(false));
+    });
+  }
+
+  private async doRefreshTokens(forceRefresh = false): Promise<void> {
     const account = this.platformConfig.account;
     const password = this.platformConfig.password;
     if (!account || !password) {
@@ -139,23 +163,46 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         const oldToken = device.advanced_options?.token || '';
         const oldKey = device.advanced_options?.key || '';
 
-        if (newToken !== oldToken || newKey !== oldKey) {
-          this.log.info(`[${device.name || device.id}] Token rotated — updating config`);
-          if (!device.advanced_options) {
-            device.advanced_options = { ...defaultDeviceConfig.advanced_options };
-          }
-          device.advanced_options.token = newToken;
-          device.advanced_options.key = newKey;
-          changed = true;
+        if (newToken === oldToken && newKey === oldKey) {
+          continue;
+        }
 
-          // Also update any already-discovered accessory context
-          const uuid = this.api.hap.uuid.generate(device.id.toString());
-          const accessory = this.accessories.get(uuid);
-          if (accessory) {
-            accessory.context.token = newToken;
-            accessory.context.key = newKey;
-            this.api.updatePlatformAccessories([accessory]);
-          }
+        if (!forceRefresh && oldToken) {
+          this.log.warn(
+            `[${device.name || device.id}] Cloud token differs from config. ` +
+            'Skipping update at startup; will validate at runtime if auth fails.',
+          );
+          continue;
+        }
+
+        const isValid = await this.validateToken(
+          device.advanced_options?.ip || '',
+          6444,
+          newToken,
+        );
+        if (!isValid) {
+          this.log.warn(
+            `[${device.name || device.id}] Cloud token failed local validation. ` +
+            'Keeping existing token. If the device was re-paired with a different app, ' +
+            'manually extract the new token from the app traffic.',
+          );
+          continue;
+        }
+
+        this.log.info(`[${device.name || device.id}] Token validated locally — updating config`);
+        if (!device.advanced_options) {
+          device.advanced_options = { ...defaultDeviceConfig.advanced_options };
+        }
+        device.advanced_options.token = newToken;
+        device.advanced_options.key = newKey;
+        changed = true;
+
+        const uuid = this.api.hap.uuid.generate(device.id.toString());
+        const accessory = this.accessories.get(uuid);
+        if (accessory) {
+          accessory.context.token = newToken;
+          accessory.context.key = newKey;
+          this.api.updatePlatformAccessories([accessory]);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : err;
@@ -168,10 +215,6 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  /*********************************************************************
-   * saveConfig
-   * Persist updated platform configuration to config.json.
-   */
   private saveConfig(): void {
     try {
       const configPath = this.api.user.configPath();
@@ -193,43 +236,26 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  /*********************************************************************
-   * finishedLaunching
-   * Function called when Homebridge has finished loading the plugin.
-   */
   private async finishedLaunching() {
-    await this.refreshTokens();
+    await this.refreshTokens(false);
     this.log.info('Start device discovery...');
-    // If IP address is in config then probe them directly
     for (let device of this.platformConfig.devices) {
-      // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
       const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-      // Pull in defaults
       device = defaultsDeep(device, defaultDeviceConfig);
       const ip = device.advanced_options.ip.toString().trim();
       if (regexIPv4.test(ip)) {
         this.discover.discoverDeviceByIP(ip);
       } else if (ip) {
-        // IP is non-empty, non-null, but not valid IP address
         this.log.warn(`[${device.name}] Invalid IP address in configuration: ${ip}`);
       }
     }
-    // And then send broadcast to network(s)
     this.discover.startDiscover();
   }
 
-  /*********************************************************************
-   * deviceDiscovered
-   * Function called by the 'device' on handler.
-   */
   private deviceDiscovered(device_info: DeviceInfo) {
-    // Find device specific configuration from within the homebridge config file.
-    // If we have configuration indexed by ID use that, if not use IP address.
     const deviceConfig = this.platformConfig.devices.find((device: DeviceConfig) => device.id === device_info.id);
     if (deviceConfig) {
-      // keep track of discovered devices
       this.discoveredDevices.set(device_info.id, true);
-      // Override name with that provided in the config.json settings
       device_info.name = deviceConfig.name ?? device_info.name;
       this.addDevice(device_info, deviceConfig);
     } else {
@@ -237,18 +263,11 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  /*********************************************************************
-   * discoveryComplete
-   * Function called by the 'complete' on handler.
-   */
   private discoveryComplete() {
     this.log.debug('Discovery complete, check for missing devices');
-    // Check if network broadcasting found all devices that user configured.  If not then
-    // we have to handle those.
     let missingDevices = 0;
     for (const device of this.platformConfig.devices) {
       if (!this.discoveredDevices.get(device.id)) {
-        // This device was not found by network discovery.
         missingDevices++;
         if (this.discoveredDevices.get(device.id) === undefined) {
           this.discoveredDevices.set(device.id, false);
@@ -259,61 +278,39 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       }
     }
     if (missingDevices > 0) {
-      // Some devices not found. Keep retrying periodically until all are found.
       setTimeout(() => {
         missingDevices = 0;
-        // on repeat attempts only retry once (so two broadcasts sent), 3000 miliseconds apart.
         this.discover.startDiscover(1, 3000);
       }, this.discoveryInterval * 1000);
-    } else {
-      this.log.info('All configured devices added to Homebridge');
     }
-
-    // Delete not existing, but cached accessories
-    // for (const [uuid, accessory] of this.accessories) {
-    //   if (!this.discoveredCacheUUIDs.includes(uuid)) {
-    //     this.log.info('Removing existing accessory from cache:', accessory.displayName);
-    //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-    //   }
-    // }
   }
 
-  /*********************************************************************
-   * addDevice
-   * Called for each device as discovered on the network.  Creates the
-   * Midea device handler and the associated Homebridge accessory.
-   */
   private async addDevice(device_info: DeviceInfo, deviceConfig: DeviceConfig) {
     const uuid = this.api.hap.uuid.generate(device_info.id.toString());
     const existingAccessory = this.accessories.get(uuid);
 
-    // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
     const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
     if (device === null) {
       this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
     } else {
       if (existingAccessory) {
-        // the accessory already exists, restore from Homebridge cache
         this.log.info(`[${device_info.name}] Restoring existing accessory from cache: ${existingAccessory.displayName}`);
         try {
-          // Token/key is only required for V3 devices
           if (device_info.version === ProtocolVersion.V3) {
             if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
-              // token/key provided in config file, use those... replacing values in cached context
               this.log.info(`[${device_info.name}] Cached device, using token/key from config file`);
               existingAccessory.context.token = deviceConfig.advanced_options.token;
               existingAccessory.context.key = deviceConfig.advanced_options.key;
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             } else {
-              // use token/key values from the accessory cached context
               this.log.info(`[${device_info.name}] Cached device, using saved credentials`);
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             }
           }
           device.on('authFailure', async ({ id }: { id: number }) => {
             this.log.warn(`[${id}] Authentication failed, attempting token refresh...`);
-            await this.refreshTokens();
+            await this.refreshTokens(true);
           });
           await device.connect(true);
           AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
@@ -325,10 +322,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         try {
           this.log.info('Adding new accessory:', device_info.name);
           const accessory = new this.api.platformAccessory<MideaAccessory['context']>(device_info.name, uuid);
-          // Token/key is only required for V3 devices
           if (device_info.version === ProtocolVersion.V3) {
             if (deviceConfig.advanced_options.token && deviceConfig.advanced_options.key) {
-              // token/key provided in config file, use those... set values in cached context
               this.log.info(`[${device_info.name}] New device at ${device_info.ip}:${device_info.port}, using token/key from config file`);
               accessory.context.token = deviceConfig.advanced_options.token;
               accessory.context.key = deviceConfig.advanced_options.key;
@@ -340,17 +335,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           }
           device.on('authFailure', async ({ id }: { id: number }) => {
             this.log.warn(`[${id}] Authentication failed, attempting token refresh...`);
-            await this.refreshTokens();
+            await this.refreshTokens(true);
           });
           await device.connect(false);
           await device.refresh_status();
-          // Set serial number and model into the context if they are provided.
           accessory.context.sn = device_info.sn ?? 'unknown';
           accessory.context.model = device_info.model ?? 'unknown';
-          // create the accessory handler for the newly create accessory
-          // this is imported from `platformAccessory.ts`
           AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
-          // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         } catch (err) {
           this.log.error(
@@ -364,14 +355,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
-   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.set(accessory.UUID, accessory as MideaAccessory);
   }
 }

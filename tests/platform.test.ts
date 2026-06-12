@@ -7,6 +7,10 @@ vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
 }));
 
+vi.mock('node:net', () => ({
+  createConnection: vi.fn(),
+}));
+
 vi.mock('../src/core/MideaCloud.js', () => ({
   default: {
     createCloud: vi.fn(),
@@ -96,7 +100,7 @@ describe('MideaPlatform token refresh', () => {
     expect(CloudFactory.createCloud).not.toHaveBeenCalled();
   });
 
-  it('fetches tokens and updates config when they have rotated', async () => {
+  it('fetches tokens and updates config when they have rotated (forceRefresh)', async () => {
     const mockCloud = {
       login: vi.fn().mockResolvedValue(undefined),
       getTokenKey: vi.fn().mockResolvedValue([Buffer.from('616263', 'hex'), Buffer.from('646566', 'hex')]),
@@ -111,14 +115,17 @@ describe('MideaPlatform token refresh', () => {
           id: 123456789,
           name: 'Test AC',
           type: 'Air Conditioner',
-          advanced_options: { token: '010203', key: '040506' },
+          advanced_options: { token: '010203', key: '040506', ip: '192.168.1.50' },
         },
       ],
     });
 
+    // Mock validateToken to return true
+    vi.spyOn(platform as unknown as { validateToken: () => Promise<boolean> }, 'validateToken').mockResolvedValue(true);
+
     (readFileSync as unknown as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify({ platforms: [{ platform: 'midea-platform', devices: [] }] }));
 
-    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens();
+    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens(true);
 
     expect(mockCloud.login).toHaveBeenCalledOnce();
     expect(mockCloud.getTokenKey).toHaveBeenCalledWith(123456789, 0);
@@ -127,7 +134,34 @@ describe('MideaPlatform token refresh', () => {
     expect(writeCall[0]).toBe('/fake/config.json');
     expect(writeCall[1]).toContain('616263');
     expect(writeCall[1]).toContain('646566');
-    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('Token rotated'));
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining('Token validated'));
+  });
+
+  it('does not overwrite existing tokens at startup (conservative)', async () => {
+    const mockCloud = {
+      login: vi.fn().mockResolvedValue(undefined),
+      getTokenKey: vi.fn().mockResolvedValue([Buffer.from('616263', 'hex'), Buffer.from('646566', 'hex')]),
+    };
+    (CloudFactory.createCloud as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockCloud);
+
+    const platform = createPlatform({
+      account: 'user@test.com',
+      password: 'secret',
+      devices: [
+        {
+          id: 123456789,
+          name: 'Test AC',
+          type: 'Air Conditioner',
+          advanced_options: { token: '010203', key: '040506', ip: '192.168.1.50' },
+        },
+      ],
+    });
+
+    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens(false);
+
+    expect(mockCloud.getTokenKey).toHaveBeenCalledOnce();
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('Skipping update at startup'));
   });
 
   it('does not persist config when tokens are unchanged', async () => {
@@ -154,6 +188,66 @@ describe('MideaPlatform token refresh', () => {
 
     expect(mockCloud.getTokenKey).toHaveBeenCalledOnce();
     expect(writeFileSync).not.toHaveBeenCalled();
+  });
+
+  it('does not save when cloud token fails local validation (forceRefresh)', async () => {
+    const mockCloud = {
+      login: vi.fn().mockResolvedValue(undefined),
+      getTokenKey: vi.fn().mockResolvedValue([Buffer.from('badbad', 'hex'), Buffer.from('badbad', 'hex')]),
+    };
+    (CloudFactory.createCloud as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockCloud);
+
+    const platform = createPlatform({
+      account: 'user@test.com',
+      password: 'secret',
+      devices: [
+        {
+          id: 123456789,
+          name: 'Test AC',
+          type: 'Air Conditioner',
+          advanced_options: { token: '010203', key: '040506', ip: '192.168.1.50' },
+        },
+      ],
+    });
+
+    vi.spyOn(platform as unknown as { validateToken: () => Promise<boolean> }, 'validateToken').mockResolvedValue(false);
+
+    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens(true);
+
+    expect(mockCloud.getTokenKey).toHaveBeenCalledOnce();
+    expect(writeFileSync).not.toHaveBeenCalled();
+    expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('failed local validation'));
+  });
+
+  it('fills missing token at startup if cloud token validates', async () => {
+    const mockCloud = {
+      login: vi.fn().mockResolvedValue(undefined),
+      getTokenKey: vi.fn().mockResolvedValue([Buffer.from('616263', 'hex'), Buffer.from('646566', 'hex')]),
+    };
+    (CloudFactory.createCloud as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockCloud);
+
+    const platform = createPlatform({
+      account: 'user@test.com',
+      password: 'secret',
+      devices: [
+        {
+          id: 123456789,
+          name: 'Test AC',
+          type: 'Air Conditioner',
+          advanced_options: { token: '', key: '', ip: '192.168.1.50' },
+        },
+      ],
+    });
+
+    vi.spyOn(platform as unknown as { validateToken: () => Promise<boolean> }, 'validateToken').mockResolvedValue(true);
+
+    (readFileSync as unknown as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify({ platforms: [{ platform: 'midea-platform', devices: [] }] }));
+
+    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens(false);
+
+    expect(writeFileSync).toHaveBeenCalledOnce();
+    const writeCall = (writeFileSync as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(writeCall[1]).toContain('616263');
   });
 
   it('deduplicates concurrent refresh calls', async () => {
@@ -228,7 +322,7 @@ describe('MideaPlatform token refresh', () => {
           id: 999,
           name: 'Bedroom AC',
           type: 'Air Conditioner',
-          advanced_options: { token: '000000', key: '000000' },
+          advanced_options: { token: '000000', key: '000000', ip: '192.168.1.50' },
         },
       ],
     });
@@ -246,7 +340,9 @@ describe('MideaPlatform token refresh', () => {
       fakeAccessory as unknown as import('homebridge').PlatformAccessory,
     );
 
-    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens();
+    vi.spyOn(platform as unknown as { validateToken: () => Promise<boolean> }, 'validateToken').mockResolvedValue(true);
+
+    await (platform as unknown as Record<string, () => Promise<void>>).refreshTokens(true);
 
     expect(fakeAccessory.context.token).toBe('aabbcc');
     expect(fakeAccessory.context.key).toBe('ddeeff');

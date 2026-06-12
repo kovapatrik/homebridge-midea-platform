@@ -87,6 +87,7 @@ When `account` and `password` are provided the plugin will:
 - This feature is completely optional. If no credentials are supplied behaviour is unchanged.
 - Credentials are never logged.
 - Only **NetHome Plus** is supported for token fetching.
+- **Token validation:** At startup, the plugin will not overwrite an existing token with a cloud token unless the current token is missing. At runtime (after an auth failure), the plugin fetches the cloud token and performs a quick local TCP handshake to verify it actually works before saving. This prevents stale cloud tokens from breaking a working configuration.
 
 ## License
 
