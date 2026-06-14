@@ -11,6 +11,10 @@ import { DeviceType } from '../../core/MideaConstants.js';
 import { MessageBody, MessageRequest, MessageResponse, MessageType, NewProtocolMessageBody } from '../../core/MideaMessage.js';
 import { calculate } from '../../core/MideaUtils.js';
 
+const MAX_MSG_SERIAL_NUM = 100;
+const MIN_TARGET_HUMIDITY = 35;
+const MIN_FAN_SPEED = 5;
+
 enum NewProtocolTags {
   LIGHT = 0x005b,
 }
@@ -23,7 +27,7 @@ abstract class MessageA1Base extends MessageRequest {
     super(DeviceType.DEHUMIDIFIER, message_type, body_type, device_protocol_version);
     MessageA1Base.message_serial += 1;
     // I don't know why dehumidifier wraps at 100, air conditioner wraps at 254
-    if (MessageA1Base.message_serial >= 100) {
+    if (MessageA1Base.message_serial >= MAX_MSG_SERIAL_NUM) {
       MessageA1Base.message_serial = 1;
     }
     this.message_id = MessageA1Base.message_serial;
@@ -55,10 +59,7 @@ export class MessageQuery extends MessageA1Base {
 }
 
 export class MessageNewProtocolQuery extends MessageA1Base {
-  constructor(
-    device_protocol_version: number,
-    private readonly alternate_display = false,
-  ) {
+  constructor(device_protocol_version: number) {
     super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
 
@@ -83,7 +84,6 @@ export class MessageSet extends MessageA1Base {
   public target_humidity: number;
   public swing: boolean;
   public anion: boolean;
-  public filter: boolean;
   public pump: boolean;
   public water_level_set: number;
   public purifier: number;
@@ -98,7 +98,6 @@ export class MessageSet extends MessageA1Base {
     this.target_humidity = 40;
     this.swing = false;
     this.anion = false;
-    this.filter = false;
     this.pump = false;
     this.water_level_set = 50;
     this.purifier = 0;
@@ -116,9 +115,8 @@ export class MessageSet extends MessageA1Base {
     const target_humidity = this.target_humidity;
     // byte8 child_lock
     const child_lock = this.child_lock ? 0x80 : 0x00;
-    // byte9 anion, filter, pump, pump_enable
+    // byte9 anion, pump, pump_enable
     const anion = this.anion ? 0x40 : 0x00;
-    const filter = this.filter ? 0x80 : 0x00;
     const pump = this.pump ? 0x08 : 0x00;
     const pump_enable = this.pump ? 0x10 : 0x00;
     // byte10 swing (swingUDValue << 3)
@@ -135,7 +133,7 @@ export class MessageSet extends MessageA1Base {
       0x00, 0x00, 0x00,
       target_humidity,
       child_lock,
-      anion | filter | pump | pump_enable,
+      anion | pump | pump_enable,
       swing,
       0x00, 0x00,
       water_level_set,
@@ -159,13 +157,7 @@ export class MessageNewProtocolSet extends MessageA1Base {
 
     if (this.light !== undefined) {
       pack_count += 1;
-      payload = Buffer.concat([
-        payload,
-        // original python code at:
-        // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
-        // used "NewProtocolTags.INDIRECT_WIND" but that is/was not defined so assumed to be a bug and should be LIGHT
-        NewProtocolMessageBody.packet(NewProtocolTags.LIGHT, Buffer.from([this.light ? 0x01 : 0x00])),
-      ]);
+      payload = Buffer.concat([payload, NewProtocolMessageBody.packet(NewProtocolTags.LIGHT, Buffer.from([this.light ? 0x01 : 0x00]))]);
     }
 
     payload[0] = pack_count;
@@ -202,7 +194,7 @@ class A1GeneralMessageBody extends MessageBody {
     // byte3 - fan_speed
     this.fan_speed = body[3] & 0x7f;
     // byte7 - target_humidity (between 35% and 85%)
-    this.target_humidity = body[7] < 35 ? 35 : body[7] > 85 ? 85 : body[7];
+    this.target_humidity = Math.max(body[7], MIN_TARGET_HUMIDITY);
     // byte8 - child_lock
     this.child_lock = (body[8] & 0x80) > 0;
     // byte9 - filter_indicator, anion, sleep_mode, pump_enable, pump
@@ -228,7 +220,7 @@ class A1GeneralMessageBody extends MessageBody {
     this.purifier = body.length >= 24 ? body[23] & 0x01 : 0;
     // Not sure the purpose of this fan speed check, but it is part of the original python code at
     // https://github.com/georgezhao2010/midea_ac_lan/blob/master/custom_components/midea_ac_lan/midea/devices/a1/message.py
-    if (this.fan_speed < 5) {
+    if (this.fan_speed < MIN_FAN_SPEED) {
       this.fan_speed = 1;
     }
   }
@@ -250,7 +242,7 @@ class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 export class MessageA1Response extends MessageResponse {
   constructor(private readonly message: Buffer) {
     super(message);
-    if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY2].includes(this.message_type)) {
+    if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY1].includes(this.message_type)) {
       if ([0xb0, 0xb1, 0xb5].includes(this.body_type)) {
         this.set_body(new A1NewProtocolMessageBody(this.body, this.body_type));
       } else {
