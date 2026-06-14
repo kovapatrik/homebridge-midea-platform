@@ -430,6 +430,11 @@
                   "description": "Changes if the fan speed is 3 levels or 7 levels",
                   "type": "string",
                   "enum": ["3", "7"]
+                },
+                "fanAutoSwitch": {
+                  "title": "Fan Auto Switch",
+                  "description": "Toggles if the fan auto switch is created with the accessory.",
+                  "type": "boolean"
                 }
               }
             },
@@ -759,7 +764,8 @@
                 "devices[].CC_options.ecoModeSwitch",
                 "devices[].CC_options.nightLightSwitch",
                 "devices[].CC_options.sleepModeSwitch",
-                "devices[].CC_options.fanSpeedMode"
+                "devices[].CC_options.fanSpeedMode",
+                "devices[].CC_options.fanAutoSwitch"
               ]
             },
             {

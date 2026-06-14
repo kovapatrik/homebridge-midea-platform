@@ -139,6 +139,7 @@ type CCOptions = {
   nightLightSwitch: boolean;
   sleepModeSwitch: boolean;
   fanSpeedMode: '3' | '7';
+  fanAutoSwitch: boolean;
 };
 
 type CDOptions = {
@@ -265,6 +266,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     nightLightSwitch: false,
     sleepModeSwitch: false,
     fanSpeedMode: '7',
+    fanAutoSwitch: false,
   },
   CD_options: {
     minTemp: 38,
