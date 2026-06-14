@@ -1,16 +1,21 @@
 import type { CharacteristicValue, Service } from 'homebridge';
 import type { DeviceAttributeBase } from '../core/MideaDevice.js';
 import type MideaCCDevice from '../devices/cc/MideaCCDevice.js';
+import { FanSpeed, Mode } from '../devices/cc/MideaCCMessage.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import type { DeviceConfig } from '../platformUtils.js';
 import BaseAccessory, { limitValue } from './BaseAccessory.js';
-import { Mode, FanSpeed } from '../devices/cc/MideaCCMessage.js';
+
+const fanAutoSubtype = 'fanAuto';
 
 export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDevice> {
   protected service: Service;
 
+  private fanAutoService?: Service;
+
   private heatingThresholdTemperature: number;
   private coolingThresholdTemperature: number;
+  private lastDiscreteFanSpeed: FanSpeed;
 
   constructor(
     platform: MideaPlatform,
@@ -26,7 +31,9 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
 
     this.service.getCharacteristic(this.platform.Characteristic.Active).onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits).onGet(this.getTemperatureDisplayUnits.bind(this))
+    this.service
+      .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+      .onGet(this.getTemperatureDisplayUnits.bind(this))
       .onSet(this.setTemperatureDisplayUnits.bind(this));
 
     this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState).onGet(this.getCurrentHeaterCoolerState.bind(this));
@@ -58,11 +65,13 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
         minStep: this.configDev.CC_options.tempStep,
       });
 
-    const fanSpeedSteps = this.configDev.CC_options.fanSpeedMode === '3'
-      ? [33, 66, 100]  // 3-level: Low, Mid, High
-      : [14, 28, 43, 57, 71, 86, 100];  // 7-level: Sleep, Micron, Low, Mid, High, SuperHigh, Power
+    const fanSpeedSteps =
+      this.configDev.CC_options.fanSpeedMode === '3'
+        ? [33, 66, 100] // 3-level: Low, Mid, High
+        : [14, 28, 43, 57, 71, 86, 100]; // 7-level: Sleep, Micron, Low, Mid, High, SuperHigh, Power
 
-    this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
+    this.service
+      .getCharacteristic(this.platform.Characteristic.RotationSpeed)
       .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this))
       .setProps({
@@ -75,16 +84,66 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
     // Swing modes
     // this.service.getCharacteristic(this.platform.Characteristic.SwingMode).onGet(this.getSwingMode.bind(this)).onSet(this.setSwingMode.bind(this));
 
+    // Fan Auto switch
+    this.fanAutoService = this.accessory.getServiceById(this.platform.Service.Switch, fanAutoSubtype);
+    if (this.configDev.CC_options.fanAutoSwitch) {
+      this.fanAutoService ??= this.accessory.addService(this.platform.Service.Switch, undefined, fanAutoSubtype);
+      this.handleConfiguredName(this.fanAutoService, fanAutoSubtype, 'Fan Auto');
+      this.fanAutoService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getFanAuto.bind(this)).onSet(this.setFanAuto.bind(this));
+    } else if (this.fanAutoService) {
+      this.accessory.removeService(this.fanAutoService);
+    }
+
     // Misc
 
     this.heatingThresholdTemperature = accessory.context?.thresholds?.heatingTemperature ?? configDev.CC_options.minTemp;
     this.coolingThresholdTemperature = accessory.context?.thresholds?.coolingTemperature ?? configDev.CC_options.maxTemp;
+
+    const initialFanSpeed = device.attributes.FAN_SPEED;
+    this.lastDiscreteFanSpeed = initialFanSpeed !== FanSpeed.Auto ? initialFanSpeed : FanSpeed.Mid;
   }
 
   protected async updateCharacteristics(attributes: DeviceAttributeBase) {
+    let updateState = false;
+
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
-      // const updateState = false;
+      switch (k) {
+        case 'POWER':
+        case 'MODE':
+          updateState = true;
+          break;
+        case 'TARGET_TEMPERATURE':
+          this.service.updateCharacteristic(this.platform.Characteristic.CoolingThresholdTemperature, this.getTargetTemperature());
+          this.service.updateCharacteristic(this.platform.Characteristic.HeatingThresholdTemperature, this.getTargetTemperature());
+          updateState = true;
+          break;
+        case 'FAN_SPEED': {
+          const fanSpeed = v as FanSpeed;
+          if (fanSpeed !== FanSpeed.Auto) {
+            this.lastDiscreteFanSpeed = fanSpeed;
+          }
+          this.fanAutoService?.updateCharacteristic(this.platform.Characteristic.On, fanSpeed === FanSpeed.Auto);
+          updateState = true;
+          break;
+        }
+        case 'INDOOR_TEMPERATURE':
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, this.getCurrentTemperature());
+          updateState = true;
+          break;
+        case 'TEMP_FAHRENHEIT':
+          this.service.updateCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits, this.getTemperatureDisplayUnits());
+          break;
+        default:
+          this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
+      }
+    }
+
+    if (updateState) {
+      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState, this.getCurrentHeaterCoolerState());
+      this.service.updateCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState, this.getTargetHeaterCoolerState());
+      this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, this.getRotationSpeed());
     }
   }
 
@@ -97,7 +156,9 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
   }
 
   getTemperatureDisplayUnits(): CharacteristicValue {
-    return this.device.attributes.TEMP_FAHRENHEIT ? this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT : this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
+    return this.device.attributes.TEMP_FAHRENHEIT
+      ? this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT
+      : this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS;
   }
 
   async setTemperatureDisplayUnits(value: CharacteristicValue) {
@@ -168,7 +229,7 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
     const target = limitValue(Math.round(+value / tempStep) * tempStep, minTemp, maxTemp);
 
     if (this.getTargetTemperature() === target) return;
-    await this.device.set_target_temperature(target);
+    await this.device.set_attribute({ TARGET_TEMPERATURE: target });
   }
 
   async setTargetTemperatureWithinThresholds() {
@@ -214,6 +275,7 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
   async setRotationSpeed(value: CharacteristicValue) {
     const percentage = Number(value);
     const fanSpeed = this.percentageToFanSpeed(percentage);
+    this.lastDiscreteFanSpeed = fanSpeed;
     await this.device.set_attribute({ FAN_SPEED: fanSpeed });
   }
 
@@ -226,29 +288,53 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
     // TODO: Implement swing mode setter
   }
 
+  getFanAuto(): CharacteristicValue {
+    return this.device.attributes.FAN_SPEED === FanSpeed.Auto;
+  }
+
+  async setFanAuto(value: CharacteristicValue) {
+    if (value) {
+      await this.device.set_attribute({ FAN_SPEED: FanSpeed.Auto });
+    } else {
+      await this.device.set_attribute({ FAN_SPEED: this.lastDiscreteFanSpeed });
+    }
+  }
+
   private fanSpeedToPercentage(fanSpeed: FanSpeed): number {
     const mode = this.configDev.CC_options.fanSpeedMode;
 
     if (mode === '3') {
       // 3-level mode: Low, Mid, High
       switch (fanSpeed) {
-        case FanSpeed.Low: return 33;
-        case FanSpeed.Mid: return 66;
-        case FanSpeed.High: return 100;
-        default: return 66; // Default to Mid
+        case FanSpeed.Low:
+          return 33;
+        case FanSpeed.Mid:
+          return 66;
+        case FanSpeed.High:
+          return 100;
+        default:
+          return 66; // Default to Mid
       }
     }
 
     // 7-level mode: Sleep, Micron, Low, Mid, High, SuperHigh, Power
     switch (fanSpeed) {
-      case FanSpeed.Sleep: return 14;
-      case FanSpeed.Micron: return 28;
-      case FanSpeed.Low: return 43;
-      case FanSpeed.Mid: return 57;
-      case FanSpeed.High: return 71;
-      case FanSpeed.SuperHigh: return 86;
-      case FanSpeed.Power: return 100;
-      default: return 57; // Default to Mid
+      case FanSpeed.Sleep:
+        return 14;
+      case FanSpeed.Micron:
+        return 28;
+      case FanSpeed.Low:
+        return 43;
+      case FanSpeed.Mid:
+        return 57;
+      case FanSpeed.High:
+        return 71;
+      case FanSpeed.SuperHigh:
+        return 86;
+      case FanSpeed.Power:
+        return 100;
+      default:
+        return 57; // Default to Mid
     }
   }
 
@@ -271,5 +357,4 @@ export default class MDVWiFiControllerAccessory extends BaseAccessory<MideaCCDev
     if (percentage <= 86) return FanSpeed.SuperHigh;
     return FanSpeed.Power;
   }
-
 }
