@@ -13,11 +13,10 @@ import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
 import {
-  ControlId,
+  type ControlField,
   FanSpeed,
-  FE_FAN_TO_BYTE,
-  FE_MODE_TO_BYTE,
   HeatStatus,
+  type IndoorUnitStatus,
   MessageCCResponse,
   MessageFEControl,
   MessageQuery,
@@ -62,6 +61,9 @@ export default class MideaCCDevice extends MideaDevice {
 
   // Set once a TLV/FE-format response is received; selects the VRF control path.
   private _is_fe_format = false;
+
+  // Per-indoor-unit status, populated from FE branch responses.
+  public indoor_units: IndoorUnitStatus[] = [];
 
   constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
@@ -116,6 +118,12 @@ export default class MideaCCDevice extends MideaDevice {
       }
     }
 
+    // Update per-unit status from FE branch responses.
+    const mcsUnits = message.get_body_attribute('mcs_units') as IndoorUnitStatus[] | undefined;
+    if (mcsUnits !== undefined) {
+      this.indoor_units = mcsUnits;
+    }
+
     if (Object.keys(changed).length > 0) {
       this.update(changed);
     } else {
@@ -142,51 +150,50 @@ export default class MideaCCDevice extends MideaDevice {
     return message;
   }
 
-  private _make_fe_controls(attributes: Partial<CCAttributes>): [ControlId, number][] {
-    const controls: [ControlId, number][] = [];
+  private _make_fe_controls(attributes: Partial<CCAttributes>): ControlField[] {
+    const controls: ControlField[] = [];
     for (const [k, v] of Object.entries(attributes)) {
-      switch (k) {
-        case 'POWER':
-          controls.push([ControlId.POWER, v ? 1 : 0]);
-          break;
-        case 'MODE':
-          controls.push([ControlId.MODE, FE_MODE_TO_BYTE[v as Mode] ?? 0x05]);
-          break;
-        case 'TARGET_TEMPERATURE':
-          controls.push([ControlId.TARGET_TEMPERATURE, Math.round((v as number) * 2) + 80]);
-          break;
-        case 'FAN_SPEED':
-          controls.push([ControlId.FAN_SPEED, FE_FAN_TO_BYTE[v as FanSpeed] ?? 0x08]);
-          break;
-        case 'VERTICAL_SWING_ANGLE':
-          controls.push([ControlId.SWING_VERTICAL, v as number]);
-          break;
-        case 'HORIZONTAL_SWING_ANGLE':
-          controls.push([ControlId.SWING_HORIZONTAL, v as number]);
-          break;
-        case 'ECO_MODE':
-          controls.push([ControlId.ECO_MODE, v ? 1 : 0]);
-          break;
-        case 'SILENT_MODE':
-          controls.push([ControlId.SILENT_MODE, v ? 1 : 0]);
-          break;
-        case 'SLEEP_MODE':
-          controls.push([ControlId.SLEEP_MODE, v ? 1 : 0]);
-          break;
-        case 'NIGHT_LIGHT':
-          controls.push([ControlId.NIGHT_LIGHT, v ? 1 : 0]);
-          break;
-        case 'AUX_HEAT_MODE': {
-          const byte = v === HeatStatus.On ? 1 : v === HeatStatus.Off ? 2 : 0;
-          controls.push([ControlId.AUX_HEAT_MODE, byte]);
-          break;
-        }
-        case 'PURIFIER_MODE':
-          controls.push([ControlId.PURIFIER_MODE, v as number]);
-          break;
-      }
+      controls.push({ kind: k, value: v } as ControlField);
     }
     return controls;
+  }
+
+  async set_unit_attribute(addr: number, attributes: Partial<Omit<IndoorUnitStatus, 'addr' | 'room_temperature'>>) {
+    if (!this._is_fe_format) {
+      this.logger.warn(`[${this.name}] Per-unit control requires FE format device`);
+      return;
+    }
+    try {
+      const controls: ControlField[] = [];
+      for (const [k, v] of Object.entries(attributes)) {
+        switch (k) {
+          case 'power':
+            controls.push({ kind: 'CTRL_POWER', addr, value: v as boolean });
+            break;
+          case 'mode':
+            controls.push({ kind: 'CTRL_MODE', addr, value: v as Mode });
+            break;
+          case 'fan_speed':
+            controls.push({ kind: 'CTRL_WIND_SPEED', addr, value: v as FanSpeed });
+            break;
+          case 'target_temperature':
+            controls.push({ kind: 'CTRL_TEMP', addr, value: v as number });
+            break;
+          case 'vertical_swing_angle':
+            controls.push({ kind: 'CTRL_LOUVER_VERTICAL', addr, value: v as SwingAngle });
+            break;
+          case 'horizontal_swing_angle':
+            controls.push({ kind: 'CTRL_LOUVER_HORIZONTAL', addr, value: v as SwingAngle });
+            break;
+        }
+      }
+      if (controls.length <= 1) return; // only CTRL_ADDR, no actual controls
+      this.logger.debug(`[${this.name}] Unit ${addr} FE controls: ${JSON.stringify(controls)}`);
+      await this.build_send(new MessageFEControl(this.device_protocol_version, controls));
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack : err;
+      this.logger.debug(`[${this.name}] Error in set_unit_attribute (${this.ip}:${this.port}):\n${msg}`);
+    }
   }
 
   async set_attribute(attributes: Partial<CCAttributes>) {

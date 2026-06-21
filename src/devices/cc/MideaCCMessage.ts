@@ -12,6 +12,7 @@
 import { DeviceType } from '../../core/MideaConstants.js';
 import { MessageBody, MessageRequest, MessageResponse, MessageType } from '../../core/MideaMessage.js';
 import { calculate } from '../../core/MideaUtils.js';
+import { boolField, compositeField, type FEField, parseFEBranch, readOnlyField, simpleField, tlvSection } from './MideaCCTLV.js';
 
 // ptc_setting (body[14] bits5-6): legacy wire values 0x00=Auto, 0x10=On, 0x20=Off
 export enum HeatStatus {
@@ -61,24 +62,244 @@ export enum PurifierMode {
   Off = 0x02,
 }
 
-// Control IDs for the 0xFE VRF panel key-value control protocol.
-// Values are the key_maps indices from T_0000_CC_10011006_2025033001.lua.
-// biome-ignore format: easier to read as a flat list
-export enum ControlId {
-  POWER              = 0x0000, // power
-  TARGET_TEMPERATURE = 0x0003, // temperature_current
-  MODE               = 0x0012, // mode_current
-  FAN_SPEED          = 0x0015, // wind_speed_level
-  SWING_VERTICAL     = 0x001C, // swing_louver_vertical_level
-  SWING_HORIZONTAL   = 0x001E, // swing_louver_horizontal_level
-  ECO_MODE           = 0x0028, // eco_status
-  SILENT_MODE        = 0x002A, // idu_silent_status
-  SLEEP_MODE         = 0x002C, // idu_sleep_status
-  PURIFIER_MODE      = 0x003A, // sterilize_status
-  NIGHT_LIGHT        = 0x0040, // idu_light
-  AUX_HEAT_RUNNING   = 0x0041, // ptc_enable
-  AUX_HEAT_MODE      = 0x0043, // ptc_status
+// Per-unit status returned in mcs_idxN_* fields of the FE branch response.
+export interface IndoorUnitStatus {
+  addr: number;
+  power: boolean;
+  mode: Mode;
+  fan_speed: FanSpeed;
+  target_temperature: number;
+  room_temperature?: number;
+  vertical_swing_angle: SwingAngle;
+  horizontal_swing_angle: SwingAngle;
 }
+
+// ---------------------------------------------------------------------------
+// FE branch (compact-range) byte ↔ enum maps
+// ---------------------------------------------------------------------------
+
+// mode_current value_map: {[2]="fan",[3]="cool",[4]="heat",[6]="auto",[7]="dry"} (byte = key − 1)
+const FE_BYTE_TO_MODE: Record<number, Mode> = {
+  1: Mode.Fan,
+  2: Mode.Cool,
+  3: Mode.Heat,
+  5: Mode.Auto,
+  6: Mode.Dry,
+};
+const FE_MODE_TO_BYTE: Partial<Record<Mode, number>> = {
+  [Mode.Fan]: 0x01,
+  [Mode.Cool]: 0x02,
+  [Mode.Heat]: 0x03,
+  [Mode.Auto]: 0x05,
+  [Mode.Dry]: 0x06,
+};
+
+// wind_speed_level value_map: {[2]='1',…,[8]='7',[9]='auto'} (byte = key − 1)
+const FE_BYTE_TO_FAN: Record<number, FanSpeed> = {
+  1: FanSpeed.Micron,
+  2: FanSpeed.Low,
+  3: FanSpeed.Mid,
+  4: FanSpeed.Mid,
+  5: FanSpeed.High,
+  6: FanSpeed.SuperHigh,
+  7: FanSpeed.Power,
+  8: FanSpeed.Auto,
+};
+const FE_FAN_TO_BYTE: Partial<Record<FanSpeed, number>> = {
+  [FanSpeed.Sleep]: 0x01,
+  [FanSpeed.Micron]: 0x01,
+  [FanSpeed.Low]: 0x02,
+  [FanSpeed.Mid]: 0x03,
+  [FanSpeed.High]: 0x05,
+  [FanSpeed.SuperHigh]: 0x06,
+  [FanSpeed.Power]: 0x07,
+  [FanSpeed.Auto]: 0x08,
+};
+
+// ---------------------------------------------------------------------------
+// Bidirectional field registry — shared by parser and encoder
+// ---------------------------------------------------------------------------
+
+// biome-ignore format: easier to read as a flat list
+const FIELDS = {
+  // idx=0x0000  power
+  power:                boolField(0x0000),
+  // idx=0x0003  temperature_current: byte = (temp × 2) + 80
+  target_temperature:   simpleField(
+    0x0003,
+    buf => buf?.[0] !== undefined ? buf[0] / 2 - 40 : undefined,
+    v   => [Math.round(v * 2) + 80],
+  ),
+  // idx=0x0004  temperature_room (2B BE, 0.1°C, 0xFFFF=unavailable) — response only
+  indoor_temperature:   readOnlyField(0x0004, buf => {
+    if (!buf || buf.length < 2) return undefined;
+    const raw = (buf[0] << 8) | buf[1];
+    return raw !== 0xffff ? raw / 10 : undefined;
+  }),
+  // idx=0x0005  temperature_outside: byte = (temp × 2) + 80, 0xFF=unavailable — response only
+  outdoor_temperature:  readOnlyField(0x0005, buf => buf?.[0] !== undefined && buf[0] !== 0xff ? buf[0] / 2 - 40 : undefined),
+  // idx=0x000C  temp_unit: 0=C, 1=F
+  temp_fahrenheit:      boolField(0x000C),
+  // idx=0x000D  temp_accurate: 0=1°, 1=0.5°
+  temperature_precision: simpleField<1 | 0.5>(
+    0x000D,
+    buf => buf?.[0] !== undefined ? (buf[0] === 0x01 ? 0.5 : 1) : undefined,
+    v   => [v === 0.5 ? 1 : 0],
+  ),
+  // idx=0x0012  mode_current
+  mode:                 simpleField(
+    0x0012,
+    buf => FE_BYTE_TO_MODE[buf?.[0] ?? 0xff],
+    v   => [FE_MODE_TO_BYTE[v] ?? 0x05],
+  ),
+  // idx=0x0015  wind_speed_level
+  fan_speed:            simpleField(
+    0x0015,
+    buf => FE_BYTE_TO_FAN[buf?.[0] ?? 0xff],
+    v   => [FE_FAN_TO_BYTE[v] ?? 0x08],
+  ),
+  // idx=0x001B enable + idx=0x001C level; write targets level only
+  vertical_swing_angle:   compositeField(
+    [0x001B, 0x001C], 0x001C,
+    ([enable, level]) => enable?.[0] === 0x01 ? (level?.[0] ?? 0) as SwingAngle : SwingAngle.Close,
+    v => [v],
+  ),
+  // idx=0x001D enable + idx=0x001E level; write targets level only
+  horizontal_swing_angle: compositeField(
+    [0x001D, 0x001E], 0x001E,
+    ([enable, level]) => enable?.[0] === 0x01 ? (level?.[0] ?? 0) as SwingAngle : SwingAngle.Close,
+    v => [v],
+  ),
+  // idx=0x0028  eco_status
+  eco_mode:             boolField(0x0028),
+  // idx=0x002A  idu_silent_status
+  silent_mode:          boolField(0x002A),
+  // idx=0x002C  idu_sleep_status
+  sleep_mode:           boolField(0x002C),
+  // idx=0x003A  sterilize_status: 0=auto, 1=on, 2=off
+  purifier_mode:        simpleField(
+    0x003A,
+    buf => buf?.[0] !== undefined ? buf[0] as PurifierMode : undefined,
+    v   => [v],
+  ),
+  // idx=0x0040  idu_light
+  night_light:          boolField(0x0040),
+  // idx=0x0041  ptc_enable
+  aux_heat_running:     boolField(0x0041),
+  // idx=0x0043  ptc_status: 0=auto, 1=on, 2=off
+  aux_heat_mode:        simpleField(
+    0x0043,
+    buf => {
+      if (buf?.[0] === undefined) return undefined;
+      return buf[0] === 0x01 ? HeatStatus.On : buf[0] === 0x02 ? HeatStatus.Off : HeatStatus.Auto;
+    },
+    v => [v === HeatStatus.On ? 1 : v === HeatStatus.Off ? 2 : 0],
+  ),
+};
+
+// Derived from the union: all non-CTRL ControlField kinds.
+// Adding a new main-controller ControlField variant that's missing here is a compile error.
+type MainFieldKind = Exclude<ControlField['kind'], `CTRL_${string}`>;
+
+// biome-ignore format: easier to read as a flat list
+const KIND_TO_FIELD = {
+  POWER:                  FIELDS.power,
+  TARGET_TEMPERATURE:     FIELDS.target_temperature,
+  MODE:                   FIELDS.mode,
+  FAN_SPEED:              FIELDS.fan_speed,
+  VERTICAL_SWING_ANGLE:   FIELDS.vertical_swing_angle,
+  HORIZONTAL_SWING_ANGLE: FIELDS.horizontal_swing_angle,
+  ECO_MODE:               FIELDS.eco_mode,
+  SILENT_MODE:            FIELDS.silent_mode,
+  SLEEP_MODE:             FIELDS.sleep_mode,
+  PURIFIER_MODE:          FIELDS.purifier_mode,
+  NIGHT_LIGHT:            FIELDS.night_light,
+  AUX_HEAT_RUNNING:       FIELDS.aux_heat_running,
+  AUX_HEAT_MODE:          FIELDS.aux_heat_mode,
+  TEMP_FAHRENHEIT:        FIELDS.temp_fahrenheit,
+  TEMPERATURE_PRECISION:  FIELDS.temperature_precision,
+  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous field types unified at boundary
+} satisfies Record<MainFieldKind, FEField<any>>;
+
+// ---------------------------------------------------------------------------
+// ControlField — discriminated union for FE VRF panel control
+// ---------------------------------------------------------------------------
+
+/**
+ * Each variant carries a correctly-typed value. buildTLVSection() handles the
+ * wire encoding centrally, so call sites never deal with raw byte math.
+ *
+ * Per-unit (CTRL_*) variants embed the target unit address — both in the
+ * wire value bytes (need_addr fields) and in the variant itself so the caller
+ * doesn't need to track it separately. Always precede CTRL_* fields with a
+ * CTRL_ADDR field for the same addr.
+ */
+// biome-ignore format: easier to read as a flat list
+export type ControlField =
+  // Main controller fields
+  | { kind: 'POWER';              value: boolean }
+  | { kind: 'TARGET_TEMPERATURE'; value: number }
+  | { kind: 'MODE';               value: Mode }
+  | { kind: 'FAN_SPEED';          value: FanSpeed }
+  | { kind: 'VERTICAL_SWING_ANGLE';   value: SwingAngle }
+  | { kind: 'HORIZONTAL_SWING_ANGLE'; value: SwingAngle }
+  | { kind: 'ECO_MODE';           value: boolean }
+  | { kind: 'SILENT_MODE';        value: boolean }
+  | { kind: 'SLEEP_MODE';         value: boolean }
+  | { kind: 'PURIFIER_MODE';      value: PurifierMode }
+  | { kind: 'NIGHT_LIGHT';        value: boolean }
+  | { kind: 'AUX_HEAT_RUNNING';      value: boolean }
+  | { kind: 'AUX_HEAT_MODE';         value: HeatStatus }
+  | { kind: 'TEMP_FAHRENHEIT';        value: boolean }
+  | { kind: 'TEMPERATURE_PRECISION';  value: 1 | 0.5 }
+  // Per-unit controls (write-only, need_addr — addr embedded in wire value)
+  | { kind: 'CTRL_ADDR';              addr: number }
+  | { kind: 'CTRL_POWER';             addr: number; value: boolean }
+  | { kind: 'CTRL_MODE';              addr: number; value: Mode }
+  | { kind: 'CTRL_WIND_SPEED';        addr: number; value: FanSpeed }
+  | { kind: 'CTRL_TEMP';              addr: number; value: number }
+  | { kind: 'CTRL_LOUVER_VERTICAL';   addr: number; value: SwingAngle }
+  | { kind: 'CTRL_LOUVER_HORIZONTAL'; addr: number; value: SwingAngle }
+
+/**
+ * Encode a ControlField into a single TLV section buffer.
+ * Field IDs are the key_maps indices from T_0000_CC_10011006_2025033001.lua.
+ */
+// biome-ignore format: easier to read as a flat list
+export function buildTLVSection(field: ControlField): Buffer {
+  switch (field.kind) {
+    // Main controller — each case delegates to KIND_TO_FIELD for type-safe dispatch.
+    // KIND_TO_FIELD satisfies Record<MainFieldKind, FEField<any>>, so adding a new
+    // ControlField variant without updating that registry is a compile error.
+    case 'POWER':              return KIND_TO_FIELD.POWER.write(field.value);
+    case 'TARGET_TEMPERATURE': return KIND_TO_FIELD.TARGET_TEMPERATURE.write(field.value);
+    case 'MODE':               return KIND_TO_FIELD.MODE.write(field.value);
+    case 'FAN_SPEED':          return KIND_TO_FIELD.FAN_SPEED.write(field.value);
+    case 'VERTICAL_SWING_ANGLE':   return KIND_TO_FIELD.VERTICAL_SWING_ANGLE.write(field.value);
+    case 'HORIZONTAL_SWING_ANGLE': return KIND_TO_FIELD.HORIZONTAL_SWING_ANGLE.write(field.value);
+    case 'ECO_MODE':           return KIND_TO_FIELD.ECO_MODE.write(field.value);
+    case 'SILENT_MODE':        return KIND_TO_FIELD.SILENT_MODE.write(field.value);
+    case 'SLEEP_MODE':         return KIND_TO_FIELD.SLEEP_MODE.write(field.value);
+    case 'PURIFIER_MODE':      return KIND_TO_FIELD.PURIFIER_MODE.write(field.value);
+    case 'NIGHT_LIGHT':        return KIND_TO_FIELD.NIGHT_LIGHT.write(field.value);
+    case 'AUX_HEAT_RUNNING':      return KIND_TO_FIELD.AUX_HEAT_RUNNING.write(field.value);
+    case 'AUX_HEAT_MODE':         return KIND_TO_FIELD.AUX_HEAT_MODE.write(field.value);
+    case 'TEMP_FAHRENHEIT':       return KIND_TO_FIELD.TEMP_FAHRENHEIT.write(field.value);
+    case 'TEMPERATURE_PRECISION': return KIND_TO_FIELD.TEMPERATURE_PRECISION.write(field.value);
+    // Per-unit (need_addr) — addr embedded in value bytes, no symmetric read side
+    case 'CTRL_ADDR':              return tlvSection(0x02A8, [field.addr]);
+    case 'CTRL_POWER':             return tlvSection(0x02A9, [field.value ? 1 : 0,                    field.addr]);
+    case 'CTRL_MODE':              return tlvSection(0x02AA, [FE_MODE_TO_BYTE[field.value] ?? 0x05,   field.addr]);
+    case 'CTRL_WIND_SPEED':        return tlvSection(0x02AB, [FE_FAN_TO_BYTE[field.value] ?? 0x08,   field.addr]);
+    case 'CTRL_TEMP':              return tlvSection(0x02AC, [Math.round(field.value * 2) + 80,       field.addr]);
+    case 'CTRL_LOUVER_HORIZONTAL': return tlvSection(0x02AF, [field.value,                            field.addr]);
+    case 'CTRL_LOUVER_VERTICAL':   return tlvSection(0x02B0, [field.value,                            field.addr]);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Message classes
+// ---------------------------------------------------------------------------
 
 abstract class MessageCCBase extends MessageRequest {
   constructor(device_protocol_version: number, message_type: MessageType, body_type: number) {
@@ -170,67 +391,17 @@ export class MessageSet extends MessageCCBase {
   }
 }
 
-// Build a single TLV control section: [idx_hi][idx_lo][size][data…][0xFF]
-function tlvSection(idx: ControlId, value: number): Buffer {
-  return Buffer.from([idx >> 8, idx & 0xff, 1, value & 0xff, 0xff]);
-}
-
-// FE format mode byte → Mode enum
-// mode_current value_map: {[2]="fan",[3]="cool",[4]="heat",[6]="auto",[7]="dry"} (byte = key − 1)
-// biome-ignore-start lint/complexity/useSimpleNumberKeys: clearer with hex
-const FE_BYTE_TO_MODE: Record<number, Mode> = {
-  0x01: Mode.Fan,
-  0x02: Mode.Cool,
-  0x03: Mode.Heat,
-  0x05: Mode.Auto,
-  0x06: Mode.Dry,
-};
-// biome-ignore-end lint/complexity/useSimpleNumberKeys: clearer with hex
-export const FE_MODE_TO_BYTE: Partial<Record<Mode, number>> = {
-  [Mode.Fan]: 0x01,
-  [Mode.Cool]: 0x02,
-  [Mode.Heat]: 0x03,
-  [Mode.Auto]: 0x05,
-  [Mode.Dry]: 0x06,
-};
-
-// FE format fan speed byte (1–8) ↔ FanSpeed enum
-// wind_speed_level value_map: {[2]='1',…,[8]='7',[9]='auto'} (byte = key − 1)
-// biome-ignore-start lint/complexity/useSimpleNumberKeys: clearer with hex
-const FE_BYTE_TO_FAN: Record<number, FanSpeed> = {
-  0x01: FanSpeed.Micron,
-  0x02: FanSpeed.Low,
-  0x03: FanSpeed.Mid,
-  0x04: FanSpeed.Mid,
-  0x05: FanSpeed.High,
-  0x06: FanSpeed.SuperHigh,
-  0x07: FanSpeed.Power,
-  0x08: FanSpeed.Auto,
-};
-// biome-ignore-end lint/complexity/useSimpleNumberKeys: clearer with hex
-export const FE_FAN_TO_BYTE: Partial<Record<FanSpeed, number>> = {
-  [FanSpeed.Sleep]: 0x01,
-  [FanSpeed.Micron]: 0x01,
-  [FanSpeed.Low]: 0x02,
-  [FanSpeed.Mid]: 0x03,
-  [FanSpeed.High]: 0x05,
-  [FanSpeed.SuperHigh]: 0x06,
-  [FanSpeed.Power]: 0x07,
-  [FanSpeed.Auto]: 0x08,
-};
-
 /**
  * Control message for 0xFE VRF panel controllers (86X Controller).
  *
- * Sends a list of (CCControlId, value) pairs as TLV key-value sections,
- * followed by an incrementing message id and CRC8-854. Protocol reverse-
- * engineered by the msmart-ng project (https://github.com/mill1000/midea-ac-py).
+ * Each ControlField is encoded into a TLV section by buildTLVSection(), then
+ * the sections are concatenated with an incrementing message id and CRC8.
  */
 export class MessageFEControl extends MessageRequest {
   private static _message_id = 0;
-  private readonly _controls: [ControlId, number][];
+  private readonly _controls: ControlField[];
 
-  constructor(device_protocol_version: number, controls: [ControlId, number][]) {
+  constructor(device_protocol_version: number, controls: ControlField[]) {
     super(DeviceType.MDV_WIFI_CONTROLLER, MessageType.SET, null, device_protocol_version);
     this._controls = controls;
   }
@@ -241,7 +412,7 @@ export class MessageFEControl extends MessageRequest {
   }
 
   get _body(): Buffer {
-    const sections = Buffer.concat(this._controls.map(([id, val]) => tlvSection(id, val)));
+    const sections = Buffer.concat(this._controls.map(buildTLVSection));
     const msgId = this._next_message_id();
     const withMsgId = Buffer.concat([sections, Buffer.from([msgId])]);
     return Buffer.concat([withMsgId, Buffer.from([calculate(withMsgId)])]);
@@ -249,14 +420,12 @@ export class MessageFEControl extends MessageRequest {
 }
 
 /**
- * Response body for both legacy binary and TLV/FE-format CC devices.
+ * Response body for both legacy binary and FE-format CC devices.
  *
  * When body[1] === 0xFE the response comes from a 86X Controller (VRF panel)
- * using the TLV compact-range format. Fixed byte offsets are derived from the
- * 8-byte Format-A header plus contiguous field data starting at idx=0; all
- * multi-byte field sizes are sourced from T_0000_CC_10011006_2025033001.lua.
- * This approach mirrors midea-local's _parse_fe_body (fixed offsets instead of
- * a runtime TLV map).
+ * using the compact-range format parsed by parseFEBranch(). The same field-size
+ * registry covers both the main controller attributes and the per-unit mcs_idxN
+ * blocks, so no hardcoded byte offsets are needed.
  */
 export class CCGeneralMessageBody extends MessageBody {
   readonly is_fe_format: boolean;
@@ -287,6 +456,9 @@ export class CCGeneralMessageBody extends MessageBody {
   horizontal_swing_angle!: SwingAngle;
   error_code!: number;
   temp_fahrenheit!: boolean;
+  // Per-unit status (FE format only; empty for legacy)
+  mcs_num!: number;
+  mcs_units!: IndoorUnitStatus[];
 
   constructor(body: Buffer) {
     super(body);
@@ -329,58 +501,68 @@ export class CCGeneralMessageBody extends MessageBody {
     this.outdoor_temperature = undefined;
     this.silent_mode = false;
     this.purifier_mode = PurifierMode.Off;
+    this.mcs_num = 0;
+    this.mcs_units = [];
   }
 
   private _parse_fe_body(body: Buffer): void {
-    // 0xFE VRF panel payload. Absolute offsets = 8 (header) + data_offset.
-    // data_offset is the cumulative byte size of all preceding indices (idx < N),
-    // accounting for multi-byte fields: idx=4(2B), idx=17(5B), idx=34(3B),
-    // idx=38(2B), idx=47(2B), idx=66(4B).
+    const f = parseFEBranch(body);
 
-    // idx=0  power: 0=off, 1=on  →  body[8]
-    this.power = body.length > 8 && body[8] === 0x01;
-    // idx=3  temperature_current: byte = (temp × 2) + 80  →  body[11]
-    this.target_temperature = body.length > 11 ? body[11] / 2 - 40 : 26;
-    // idx=4  temperature_room (2B big-endian, 0.1°C, 0xFFFF=unavailable)  →  body[12:14]
-    if (body.length > 13) {
-      const raw = (body[12] << 8) | body[13];
-      this.indoor_temperature = raw !== 0xffff ? raw / 10 : undefined;
-    } else {
-      this.indoor_temperature = undefined;
-    }
-    // idx=5  temperature_outside: byte = (temp × 2) + 80, 0xFF=unavailable  →  body[14]
-    this.outdoor_temperature = body.length > 14 && body[14] !== 0xff ? body[14] / 2 - 40 : undefined;
-    // idx=12 temp_unit: 0=C, 1=F  →  body[21]
-    this.temp_fahrenheit = body.length > 21 && body[21] === 0x01;
-    // idx=13 temp_accurate: 0=1°, 1=0.5°  →  body[22]
-    this.temperature_precision = body.length > 22 && body[22] === 0x01 ? 0.5 : 1;
-    // idx=18 mode_current (past 5B idx=17)  →  body[31]
-    this.mode = (body.length > 31 ? FE_BYTE_TO_MODE[body[31]] : undefined) ?? Mode.Auto;
-    // idx=21 wind_speed_level  →  body[34]
-    this.fan_speed = (body.length > 34 ? FE_BYTE_TO_FAN[body[34]] : undefined) ?? FanSpeed.Auto;
-    // idx=27 swing_louver_vertical_enable + idx=28 level  →  body[40], body[41]
-    const vertEnable = body.length > 40 && body[40] === 0x01;
-    this.vertical_swing_angle = vertEnable && body.length > 41 ? (body[41] as SwingAngle) : SwingAngle.Close;
-    // idx=29 swing_louver_horizontal_enable + idx=30 level  →  body[42], body[43]
-    const horzEnable = body.length > 42 && body[42] === 0x01;
-    this.horizontal_swing_angle = horzEnable && body.length > 43 ? (body[43] as SwingAngle) : SwingAngle.Close;
-    // idx=40 eco_status: 0=off, 1=on  →  body[56]
-    this.eco_mode = body.length > 56 && body[56] === 0x01;
-    // idx=42 idu_silent_status: 0=off, 1=on  →  body[58]
-    this.silent_mode = body.length > 58 && body[58] === 0x01;
-    // idx=44 idu_sleep_status: 0=off, 1=on  →  body[60]
-    this.sleep_mode = body.length > 60 && body[60] === 0x01;
-    // idx=58 sterilize_status: 0=auto, 1=on, 2=off  →  body[75]
-    this.purifier_mode = body.length > 75 ? (body[75] as PurifierMode) : PurifierMode.Off;
-    // idx=64 idu_light: 0=off, 1=on  →  body[81]
-    this.night_light = body.length > 81 && body[81] === 0x01;
-    // idx=65 ptc_enable: 0=disabled, 1=enabled  →  body[82]
-    this.aux_heat_running = body.length > 82 && body[82] === 0x01;
-    // idx=67 ptc_status: 0=auto, 1=on, 2=off (past 4B idx=66)  →  body[87]
-    const ptcByte = body.length > 87 ? body[87] : 0;
-    this.aux_heat_mode = ptcByte === 0x01 ? HeatStatus.On : ptcByte === 0x02 ? HeatStatus.Off : HeatStatus.Auto;
-    // Error code not present in FE format
+    this.power = FIELDS.power.read(f) ?? false;
+    this.target_temperature = FIELDS.target_temperature.read(f) ?? 26;
+    this.indoor_temperature = FIELDS.indoor_temperature.read(f);
+    this.outdoor_temperature = FIELDS.outdoor_temperature.read(f);
+    this.temp_fahrenheit = FIELDS.temp_fahrenheit.read(f) ?? false;
+    this.temperature_precision = FIELDS.temperature_precision.read(f) ?? 1;
+    this.mode = FIELDS.mode.read(f) ?? Mode.Auto;
+    this.fan_speed = FIELDS.fan_speed.read(f) ?? FanSpeed.Auto;
+    this.vertical_swing_angle = FIELDS.vertical_swing_angle.read(f) ?? SwingAngle.Close;
+    this.horizontal_swing_angle = FIELDS.horizontal_swing_angle.read(f) ?? SwingAngle.Close;
+    this.eco_mode = FIELDS.eco_mode.read(f) ?? false;
+    this.silent_mode = FIELDS.silent_mode.read(f) ?? false;
+    this.sleep_mode = FIELDS.sleep_mode.read(f) ?? false;
+    this.purifier_mode = FIELDS.purifier_mode.read(f) ?? PurifierMode.Off;
+    this.night_light = FIELDS.night_light.read(f) ?? false;
+    this.aux_heat_running = FIELDS.aux_heat_running.read(f) ?? false;
+    this.aux_heat_mode = FIELDS.aux_heat_mode.read(f) ?? HeatStatus.Auto;
     this.error_code = 0;
+
+    // idx=375 mcs_num: number of connected indoor units
+    const mcsNum = f.get(375)?.[0] ?? 0;
+    this.mcs_num = mcsNum;
+    this.mcs_units = [];
+    // mcs_idxN blocks: 19 entries each at base = 376 + N*19
+    //   base+0: addr, base+1: fault_code(6B), base+2: type,
+    //   base+3: temp_room(2B), base+4: power, base+5: mode,
+    //   base+6: wind_speed, base+7: temp, base+8: auto_min, base+9: auto_max,
+    //   base+10: louver_horizontal_enable, base+11: louver_horizontal_level,
+    //   base+12: louver_vertical_enable,   base+13: louver_vertical_level
+    for (let n = 0; n < mcsNum && n < 16; n++) {
+      const base = 376 + n * 19;
+      const addr = f.get(base)?.[0];
+      if (addr === undefined) break;
+
+      const unitRoomBuf = f.get(base + 3);
+      let room_temperature: number | undefined;
+      if (unitRoomBuf && unitRoomBuf.length >= 2) {
+        const raw = (unitRoomBuf[0] << 8) | unitRoomBuf[1];
+        room_temperature = raw !== 0xffff ? raw / 10 : undefined;
+      }
+
+      const power = f.get(base + 4)?.[0] === 0x01;
+      const mode = FE_BYTE_TO_MODE[f.get(base + 5)?.[0] ?? 0xff] ?? Mode.Auto;
+      const fan_speed = FE_BYTE_TO_FAN[f.get(base + 6)?.[0] ?? 0xff] ?? FanSpeed.Auto;
+      const unitTempByte = f.get(base + 7)?.[0];
+      const target_temperature = unitTempByte !== undefined ? unitTempByte / 2 - 40 : 26;
+
+      const horzEnable = f.get(base + 10)?.[0] === 0x01;
+      const horizontal_swing_angle = horzEnable ? ((f.get(base + 11)?.[0] ?? 0) as SwingAngle) : SwingAngle.Close;
+
+      const vertEnable = f.get(base + 12)?.[0] === 0x01;
+      const vertical_swing_angle = vertEnable ? ((f.get(base + 13)?.[0] ?? 0) as SwingAngle) : SwingAngle.Close;
+
+      this.mcs_units.push({ addr, power, mode, fan_speed, target_temperature, room_temperature, vertical_swing_angle, horizontal_swing_angle });
+    }
   }
 }
 
