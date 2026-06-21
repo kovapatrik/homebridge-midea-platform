@@ -85,6 +85,7 @@ export class MessageSet extends MessageA1Base {
   public swing: boolean;
   public anion: boolean;
   public pump: boolean;
+  public pump_enable: boolean;
   public water_level_set: number;
   public purifier: number;
 
@@ -99,6 +100,7 @@ export class MessageSet extends MessageA1Base {
     this.swing = false;
     this.anion = false;
     this.pump = false;
+    this.pump_enable = false;
     this.water_level_set = 50;
     this.purifier = 0;
   }
@@ -118,7 +120,7 @@ export class MessageSet extends MessageA1Base {
     // byte9 anion, pump, pump_enable
     const anion = this.anion ? 0x40 : 0x00;
     const pump = this.pump ? 0x08 : 0x00;
-    const pump_enable = this.pump ? 0x10 : 0x00;
+    const pump_enable = this.pump_enable ? 0x10 : 0x00;
     // byte10 swing (swingUDValue << 3)
     const swing = this.swing ? 0x08 : 0x00;
     // byte13 water_level_set
@@ -175,6 +177,7 @@ class A1GeneralMessageBody extends MessageBody {
   public anion: boolean;
   public sleep_mode: boolean;
   public pump: boolean;
+  public pump_enable: boolean;
   public defrosting: boolean;
   public tank_level: number;
   public tank_full: boolean;
@@ -201,9 +204,8 @@ class A1GeneralMessageBody extends MessageBody {
     this.filter_indicator = (body[9] & 0x80) > 0;
     this.anion = (body[9] & 0x40) > 0;
     this.sleep_mode = (body[9] & 0x20) > 0;
-    const pump_enable = (body[9] & 0x10) > 0;
-    const pump = (body[9] & 0x08) > 0;
-    this.pump = pump && pump_enable;
+    this.pump = (body[9] & 0x08) > 0;
+    this.pump_enable = (body[9] & 0x10) > 0;
     // byte10 - defrosting, tank_level
     this.defrosting = (body[10] & 0x80) > 0;
     this.tank_level = body[10] & 0x7f;
@@ -240,7 +242,7 @@ class A1NewProtocolMessageBody extends NewProtocolMessageBody {
 }
 
 export class MessageA1Response extends MessageResponse {
-  constructor(private readonly message: Buffer) {
+  constructor(message: Buffer) {
     super(message);
     if ([MessageType.QUERY, MessageType.SET, MessageType.NOTIFY1].includes(this.message_type)) {
       if ([0xb0, 0xb1, 0xb5].includes(this.body_type)) {
