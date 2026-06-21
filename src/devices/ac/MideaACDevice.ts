@@ -401,6 +401,8 @@ export default class MideaACDevice extends MideaDevice {
               }
             }
           }
+        } else {
+          this.logger.debug(`[${this.name}] Tried to set ${k} to: ${v}, but it's not allowed.`);
         }
       }
       for (const [k, v] of Object.entries(messageToSend)) {
