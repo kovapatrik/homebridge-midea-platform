@@ -16,8 +16,8 @@ import type { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
   CloudSecurity,
-  MSmartHomeCloudSecurity,
   MeijuCloudSecurity,
+  MSmartHomeCloudSecurity,
   NetHomePlusSecurity,
   type ProxiedSecurity,
   type SimpleSecurity,
@@ -84,6 +84,7 @@ abstract class CloudBase<S extends CloudSecurity> {
     const response = await this.apiRequest('/v1/iot/secure/getToken', {
       ...this.buildRequestData(),
       udpid: udpid,
+      applianceCodes: device_id.toString(),
     });
 
     if (response) {
