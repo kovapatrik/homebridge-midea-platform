@@ -435,6 +435,33 @@
                   "title": "Fan Auto Switch",
                   "description": "Toggles if the fan auto switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "indoor_units": {
+                  "title": "Indoor Units",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "addr": {
+                        "title": "Address",
+                        "type": "number"
+                      },
+                      "name": {
+                        "title": "Name",
+                        "type": "string"
+                      },
+                      "fanAccessory": {
+                        "title": "Fan Accessory",
+                        "description": "Create a separate Fan accessory for this indoor unit.",
+                        "type": "boolean"
+                      },
+                      "swingAccessory": {
+                        "title": "Swing Accessory",
+                        "description": "Create a separate swing angle accessory for this indoor unit.",
+                        "type": "boolean"
+                      }
+                    }
+                  }
                 }
               }
             },
@@ -765,7 +792,8 @@
                 "devices[].CC_options.nightLightSwitch",
                 "devices[].CC_options.sleepModeSwitch",
                 "devices[].CC_options.fanSpeedMode",
-                "devices[].CC_options.fanAutoSwitch"
+                "devices[].CC_options.fanAutoSwitch",
+                "devices[].CC_options.indoor_units"
               ]
             },
             {

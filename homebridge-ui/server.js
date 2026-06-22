@@ -10,7 +10,8 @@
 import { createRequire } from 'node:module';
 import { HomebridgePluginUiServer, RequestError } from '@homebridge/plugin-ui-utils';
 import CloudFactory from '../dist/core/MideaCloud.js';
-import { DeviceTypeToName, Endianness, ProtocolVersion, TCPMessageType } from '../dist/core/MideaConstants.js';
+import { DeviceType, DeviceTypeToName, Endianness, ProtocolVersion, TCPMessageType } from '../dist/core/MideaConstants.js';
+import MideaCCDevice from '../dist/devices/cc/MideaCCDevice.js';
 import Discover from '../dist/core/MideaDiscover.js';
 import { LocalSecurity } from '../dist/core/MideaSecurity.js';
 import { PromiseSocket } from '../dist/core/MideaUtils.js';
@@ -84,6 +85,7 @@ class UiServer extends HomebridgePluginUiServer {
   security;
   logger;
   config;
+  ccDevice;
 
   constructor() {
     super();
@@ -165,6 +167,81 @@ class UiServer extends HomebridgePluginUiServer {
       } catch (e) {
         const msg = e instanceof Error ? e.stack : e;
         throw new RequestError(`Download Lua failed:\n${msg}`);
+      }
+    });
+
+    this.onRequest('/cc/connect', async ({ deviceId }) => {
+      if (!this.config) {
+        throw new RequestError('Config not loaded. Save your config first.');
+      }
+      // Disconnect any existing session
+      if (this.ccDevice) {
+        this.ccDevice.close();
+        this.ccDevice = null;
+      }
+      const deviceConfig = this.config.devices.find((d) => d.id === deviceId);
+      if (!deviceConfig) {
+        throw new RequestError('Device not found in config.');
+      }
+      const version =
+        deviceConfig.advanced_options.token && deviceConfig.advanced_options.key ? ProtocolVersion.V3 : ProtocolVersion.V2;
+      const deviceInfo = {
+        ip: deviceConfig.advanced_options.ip,
+        port: 6444,
+        id: deviceConfig.id,
+        model: undefined,
+        sn: undefined,
+        name: deviceConfig.name ?? `Device ${deviceConfig.id}`,
+        type: DeviceType.MDV_WIFI_CONTROLLER,
+        version,
+      };
+      this.ccDevice = new MideaCCDevice(this.logger, deviceInfo, this.config, deviceConfig);
+
+      const units = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Timeout waiting for device response')), 10000);
+        let resolved = false;
+        this.ccDevice.on('update', () => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            resolve(this.ccDevice.indoor_units);
+          } else {
+            this.pushEvent('cc/units', { units: this.ccDevice.indoor_units });
+          }
+        });
+        this.ccDevice.connect().then((connected) => {
+          if (!connected) {
+            clearTimeout(timeout);
+            this.ccDevice = null;
+            reject(new Error('Failed to connect to device'));
+          }
+        }).catch((err) => {
+          clearTimeout(timeout);
+          this.ccDevice = null;
+          reject(err);
+        });
+      });
+
+      return { units, isFEFormat: this.ccDevice?.is_fe_format ?? false };
+    });
+
+    this.onRequest('/cc/disconnect', async () => {
+      if (this.ccDevice) {
+        this.ccDevice.close();
+        this.ccDevice = null;
+      }
+    });
+
+    this.onRequest('/cc/toggleIDUPower', async ({ addr, power }) => {
+      if (!this.ccDevice) {
+        throw new RequestError('Not connected to CC device.');
+      }
+      try {
+        await this.ccDevice.set_unit_attribute(addr, { power });
+        return { units: this.ccDevice.indoor_units };
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        throw new RequestError(`Failed to toggle power:\n${msg}`);
       }
     });
 

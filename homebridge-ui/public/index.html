@@ -92,6 +92,62 @@
     </div>
   </div>
 
+  <div class="card mt-3" id="ccManageCard" style="display:none">
+    <div class="card-header" id="ccManageHeader">
+      <h5 class="mb-0 text-center">
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#ccManageBody"
+          aria-expanded="false" aria-controls="ccManageBody" style="border: 0;">
+          Manage Indoor Units
+        </button>
+      </h5>
+    </div>
+    <div class="collapse" id="ccManageBody">
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="ccDeviceSelect" class="form-label">Select Controller</label>
+          <select class="form-select" id="ccDeviceSelect"></select>
+        </div>
+        <button class="btn btn-primary" id="discoverIDUsBtn" style="border: 0;">Discover Indoor Units</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IDU Discovery Modal -->
+  <div class="modal fade" id="iduModal" tabindex="-1" aria-labelledby="iduModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="iduModalLabel">Indoor Units</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="iduNotFEFormat" class="mb-3 bg-warning-subtle border-warning-subtle p-3 rounded-2" style="display:none">
+            This device did not respond with a FE-format (86X Controller) response. Per-unit control is not available.
+          </div>
+          <div id="iduNoUnits" class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2" style="display:none">
+            No indoor units found. Make sure the controller is powered and connected.
+          </div>
+          <table class="table table-sm" id="iduTable" style="display:none">
+            <thead>
+              <tr>
+                <th scope="col">Addr</th>
+                <th scope="col">Room Temp</th>
+                <th scope="col">Power</th>
+                <th scope="col">Identify</th>
+                <th scope="col">Name</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="iduTableBody"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <style>
@@ -433,6 +489,167 @@
 
       homebridge.hideSpinner();
     });
+
+    /*********************************************************************
+     * Indoor Unit Management
+     */
+
+    function refreshCCDeviceSection() {
+      const ccDevices = configuration.devices.filter((d) => d.type === 'MDV WiFi Controller');
+      const card = document.getElementById('ccManageCard');
+      card.style.display = ccDevices.length > 0 ? 'block' : 'none';
+
+      const select = document.getElementById('ccDeviceSelect');
+      select.innerHTML = '';
+      ccDevices.forEach((d) => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.text = d.name ?? `Device ${d.id}`;
+        select.appendChild(opt);
+      });
+    }
+
+    refreshCCDeviceSection();
+
+    function renderIDUTable(units, isFEFormat, deviceIdx) {
+      const tbody = document.getElementById('iduTableBody');
+      const table = document.getElementById('iduTable');
+      const noUnits = document.getElementById('iduNoUnits');
+      const notFE = document.getElementById('iduNotFEFormat');
+
+      notFE.style.display = !isFEFormat ? 'block' : 'none';
+
+      if (!units || units.length === 0) {
+        table.style.display = 'none';
+        noUnits.style.display = 'block';
+        return;
+      }
+
+      noUnits.style.display = 'none';
+      table.style.display = 'table';
+
+      const existingUnits = configuration.devices[deviceIdx]?.CC_options?.indoor_units ?? [];
+
+      tbody.innerHTML = '';
+      units.forEach((unit) => {
+        const existing = existingUnits.find((u) => u.addr === unit.addr);
+        const tr = tbody.insertRow();
+        tr.dataset.addr = unit.addr;
+
+        tr.insertCell().textContent = unit.addr;
+        tr.insertCell().textContent = unit.room_temperature !== undefined ? `${unit.room_temperature}°C` : '—';
+
+        const powerCell = tr.insertCell();
+        const badge = document.createElement('span');
+        badge.className = `badge ${unit.power ? 'text-bg-success' : 'text-bg-secondary'}`;
+        badge.textContent = unit.power ? 'On' : 'Off';
+        badge.id = `iduPower-${unit.addr}`;
+        powerCell.appendChild(badge);
+
+        const toggleCell = tr.insertCell();
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-outline-secondary btn-sm';
+        toggleBtn.textContent = 'Toggle';
+        toggleBtn.disabled = !isFEFormat;
+        toggleBtn.addEventListener('click', async () => {
+          toggleBtn.disabled = true;
+          try {
+            await homebridge.request('/cc/toggleIDUPower', { addr: unit.addr, power: !unit.power });
+          } catch (e) {
+            homebridge.toast.error(e.message);
+          } finally {
+            toggleBtn.disabled = false;
+          }
+        });
+        toggleCell.appendChild(toggleBtn);
+
+        const nameCell = tr.insertCell();
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'form-control form-control-sm';
+        nameInput.placeholder = `Unit ${unit.addr}`;
+        nameInput.value = existing?.name ?? '';
+        nameInput.id = `iduName-${unit.addr}`;
+        nameCell.appendChild(nameInput);
+
+        const actionCell = tr.insertCell();
+        const actionBtn = document.createElement('button');
+        actionBtn.className = `btn btn-sm ${existing ? 'btn-outline-secondary' : 'btn-secondary'}`;
+        actionBtn.textContent = existing ? 'Update' : 'Add';
+        actionBtn.id = `iduAction-${unit.addr}`;
+        actionBtn.addEventListener('click', async () => {
+          const name = document.getElementById(`iduName-${unit.addr}`).value || `Unit ${unit.addr}`;
+          const units = configuration.devices[deviceIdx].CC_options.indoor_units ?? [];
+          const idx = units.findIndex((u) => u.addr === unit.addr);
+          const entry = { addr: unit.addr, name, fanAccessory: false, swingAccessory: false };
+          if (idx >= 0) {
+            units[idx] = { ...units[idx], addr: unit.addr, name };
+          } else {
+            units.push(entry);
+          }
+          configuration.devices[deviceIdx].CC_options.indoor_units = units;
+          createForm(configSchema, configuration);
+          actionBtn.textContent = 'Update';
+          actionBtn.className = 'btn btn-sm btn-outline-secondary';
+          homebridge.toast.success(`Unit ${unit.addr} saved`);
+        });
+        actionCell.appendChild(actionBtn);
+      });
+    }
+
+    // Live unit state updates pushed from server
+    homebridge.addEventListener('cc/units', (event) => {
+      debugLog(`cc/units received: ${JSON.stringify(event.data)}`);
+      const deviceId = Number(document.getElementById('ccDeviceSelect').value);
+      const deviceIdx = configuration.devices.findIndex((d) => d.id === deviceId);
+      if (deviceIdx < 0) return;
+
+      const { units } = event.data;
+      // Update power badges in-place without full re-render
+      units.forEach((unit) => {
+        const badge = document.getElementById(`iduPower-${unit.addr}`);
+        if (badge) {
+          badge.className = `badge ${unit.power ? 'text-bg-success' : 'text-bg-secondary'}`;
+          badge.textContent = unit.power ? 'On' : 'Off';
+        }
+      });
+    });
+
+    document.getElementById('discoverIDUsBtn').addEventListener('click', async () => {
+      const deviceId = Number(document.getElementById('ccDeviceSelect').value);
+      const deviceIdx = configuration.devices.findIndex((d) => d.id === deviceId);
+      if (deviceIdx < 0) return;
+
+      // Sync latest config to server before connecting
+      let currentConfig = await homebridge.getPluginConfig();
+      currentConfig = currentConfig.length > 0 ? currentConfig[0] : {};
+      configuration = await homebridge.request('/mergeToDefault', { config: currentConfig });
+
+      homebridge.showSpinner();
+      try {
+        const { units, isFEFormat } = await homebridge.request('/cc/connect', { deviceId });
+        debugLog(`IDUs discovered: ${JSON.stringify(units)}`);
+
+        document.getElementById('iduModalLabel').textContent =
+          `Indoor Units — ${configuration.devices[deviceIdx].name ?? `Device ${deviceId}`}`;
+
+        renderIDUTable(units, isFEFormat, deviceIdx);
+
+        const modal = new bootstrap.Modal(document.getElementById('iduModal'));
+        modal.show();
+      } catch (e) {
+        homebridge.toast.error(e.message);
+      } finally {
+        homebridge.hideSpinner();
+      }
+    });
+
+    document.getElementById('iduModal').addEventListener('hidden.bs.modal', async () => {
+      try {
+        await homebridge.request('/cc/disconnect');
+      } catch (_) {}
+    });
+
   })();
 
 </script>

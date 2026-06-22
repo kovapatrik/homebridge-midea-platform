@@ -17,7 +17,7 @@ import { type KeyToken, LocalSecurity } from './MideaSecurity.js';
 import { PromiseSocket } from './MideaUtils.js';
 
 export type DeviceAttributeBase = {
-  [key: string]: number | number[] | string | boolean | boolean[] | Buffer | undefined;
+  [key: string]: number | number[] | string | boolean | boolean[] | Buffer | object | undefined;
 };
 
 export default abstract class MideaDevice extends EventEmitter {

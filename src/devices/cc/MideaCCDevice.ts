@@ -62,6 +62,10 @@ export default class MideaCCDevice extends MideaDevice {
   // Set once a TLV/FE-format response is received; selects the VRF control path.
   private _is_fe_format = false;
 
+  get is_fe_format(): boolean {
+    return this._is_fe_format;
+  }
+
   // Per-indoor-unit status, populated from FE branch responses.
   public indoor_units: IndoorUnitStatus[] = [];
 
@@ -122,6 +126,7 @@ export default class MideaCCDevice extends MideaDevice {
     const mcsUnits = message.get_body_attribute('mcs_units') as IndoorUnitStatus[] | undefined;
     if (mcsUnits !== undefined) {
       this.indoor_units = mcsUnits;
+      changed.mcs_units = mcsUnits;
     }
 
     if (Object.keys(changed).length > 0) {

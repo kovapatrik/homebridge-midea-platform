@@ -130,6 +130,13 @@ type C3Options = {
   tbhSwitch: boolean;
 };
 
+export type IndoorUnitConfig = {
+  addr: number;
+  name: string;
+  fanAccessory: boolean;
+  swingAccessory: boolean;
+};
+
 type CCOptions = {
   minTemp: number;
   maxTemp: number;
@@ -140,6 +147,7 @@ type CCOptions = {
   sleepModeSwitch: boolean;
   fanSpeedMode: '3' | '7';
   fanAutoSwitch: boolean;
+  indoor_units: IndoorUnitConfig[];
 };
 
 type CDOptions = {
@@ -267,6 +275,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     sleepModeSwitch: false,
     fanSpeedMode: '7',
     fanAutoSwitch: false,
+    indoor_units: [],
   },
   CD_options: {
     minTemp: 38,
