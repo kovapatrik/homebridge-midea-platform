@@ -114,14 +114,27 @@
      */
     homebridge.showSpinner();
 
-    const { defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults');
-    const pluginConfig = await homebridge.getPluginConfig();
-    const configSchema = await homebridge.getPluginConfigSchema();
+    let defaultConfig, defaultDeviceConfig, pluginConfig, configSchema, configuration;
 
-    if (!pluginConfig.length) {
-      pluginConfig.push({});
+    try {
+      ({ defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults'));
+      pluginConfig = await homebridge.getPluginConfig();
+      configSchema = await homebridge.getPluginConfigSchema();
+
+      if (!pluginConfig.length) {
+        pluginConfig.push({});
+      }
+      configuration = pluginConfig[0];
+
+      configuration = await homebridge.request('/mergeToDefault', { config: configuration });
+    } catch (e) {
+      console.error('Failed to initialize plugin UI:', e);
+      homebridge.hideSpinner();
+      homebridge.toast.error('Failed to initialize: ' + (e.message ?? e));
+      return;
     }
-    let configuration = pluginConfig[0];
+
+    homebridge.hideSpinner();
 
     // Helper funcion to contol debug messages
     function debugLog(s) {
@@ -131,7 +144,6 @@
     }
 
     debugLog(`Plugin Config:\n${JSON.stringify(configuration, null, 2)}`);
-    configuration = await homebridge.request('/mergeToDefault', { config: configuration });
 
     /*********************************************************************
      * showToast event listener
@@ -196,7 +208,6 @@
     }
 
     createForm(configSchema, configuration);
-    homebridge.hideSpinner();
 
     const main = document.getElementById('main');
     const loginSection = document.getElementById('login')
@@ -235,6 +246,7 @@
         return;
       }
 
+      try {
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
 
@@ -256,8 +268,6 @@
       });
       if (!validIPs) {
         homebridge.toast.error(`Invalid IP address provided`);
-        homebridge.hideSpinner();
-        // Abort if we have invalid IP address
         return;
       }
 
@@ -431,7 +441,11 @@
       }
       document.getElementById('discoverTableWrapper').style.display = 'block';
 
-      homebridge.hideSpinner();
+      } catch (e) {
+        homebridge.toast.error(e.message ?? String(e));
+      } finally {
+        homebridge.hideSpinner();
+      }
     });
   })();
 
