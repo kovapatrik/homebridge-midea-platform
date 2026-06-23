@@ -95,15 +95,16 @@ class UiServer extends HomebridgePluginUiServer {
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
 
-    this.onRequest('/login', async ({ username, password, useDefaultProfile }) => {
+    this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
         if (useDefaultProfile) {
           this.logger.debug('Using default profile.');
+          registeredApp = "NetHome Plus";
           username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
           password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
         }
-        this.cloud = CloudFactory.createCloud(username, password, 'NetHome Plus');
-        if (username && password) {
+        this.cloud = CloudFactory.createCloud(username, password, registeredApp);
+        if (username && password && registeredApp) {
           await this.cloud.login();
         }
       } catch (e) {

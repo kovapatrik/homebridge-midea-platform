@@ -20,7 +20,7 @@ abstract class MessageBase {
   protected abstract body_type: number | null;
   protected abstract device_protocol_version: number;
 
-  protected abstract body: Buffer;
+  protected abstract body: Buffer<ArrayBufferLike>;
 
   public checksum(data: Buffer) {
     let sum = 0;
@@ -37,7 +37,7 @@ export abstract class MessageRequest extends MessageBase {
   body_type: number | null;
   device_protocol_version: number;
 
-  protected abstract _body: Buffer;
+  protected abstract _body: Buffer<ArrayBufferLike>;
 
   constructor(device_type: DeviceType, message_type: MessageType, body_type: number | null, device_protocol_version: number) {
     super();
@@ -47,7 +47,7 @@ export abstract class MessageRequest extends MessageBase {
     this.device_protocol_version = device_protocol_version;
   }
 
-  get body() {
+  get body(): Buffer<ArrayBufferLike> {
     const prefix = this.body_type !== null ? Buffer.from([this.body_type]) : Buffer.alloc(0);
     return Buffer.concat([prefix, this._body ?? Buffer.alloc(0)]);
   }
@@ -91,15 +91,15 @@ export class MessageQuerySubtype extends MessageRequest {
     super(device_type, MessageType.QUERY_SUBTYPE, 0x00, 0);
   }
 
-  get body(): Buffer {
+  get body(): Buffer<ArrayBufferLike> {
     return Buffer.alloc(19);
   }
 }
 
 export class MessageQuestCustom extends MessageRequest {
   protected _body = Buffer.alloc(0);
-  protected cmd_body: Buffer;
-  constructor(device_type: DeviceType, message_type: MessageType, cmd_body: Buffer) {
+  protected cmd_body: Buffer<ArrayBufferLike>;
+  constructor(device_type: DeviceType, message_type: MessageType, cmd_body: Buffer<ArrayBufferLike>) {
     super(device_type, message_type, 0x00, 0);
     this.cmd_body = cmd_body;
   }
