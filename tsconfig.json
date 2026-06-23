@@ -13,6 +13,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["homebridge-ui", "src"],
-  "exclude": ["**/*.spec.ts"]
+  "include": ["src"],
+  "exclude": ["**/*.spec.ts", "src/homebridge-ui/ui.ts"]
 }

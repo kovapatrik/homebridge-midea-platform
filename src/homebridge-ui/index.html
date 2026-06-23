@@ -1,0 +1,108 @@
+<!--*********************************************************************
+ * Midea Homebridge platform Custom UI client-side script
+ *
+ * Copyright (c) 2023 Kovalovszky Patrik, https://github.com/kovapatrik
+ * Copyright (c) 2023 David Kerr, https://github.com/dkerr64
+ *
+ * Based on https://github.com/homebridge/plugin-ui-utils
+ *
+ *-->
+<div id="main" data-bs-theme="dark">
+  <div class="card">
+
+    <div class="card-header" id="uiButtons">
+      <h5 class="mb-0 text-center">
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#discoverDevices"
+          aria-expanded="false" aria-controls="discoverDevices" style="border: 0;">
+          Discover devices
+        </button>
+      </h5>
+    </div>
+
+    <div class="collapse" id="discoverDevices">
+      <div class="card-body">
+        <form>
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in
+            the
+            Add/Update column then you must provide login credentials or use the default profile option so the
+            <i>token/key</i> pair can be retrieved
+            from Midea cloud servers.<br/>
+            <i>Note: you don't have to have your devices connected to the account you are using to fetch the token/key pair.</i>
+          </div>
+          <div class="mb-3 form-check form-switch">
+            <input id="useDefaultProfile" type="checkbox" class="form-check-input" role="switch">
+            <label for="useDefaultProfile" class="form-check-label">Use default NetHome Plus profile</label>
+          </div>
+          <div class="mb-3" id="login">
+            <div class="mb-3">
+              <label for="registeredApp" class="form-label">Registered app</label>
+                <select id="registeredApp" class="form-select">
+                  <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
+                  <option value="NetHome Plus">NetHome Plus</option>
+                </select>
+            </div>
+            <div id="userPass">
+              <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username">
+              </div>
+              <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
+              another LAN subnet)</label>
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)">
+          </div>
+          <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
+            Discover All Devices
+          </button>
+        </form>
+        <div class="text-center device-table" style="display: none" id="discoverTableWrapper">
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            If your device is not supported, you can download the Lua file (by clicking on the model number in the table)
+            which is used to control the device and attach it to a GitHub issue.
+          </div>
+          <table class="table table-sm" id="discoverTable">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Model</th>
+                <th scope="col">Id</th>
+                <th scope="col">Ver.</th>
+                <th scope="col">Token&nbsp;/&nbsp;Key</th>
+                <th scope="col">Local&nbsp;Ip</th>
+                <th scope="col">Add&nbsp;/&nbsp;Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>No devices found!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+
+  .hide {
+    display: none;
+  }
+
+  .disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+</style>
+
+<script src="./ui.ts"></script>

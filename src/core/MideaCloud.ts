@@ -24,7 +24,7 @@ import {
 } from './MideaSecurity.js';
 import { numberToUint8Array } from './MideaUtils.js';
 
-abstract class CloudBase<S extends CloudSecurity> {
+export abstract class CloudBase<S extends CloudSecurity> {
   protected readonly CLIENT_TYPE = 1;
   protected readonly FORMAT = 2;
   protected readonly LANGUAGE = 'en_US';

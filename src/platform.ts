@@ -8,14 +8,13 @@
  *
  */
 import type { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import lodash from 'lodash';
 import AccessoryFactory from './accessory/AccessoryFactory.js';
 import { type DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import Discover from './core/MideaDiscover.js';
 import DeviceFactory from './devices/DeviceFactory.js';
 import { type Config, type DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-const { defaultsDeep } = lodash;
+import { defaultsDeep } from "lodash-es";
 
 type MideaContext = {
   token: string;
