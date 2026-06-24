@@ -36,6 +36,7 @@ export default defineConfig([
       codeSplitting: true,
       format: 'cjs',
       dir: 'dist/homebridge-ui/public',
+      sourcemap: true,
     },
     platform: 'browser',
   },
