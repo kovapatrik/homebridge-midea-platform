@@ -11,7 +11,7 @@
 
     <div x-show="open" x-cloak>
       <div class="card-body">
-        <form @submit.prevent="discover">
+        <form @submit.prevent="discover" autocomplete="off">
           <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
             You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in
             the Add/Update column then you must provide login credentials or use the default profile option so the
@@ -32,11 +32,11 @@
             </div>
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" x-model="username">
+              <input type="text" class="form-control" id="username" x-model="username" autocomplete="off">
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" x-model="password">
+              <input type="password" class="form-control" id="password" x-model="password" autocomplete="off">
             </div>
           </div>
           <div class="mb-3">
@@ -44,9 +44,7 @@
               another LAN subnet)</label>
             <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)" x-model="ipInput">
           </div>
-          <button class="btn btn-primary" type="submit" style="border: 0;">
-            Discover All Devices
-          </button>
+          <button class="btn btn-primary" type="submit" style="border: 0;" :disabled="discovering" x-text="discovering ? 'Discovering...' : 'Discover All Devices'"></button>
         </form>
 
         <div class="text-center mt-3" x-show="showTable" x-cloak>

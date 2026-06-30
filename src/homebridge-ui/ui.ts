@@ -44,175 +44,180 @@ function filterOutDefaults(object: Record<string, unknown>, defaults: Record<str
 
 (window as unknown as Record<string, unknown>).Alpine = Alpine;
 
-Alpine.data('discoverApp', () => ({
-  open: false,
+Alpine.data('discoverApp', () => {
+  let configuration = {} as Config;
+  let configSchema: PluginSchema | null = null;
+  let currentForm: { end: () => void } | null = null;
 
-  username: '',
-  password: '',
-  registeredApp: 'Midea SmartHome (MSmartHome)',
-  useDefaultProfile: false,
-  ipInput: '',
+  return {
+    open: false,
 
-  devices: [] as DeviceRow[],
-  showTable: false,
-  resolvedIpAddrs: [] as string[],
+    username: '',
+    password: '',
+    registeredApp: 'Midea SmartHome (MSmartHome)',
+    useDefaultProfile: false,
+    ipInput: '',
 
-  configuration: {} as Config,
-  configSchema: null as PluginSchema | null,
+    devices: [] as DeviceRow[],
+    showTable: false,
+    resolvedIpAddrs: [] as string[],
+    discovering: false,
 
-  luaModal: { show: false, model: '', deviceType: 0, code: '' },
+    luaModal: { show: false, model: '', deviceType: 0, code: '' },
 
-  async init() {
-    homebridge.showSpinner();
+    async init() {
+      homebridge.showSpinner();
 
-    const [pluginConfig, configSchema] = await Promise.all([homebridge.getPluginConfig(), homebridge.getPluginConfigSchema()]);
+      const [pluginConfig, cs] = await Promise.all([homebridge.getPluginConfig(), homebridge.getPluginConfigSchema()]);
 
-    this.configSchema = configSchema;
+      configSchema = cs;
 
-    if (!pluginConfig.length) pluginConfig.push({});
+      if (!pluginConfig.length) pluginConfig.push({});
 
-    this.configuration = pluginConfig[0] as Config;
-    defaultsDeep(this.configuration, defaultConfig);
-    this.configuration.devices ??= [];
-    for (const device of this.configuration.devices) {
-      defaultsDeep(device, defaultDeviceConfig);
-    }
+      configuration = pluginConfig[0] as Config;
+      defaultsDeep(configuration, defaultConfig);
+      configuration.devices ??= [];
+      for (const device of configuration.devices) {
+        defaultsDeep(device, defaultDeviceConfig);
+      }
 
-    this.createForm();
-    homebridge.hideSpinner();
+      homebridge.showSchemaForm();
+      homebridge.hideSpinner();
 
-    homebridge.addEventListener('showToast', (event: Event) => {
-      const { success, msg } = (event as MessageEvent).data as { success: boolean; msg: string };
-      success ? homebridge.toast.success(msg) : homebridge.toast.error(msg);
-    });
-  },
-
-  createForm() {
-    const form = homebridge.createForm(this.configSchema!, Alpine.raw(this.configuration) as unknown as Record<string, unknown>);
-    form.onChange(async (changes: Record<string, unknown>) => {
-      const filtered = filterOutDefaults(changes, defaultConfig as unknown as Record<string, unknown>);
-      await homebridge.updatePluginConfig([filtered]);
-    });
-  },
-
-  async discover() {
-    let ipAddrs: string[] = this.ipInput ? this.ipInput.split(/[\s,]+/).filter(Boolean) : [];
-
-    const currentConfig = ((await homebridge.getPluginConfig())[0] ?? {}) as Record<string, unknown>;
-    defaultsDeep(currentConfig, defaultConfig);
-    (currentConfig.devices as unknown[]) ??= [];
-    for (const device of currentConfig.devices as Record<string, unknown>[]) {
-      defaultsDeep(device, defaultDeviceConfig);
-    }
-    this.configuration = currentConfig as Config;
-
-    for (const d of this.configuration.devices as Record<string, unknown>[]) {
-      const ip = (d.advanced_options as Record<string, unknown>)?.ip as string | undefined;
-      if (ip) ipAddrs.push(ip);
-    }
-    ipAddrs = [...new Set(ipAddrs)];
-
-    const ipRegex = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-    if (ipAddrs.length > 0 && !ipAddrs.every((ip) => ipRegex.test(ip))) {
-      homebridge.toast.error('Invalid IP address provided');
-      return;
-    }
-
-    this.resolvedIpAddrs = ipAddrs;
-    homebridge.showSpinner();
-
-    try {
-      await homebridge.request('/login', {
-        username: this.username,
-        password: this.password,
-        registeredApp: this.registeredApp,
-        useDefaultProfile: this.useDefaultProfile,
+      homebridge.addEventListener('showToast', (event: Event) => {
+        const { success, msg } = (event as MessageEvent).data as { success: boolean; msg: string };
+        success ? homebridge.toast.success(msg) : homebridge.toast.error(msg);
       });
+    },
 
-      const discovered = (await homebridge.request('/discover', { ip: ipAddrs.length ? ipAddrs : undefined })) as
-        | Omit<DeviceRow, 'status' | 'tokenShort' | 'keyShort'>[]
-        | null;
-
-      const existing = this.configuration.devices as Record<string, unknown>[];
-
-      this.devices = (discovered ?? []).map((device) => {
-        const validAuth = (device.token && device.key) || device.version !== 3;
-        let status: DeviceStatus;
-
-        if (device.displayName === 'Unknown') {
-          status = 'not-supported';
-        } else if (!validAuth) {
-          status = 'no-credentials';
-        } else if (existing.find((d) => d.id === device.id)) {
-          status = 'update';
-        } else {
-          status = 'add';
-        }
-
-        return {
-          ...device,
-          status,
-          tokenShort: device.token ? `${device.token.slice(0, 6)}...${device.token.slice(-4)}` : undefined,
-          keyShort: device.key ? `${device.key.slice(0, 6)}...${device.key.slice(-4)}` : undefined,
-        };
+    createForm() {
+      currentForm?.end();
+      const form = homebridge.createForm(configSchema!, configuration as unknown as Record<string, unknown>);
+      form.onChange(async (changes: Record<string, unknown>) => {
+        const filtered = filterOutDefaults(changes, defaultConfig as unknown as Record<string, unknown>);
+        await homebridge.updatePluginConfig([filtered]);
       });
+      currentForm = form;
+    },
 
-      this.showTable = true;
-    } catch (e: unknown) {
-      homebridge.toast.error((e as Error).message);
-    }
+    async discover() {
+      let ipAddrs: string[] = this.ipInput ? this.ipInput.split(/[\s,]+/).filter(Boolean) : [];
 
-    homebridge.hideSpinner();
-  },
+      const currentConfig = ((await homebridge.getPluginConfig())[0] ?? {}) as Record<string, unknown>;
+      defaultsDeep(currentConfig, defaultConfig);
+      (currentConfig.devices as unknown[]) ??= [];
+      for (const device of currentConfig.devices as Record<string, unknown>[]) {
+        defaultsDeep(device, defaultDeviceConfig);
+      }
+      configuration = currentConfig as Config;
 
-  addDevice(device: DeviceRow) {
-    (this.configuration.devices as Record<string, unknown>[]).push({
-      ...(defaultDeviceConfig as unknown as Record<string, unknown>),
-      id: device.id,
-      name: device.name,
-      type: device.displayName,
-      advanced_options: {
-        ...(defaultDeviceConfig.advanced_options as Record<string, unknown>),
-        ip: this.resolvedIpAddrs.includes(device.ip) ? device.ip : undefined,
-        token: device.token,
-        key: device.key,
-      },
-    });
-    this.createForm();
-    device.status = 'added';
-  },
+      for (const d of configuration.devices as Record<string, unknown>[]) {
+        const ip = (d.advanced_options as Record<string, unknown>)?.ip as string | undefined;
+        if (ip) ipAddrs.push(ip);
+      }
+      ipAddrs = [...new Set(ipAddrs)];
 
-  updateDevice(device: DeviceRow) {
-    const devices = this.configuration.devices as Record<string, unknown>[];
-    const i = devices.findIndex((d) => (d as Record<string, unknown>).id === device.id);
-    const opts = (devices[i] as Record<string, unknown>).advanced_options as Record<string, unknown>;
-    opts.token = device.token;
-    opts.key = device.key;
-    opts.ip = opts.ip ? device.ip : undefined;
-    this.createForm();
-    device.status = 'updated';
-  },
+      const ipRegex = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+      if (ipAddrs.length > 0 && !ipAddrs.every((ip) => ipRegex.test(ip))) {
+        homebridge.toast.error('Invalid IP address provided');
+        return;
+      }
 
-  async downloadLua(device: DeviceRow) {
-    homebridge.showSpinner();
-    try {
-      const code = (await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn })) as string;
-      this.luaModal = { show: true, model: device.model, deviceType: device.type, code };
-    } catch (e: unknown) {
-      homebridge.toast.error((e as Error).message);
-    }
-    homebridge.hideSpinner();
-  },
+      this.resolvedIpAddrs = ipAddrs;
+      this.discovering = true;
 
-  selectLuaCode() {
-    const pre = document.getElementById('luaCodePre');
-    if (!pre) return;
-    const range = document.createRange();
-    range.selectNodeContents(pre);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  },
-}));
+      try {
+        await homebridge.request('/login', {
+          username: this.username,
+          password: this.password,
+          registeredApp: this.registeredApp,
+          useDefaultProfile: this.useDefaultProfile,
+        });
+
+        const discovered = (await homebridge.request('/discover', { ip: ipAddrs.length ? ipAddrs : undefined })) as
+          | Omit<DeviceRow, 'status' | 'tokenShort' | 'keyShort'>[]
+          | null;
+
+        const existing = configuration.devices as Record<string, unknown>[];
+
+        this.devices = (discovered ?? []).map((device) => {
+          const validAuth = (device.token && device.key) || device.version !== 3;
+          let status: DeviceStatus;
+
+          if (device.displayName === 'Unknown') {
+            status = 'not-supported';
+          } else if (!validAuth) {
+            status = 'no-credentials';
+          } else if (existing.find((d) => d.id === device.id)) {
+            status = 'update';
+          } else {
+            status = 'add';
+          }
+
+          return {
+            ...device,
+            status,
+            tokenShort: device.token ? `${device.token.slice(0, 6)}...${device.token.slice(-4)}` : undefined,
+            keyShort: device.key ? `${device.key.slice(0, 6)}...${device.key.slice(-4)}` : undefined,
+          };
+        });
+
+        this.showTable = true;
+      } catch (e: unknown) {
+        homebridge.toast.error((e as Error).message);
+      } finally {
+        this.discovering = false;
+        this.createForm();
+      }
+    },
+
+    addDevice(device: DeviceRow) {
+      (configuration.devices as Record<string, unknown>[]).push({
+        ...(defaultDeviceConfig as unknown as Record<string, unknown>),
+        id: device.id,
+        name: device.name,
+        type: device.displayName,
+        advanced_options: {
+          ...(defaultDeviceConfig.advanced_options as Record<string, unknown>),
+          ip: this.resolvedIpAddrs.includes(device.ip) ? device.ip : undefined,
+          token: device.token,
+          key: device.key,
+        },
+      });
+      this.createForm();
+      device.status = 'added';
+    },
+
+    updateDevice(device: DeviceRow) {
+      const devices = configuration.devices as Record<string, unknown>[];
+      const i = devices.findIndex((d) => (d as Record<string, unknown>).id === device.id);
+      const opts = (devices[i] as Record<string, unknown>).advanced_options as Record<string, unknown>;
+      opts.token = device.token;
+      opts.key = device.key;
+      opts.ip = opts.ip ? device.ip : undefined;
+      this.createForm();
+      device.status = 'updated';
+    },
+
+    async downloadLua(device: DeviceRow) {
+      try {
+        const code = (await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn })) as string;
+        this.luaModal = { show: true, model: device.model, deviceType: device.type, code };
+      } catch (e: unknown) {
+        homebridge.toast.error((e as Error).message);
+      }
+    },
+
+    selectLuaCode() {
+      const pre = document.getElementById('luaCodePre');
+      if (!pre) return;
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    },
+  };
+});
 
 Alpine.start();
