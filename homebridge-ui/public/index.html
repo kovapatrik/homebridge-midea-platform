@@ -7,9 +7,6 @@
  * Based on https://github.com/homebridge/plugin-ui-utils
  *
  *-->
-<link href="css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
-<script src="js/bootstrap.min.js" crossorigin="anonymous"></script>
-
 <div id="main" data-bs-theme="dark">
   <div class="card">
 
@@ -38,11 +35,13 @@
             <label for="useDefaultProfile" class="form-check-label">Use default NetHome Plus profile</label>
           </div>
           <div class="mb-3" id="login">
-              <div class="mb-3 bg-warning-subtle border-warning-subtle p-3 rounded-2">
-                  Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.
-                  It's expected that the token fetching in NetHome Plus API will be disabled as well. Make sure you save your devices' token and key to be able to usem them in the future.
-                  From now, it's only available to login using NetHome Plus accounts.
-              </div>
+            <div class="mb-3">
+              <label for="registeredApp" class="form-label">Registered app</label>
+                <select id="registeredApp" class="form-select">
+                  <option selected value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
+                  <option value="NetHome Plus">NetHome Plus</option>
+                </select>
+            </div>
             <div id="userPass">
               <div class="mb-3">
                 <label for="username" class="form-label">Username</label>
@@ -115,14 +114,27 @@
      */
     homebridge.showSpinner();
 
-    const { defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults');
-    const pluginConfig = await homebridge.getPluginConfig();
-    const configSchema = await homebridge.getPluginConfigSchema();
+    let defaultConfig, defaultDeviceConfig, pluginConfig, configSchema, configuration;
 
-    if (!pluginConfig.length) {
-      pluginConfig.push({});
+    try {
+      ({ defaultConfig, defaultDeviceConfig } = await homebridge.request('/getDefaults'));
+      pluginConfig = await homebridge.getPluginConfig();
+      configSchema = await homebridge.getPluginConfigSchema();
+
+      if (!pluginConfig.length) {
+        pluginConfig.push({});
+      }
+      configuration = pluginConfig[0];
+
+      configuration = await homebridge.request('/mergeToDefault', { config: configuration });
+    } catch (e) {
+      console.error('Failed to initialize plugin UI:', e);
+      homebridge.hideSpinner();
+      homebridge.toast.error('Failed to initialize: ' + (e.message ?? e));
+      return;
     }
-    let configuration = pluginConfig[0];
+
+    homebridge.hideSpinner();
 
     // Helper funcion to contol debug messages
     function debugLog(s) {
@@ -132,7 +144,6 @@
     }
 
     debugLog(`Plugin Config:\n${JSON.stringify(configuration, null, 2)}`);
-    configuration = await homebridge.request('/mergeToDefault', { config: configuration });
 
     /*********************************************************************
      * showToast event listener
@@ -197,7 +208,6 @@
     }
 
     createForm(configSchema, configuration);
-    homebridge.hideSpinner();
 
     const main = document.getElementById('main');
     const loginSection = document.getElementById('login')
@@ -219,6 +229,7 @@
 
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+      const registeredApp = document.getElementById('registeredApp').value;
       const useDefaultProfile = document.getElementById('useDefaultProfile').checked === true;
 
       let ipAddrs = document.getElementById('ip').value ? document.getElementById('ip').value.split(/[\s,]+/) : [];
@@ -227,7 +238,7 @@
 
       console.info(`Request login...`);
       try {
-        await homebridge.request('/login', { username, password, useDefaultProfile });
+        await homebridge.request('/login', { username, password, registeredApp, useDefaultProfile });
       } catch (e) {
         homebridge.toast.error(e.message);
         homebridge.hideSpinner();
@@ -235,6 +246,7 @@
         return;
       }
 
+      try {
       const table = document.getElementById('discoverTable').getElementsByTagName('tbody')[0];
       table.innerHTML = '';
 
@@ -256,8 +268,6 @@
       });
       if (!validIPs) {
         homebridge.toast.error(`Invalid IP address provided`);
-        homebridge.hideSpinner();
-        // Abort if we have invalid IP address
         return;
       }
 
@@ -431,7 +441,11 @@
       }
       document.getElementById('discoverTableWrapper').style.display = 'block';
 
-      homebridge.hideSpinner();
+      } catch (e) {
+        homebridge.toast.error(e.message ?? String(e));
+      } finally {
+        homebridge.hideSpinner();
+      }
     });
   })();
 

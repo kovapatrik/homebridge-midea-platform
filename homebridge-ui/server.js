@@ -95,15 +95,16 @@ class UiServer extends HomebridgePluginUiServer {
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
 
-    this.onRequest('/login', async ({ username, password, useDefaultProfile }) => {
+    this.onRequest('/login', async ({ username, password, registeredApp, useDefaultProfile }) => {
       try {
         if (useDefaultProfile) {
           this.logger.debug('Using default profile.');
+          registeredApp = "NetHome Plus";
           username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
           password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
         }
-        this.cloud = CloudFactory.createCloud(username, password, 'NetHome Plus');
-        if (username && password) {
+        this.cloud = CloudFactory.createCloud(username, password, registeredApp);
+        if (username && password && registeredApp) {
           await this.cloud.login();
         }
       } catch (e) {
@@ -250,10 +251,7 @@ class UiServer extends HomebridgePluginUiServer {
     const discover = new Discover(this.logger);
     return new Promise((resolve, reject) => {
       this.logger.info('Start device discovery...');
-      this.pushEvent('showToast', {
-        success: true,
-        msg: 'Start device discovery',
-      });
+      try { this.pushEvent('showToast', { success: true, msg: 'Start device discovery' }); } catch (_) {}
       // If IP addresses provided then probe them directly
       if (ipAddrs && ipAddrs.length > 0) {
         for (const ip of ipAddrs) {
@@ -272,18 +270,12 @@ class UiServer extends HomebridgePluginUiServer {
 
       discover.on('retry', (nTry, nDevices) => {
         this.logger.info('Device discovery complete.');
-        this.pushEvent('showToast', {
-          success: true,
-          msg: `Continuing to search for devices (${nDevices} found)`,
-        });
+        try { this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices (${nDevices} found)` }); } catch (_) {}
       });
 
       discover.on('complete', () => {
         this.logger.info('Device discovery complete.');
-        this.pushEvent('showToast', {
-          success: true,
-          msg: 'Discovery complete',
-        });
+        try { this.pushEvent('showToast', { success: true, msg: 'Discovery complete' }); } catch (_) {}
         resolve(devices);
       });
     });

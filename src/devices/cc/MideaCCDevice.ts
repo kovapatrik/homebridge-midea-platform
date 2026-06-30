@@ -12,34 +12,56 @@ import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { MessageRequest } from '../../core/MideaMessage.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { FanSpeed, HeatStatus, MessageCCResponse, MessageQueryTLV, MessageSetTLV, Mode } from './MideaCCMessage.js';
+import {
+  ControlId,
+  FanSpeed,
+  FE_FAN_TO_BYTE,
+  FE_MODE_TO_BYTE,
+  HeatStatus,
+  MessageCCResponse,
+  MessageFEControl,
+  MessageQuery,
+  MessageSet,
+  Mode,
+  PurifierMode,
+  SwingAngle,
+} from './MideaCCMessage.js';
 
-// Object that defines all attributes for air conditioner device.  Not all of
-// these are useful for Homebridge/HomeKit, but we handle them anyway.
 export interface CCAttributes extends DeviceAttributeBase {
   POWER: boolean;
   MODE: Mode;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: FanSpeed;
-  ECO: boolean;
-  SLEEP: boolean;
-  DISPLAY: boolean;
-  AUX_HEATING: boolean;
-  SWING_UD: boolean;
-  SWING_LR: boolean;
-  SWING_UD_SITE: number;
-  SWING_LR_SITE: number;
+  // eco_status
+  ECO_MODE: boolean;
+  // idu_silent_status
+  SILENT_MODE: boolean;
+  // idu_sleep_status
+  SLEEP_MODE: boolean;
+  // digit_display_switch / idu_light
+  NIGHT_LIGHT: boolean;
+  // wind_swing_ud_site / swing_louver_vertical_level; Close = swing off
+  VERTICAL_SWING_ANGLE: SwingAngle;
+  // wind_swing_lr_site / swing_louver_horizontal_level; Close = swing off
+  HORIZONTAL_SWING_ANGLE: SwingAngle;
   TEMPERATURE_PRECISION: 1 | 0.5;
   INDOOR_TEMPERATURE?: number;
   OUTDOOR_TEMPERATURE?: number;
-  PTC_SETTING: number;
-  PTC_POWER: boolean;
+  // ptc_setting / ptc_status
+  AUX_HEAT_MODE: HeatStatus;
+  // ptc_enable / ptc power running bit
+  AUX_HEAT_RUNNING: boolean;
+  // sterilize_status / ion
+  PURIFIER_MODE: PurifierMode;
   ERROR_CODE?: number;
   TEMP_FAHRENHEIT: boolean;
 }
 
 export default class MideaCCDevice extends MideaDevice {
   public attributes: CCAttributes;
+
+  // Set once a TLV/FE-format response is received; selects the VRF control path.
+  private _is_fe_format = false;
 
   constructor(logger: Logger, device_info: DeviceInfo, config: Config, deviceConfig: DeviceConfig) {
     super(logger, device_info, config, deviceConfig);
@@ -49,16 +71,15 @@ export default class MideaCCDevice extends MideaDevice {
       MODE: Mode.Auto,
       TARGET_TEMPERATURE: 26,
       FAN_SPEED: FanSpeed.Auto,
-      SLEEP: false,
-      ECO: false,
-      DISPLAY: false,
-      AUX_HEATING: false,
-      PTC_SETTING: 0,
-      PTC_POWER: false,
-      SWING_UD: false,
-      SWING_LR: false,
-      SWING_UD_SITE: 0,
-      SWING_LR_SITE: 0,
+      ECO_MODE: false,
+      SILENT_MODE: false,
+      SLEEP_MODE: false,
+      NIGHT_LIGHT: false,
+      AUX_HEAT_MODE: HeatStatus.Auto,
+      AUX_HEAT_RUNNING: false,
+      PURIFIER_MODE: PurifierMode.Off,
+      VERTICAL_SWING_ANGLE: SwingAngle.Close,
+      HORIZONTAL_SWING_ANGLE: SwingAngle.Close,
       INDOOR_TEMPERATURE: undefined,
       OUTDOOR_TEMPERATURE: undefined,
       ERROR_CODE: undefined,
@@ -68,7 +89,7 @@ export default class MideaCCDevice extends MideaDevice {
   }
 
   build_query(): MessageRequest[] {
-    return [new MessageQueryTLV(this.device_protocol_version)];
+    return [new MessageQuery(this.device_protocol_version)];
   }
 
   process_message(msg: Buffer) {
@@ -76,14 +97,18 @@ export default class MideaCCDevice extends MideaDevice {
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
+
+    const isFEFormat = message.get_body_attribute('is_fe_format');
+    if (isFEFormat !== undefined && isFEFormat !== this._is_fe_format) {
+      this._is_fe_format = isFEFormat as boolean;
+      this.logger.debug(`[${this.name}] Detected ${this._is_fe_format ? 'TLV/FE (86X Controller)' : 'legacy binary'} protocol`);
+    }
+
     const changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
         if (this.attributes[status] !== value) {
-          // Track only those attributes that change value.  So when we send to the Homebridge /
-          // HomeKit accessory we only update values that change.  First time through this
-          // should be most/all attributes having initialized them to invalid values.
           this.logger.debug(`[${this.name}] Value for ${status} changed from '${this.attributes[status]}' to '${value}'`);
           changed[status] = value;
         }
@@ -91,13 +116,6 @@ export default class MideaCCDevice extends MideaDevice {
       }
     }
 
-    const aux_heating = this.attributes.PTC_SETTING === HeatStatus.On || this.attributes.PTC_POWER;
-    if (aux_heating !== this.attributes.AUX_HEATING) {
-      this.attributes.AUX_HEATING = aux_heating;
-      changed.AUX_HEATING = aux_heating;
-    }
-
-    // Now we update Homebridge / Homekit accessory
     if (Object.keys(changed).length > 0) {
       this.update(changed);
     } else {
@@ -109,51 +127,71 @@ export default class MideaCCDevice extends MideaDevice {
     this.logger.debug('No subtype for CC device');
   }
 
-  // make_message_set(): MessageSet {
-  //   const message = new MessageSet(this.device_protocol_version);
-  //   message.power = this.attributes.POWER;
-  //   message.mode = this.attributes.MODE;
-  //   message.target_temperature = this.attributes.TARGET_TEMPERATURE;
-  //   message.fan_speed = this.attributes.FAN_SPEED;
-  //   message.eco = this.attributes.ECO;
-  //   message.sleep = this.attributes.SLEEP;
-  //   message.display = this.attributes.DISPLAY;
-  //   message.exhaust = this.attributes.EXHAUST;
-  //   message.ptc_setting = this.attributes.PTC_SETTING;
-  //   message.swing_ud = this.attributes.SWING_UD;
-  //   message.swing_lr = this.attributes.SWING_LR;
-  //   message.swing_lr_site = this.attributes.SWING_LR_SITE;
-  //   message.swing_ud_site = this.attributes.SWING_UD_SITE;
-  //   return message;
-  // }
-
-  make_message_set_tlv(): MessageSetTLV {
-    const message = new MessageSetTLV(this.device_protocol_version);
+  make_message_set(): MessageSet {
+    const message = new MessageSet(this.device_protocol_version);
     message.power = this.attributes.POWER;
     message.mode = this.attributes.MODE;
     message.target_temperature = this.attributes.TARGET_TEMPERATURE;
     message.fan_speed = this.attributes.FAN_SPEED;
-    message.eco = this.attributes.ECO;
-    message.sleep = this.attributes.SLEEP;
-    message.display = this.attributes.DISPLAY;
-    message.ptc_setting = this.attributes.PTC_SETTING;
-    message.swing_ud = this.attributes.SWING_UD;
-    message.swing_lr = this.attributes.SWING_LR;
-    message.swing_lr_site = this.attributes.SWING_LR_SITE;
-    message.swing_ud_site = this.attributes.SWING_UD_SITE;
+    message.eco_mode = this.attributes.ECO_MODE;
+    message.sleep_mode = this.attributes.SLEEP_MODE;
+    message.night_light = this.attributes.NIGHT_LIGHT;
+    message.aux_heat_mode = this.attributes.AUX_HEAT_MODE;
+    message.vertical_swing_angle = this.attributes.VERTICAL_SWING_ANGLE;
+    message.horizontal_swing_angle = this.attributes.HORIZONTAL_SWING_ANGLE;
     return message;
   }
 
-  async set_attribute(attributes: Partial<CCAttributes>) {
-    const messageToSend: {
-      // SET: MessageSet | undefined;
-      TLV_SET: MessageSetTLV | undefined;
-    } = {
-      // SET: undefined,
-      TLV_SET: undefined,
-    };
+  private _make_fe_controls(attributes: Partial<CCAttributes>): [ControlId, number][] {
+    const controls: [ControlId, number][] = [];
+    for (const [k, v] of Object.entries(attributes)) {
+      switch (k) {
+        case 'POWER':
+          controls.push([ControlId.POWER, v ? 1 : 0]);
+          break;
+        case 'MODE':
+          controls.push([ControlId.MODE, FE_MODE_TO_BYTE[v as Mode] ?? 0x05]);
+          break;
+        case 'TARGET_TEMPERATURE':
+          controls.push([ControlId.TARGET_TEMPERATURE, Math.round((v as number) * 2) + 80]);
+          break;
+        case 'FAN_SPEED':
+          controls.push([ControlId.FAN_SPEED, FE_FAN_TO_BYTE[v as FanSpeed] ?? 0x08]);
+          break;
+        case 'VERTICAL_SWING_ANGLE':
+          controls.push([ControlId.SWING_VERTICAL, v as number]);
+          break;
+        case 'HORIZONTAL_SWING_ANGLE':
+          controls.push([ControlId.SWING_HORIZONTAL, v as number]);
+          break;
+        case 'ECO_MODE':
+          controls.push([ControlId.ECO_MODE, v ? 1 : 0]);
+          break;
+        case 'SILENT_MODE':
+          controls.push([ControlId.SILENT_MODE, v ? 1 : 0]);
+          break;
+        case 'SLEEP_MODE':
+          controls.push([ControlId.SLEEP_MODE, v ? 1 : 0]);
+          break;
+        case 'NIGHT_LIGHT':
+          controls.push([ControlId.NIGHT_LIGHT, v ? 1 : 0]);
+          break;
+        case 'AUX_HEAT_MODE': {
+          const byte = v === HeatStatus.On ? 1 : v === HeatStatus.Off ? 2 : 0;
+          controls.push([ControlId.AUX_HEAT_MODE, byte]);
+          break;
+        }
+        case 'PURIFIER_MODE':
+          controls.push([ControlId.PURIFIER_MODE, v as number]);
+          break;
+      }
+    }
+    return controls;
+  }
 
+  async set_attribute(attributes: Partial<CCAttributes>) {
     try {
+      const changed: Partial<CCAttributes> = {};
       for (const [k, v] of Object.entries(attributes)) {
         if (v === this.attributes[k]) {
           this.logger.info(`[${this.name}] Attribute ${k} already set to ${v}`);
@@ -161,35 +199,28 @@ export default class MideaCCDevice extends MideaDevice {
         }
         this.logger.info(`[${this.name}] Set device attribute ${k} to: ${v}`);
         this.attributes[k] = v;
-
-        messageToSend.TLV_SET ??= this.make_message_set_tlv();
-        messageToSend.TLV_SET[k.toLowerCase()] = v;
+        changed[k] = v;
       }
 
-      for (const [k, v] of Object.entries(messageToSend)) {
-        if (v !== undefined) {
-          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
-          await this.build_send(v);
+      if (Object.keys(changed).length === 0) return;
+
+      if (this._is_fe_format) {
+        const controls = this._make_fe_controls(changed);
+        if (controls.length > 0) {
+          this.logger.debug(`[${this.name}] FE controls: ${JSON.stringify(controls)}`);
+          await this.build_send(new MessageFEControl(this.device_protocol_version, controls));
         }
+      } else {
+        const message = this.make_message_set();
+        for (const [k, v] of Object.entries(changed)) {
+          message[k.toLowerCase()] = v;
+        }
+        this.logger.debug(`[${this.name}] Set message SET:\n${JSON.stringify(message)}`);
+        await this.build_send(message);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
     }
-  }
-
-  async set_target_temperature(target_temperature: number, mode?: number) {
-    this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
-    const message = this.make_message_set_tlv();
-    message.target_temperature = target_temperature;
-    this.attributes.TARGET_TEMPERATURE = target_temperature;
-    if (mode) {
-      message.mode = mode;
-      message.power = true;
-
-      this.attributes.MODE = mode;
-      this.attributes.POWER = true;
-    }
-    await this.build_send(message);
   }
 }

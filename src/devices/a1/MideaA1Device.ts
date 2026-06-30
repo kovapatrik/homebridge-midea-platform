@@ -43,6 +43,8 @@ export default class MideaA1Device extends MideaDevice {
   readonly HUMIDITY_STEP: number;
   public attributes: A1Attributes;
 
+  private pumpEnable: boolean;
+
   readonly MODES = {
     0: 'Off',
     1: 'Auto',
@@ -99,6 +101,8 @@ export default class MideaA1Device extends MideaDevice {
     this.MIN_HUMIDITY = deviceConfig.A1_options.minHumidity;
     this.MAX_HUMIDITY = deviceConfig.A1_options.maxHumidity;
     this.HUMIDITY_STEP = deviceConfig.A1_options.humidityStep;
+
+    this.pumpEnable = false;
   }
 
   build_query() {
@@ -109,6 +113,9 @@ export default class MideaA1Device extends MideaDevice {
     const message = new MessageA1Response(msg);
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
+    }
+    if (message.get_body_attribute('pump_enable')) {
+      this.pumpEnable = message.get_body_attribute('pump_enable');
     }
     const changed: DeviceAttributeBase = {};
     for (const status of Object.keys(this.attributes)) {
@@ -144,6 +151,7 @@ export default class MideaA1Device extends MideaDevice {
     message.anion = this.attributes.ANION;
     message.water_level_set = this.attributes.WATER_LEVEL_SET;
     message.pump = this.attributes.PUMP;
+    message.pump_enable = this.pumpEnable;
     return message;
   }
 
@@ -164,13 +172,15 @@ export default class MideaA1Device extends MideaDevice {
         this.attributes[k] = v;
 
         // not sensor data
-        if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 'FILTER_INDICATOR', 'PUMP'].includes(k)) {
+        if (!['CURRENT_TEMPERATURE', 'CURRENT_HUMIDITY', 'TANK_FULL', 'DEFROSTING', 'FILTER_INDICATOR'].includes(k)) {
           if (k === 'PROMPT_TONE') {
             this.attributes.PROMPT_TONE = !!v;
           } else {
             messageToSend.SET ??= this.make_message_set();
             // TODO handle MODE, FAN_SPEED and WATER_LEVEL_SET to ensure valid value.
           }
+        } else {
+          this.logger.debug(`[${this.name}] Tried to set ${k} to: ${v}, but it's not allowed.`);
         }
       }
 

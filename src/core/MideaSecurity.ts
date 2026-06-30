@@ -255,7 +255,7 @@ export class LocalSecurity {
       throw new Error('Not an 8370 message.');
     }
     const size = header.subarray(2, 4).readUInt16BE() + 8;
-    let leftover = Buffer.alloc(0);
+    let leftover: Buffer<ArrayBufferLike> = Buffer.alloc(0);
     if (data.length < size) {
       return [[], data];
     }

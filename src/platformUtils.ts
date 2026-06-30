@@ -66,7 +66,7 @@ export enum ACMode {
   HEATING = 4,
   FAN_ONLY = 5,
 }
- 
+
 export enum ACServiceType {
   HEATER_COOLER = 'HeaterCooler',
   THERMOSTAT = 'Thermostat',
@@ -98,6 +98,7 @@ type ACOptions = {
   auxHeatingSwitches: boolean;
   selfCleanSwitch: boolean;
   ionSwitch: boolean;
+  outSilentSwitch: boolean;
   rateSelector: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
@@ -138,6 +139,7 @@ type CCOptions = {
   nightLightSwitch: boolean;
   sleepModeSwitch: boolean;
   fanSpeedMode: '3' | '7';
+  fanAutoSwitch: boolean;
 };
 
 type CDOptions = {
@@ -222,6 +224,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     auxHeatingSwitches: false,
     selfCleanSwitch: false,
     ionSwitch: false,
+    outSilentSwitch: false,
     rateSelector: false,
     minTemp: 16,
     maxTemp: 30,
@@ -262,7 +265,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     ecoModeSwitch: false,
     nightLightSwitch: false,
     sleepModeSwitch: false,
-    fanSpeedMode: '7'
+    fanSpeedMode: '7',
+    fanAutoSwitch: false,
   },
   CD_options: {
     minTemp: 38,
