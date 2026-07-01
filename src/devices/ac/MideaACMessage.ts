@@ -23,6 +23,7 @@ enum NewProtocolTags {
   SELF_CLEAN = 0x0039,
   RATE_SELECT = 0x0048, // GEAR
   ERROR_CODE_QUERY = 0x003f,
+  // oxlint-disable-next-line typescript/no-duplicate-enum-values
   BUZZER_ALL = 0x022c,
   // B5 device
   B5_MODE = 0x0214,
@@ -116,7 +117,7 @@ export class MessageQuery extends MessageACBase {
   }
 
   get _body() {
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x81, 0x00, 0xff, 0x00,
       0x00, 0x00, 0x00, 0x00,
@@ -212,7 +213,7 @@ export class MessageSwitchDisplay extends MessageACBase {
 
   get _body() {
     const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x02 | prompt_tone,
       0x00,
@@ -350,7 +351,7 @@ export class MessageSubProtocolSet extends MessageSubProtocol {
     const prompt_tone = this.prompt_tone ? 0x01 : 0;
     const timer = this.sn8_flag && this.timer ? 0x04 : 0;
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x02 | boost_mode | power | dry,
       aux_heating,
@@ -450,7 +451,7 @@ export class MessageGeneralSet extends MessageACBase {
     const frost_protect = this.frost_protect ? 0x80 : 0;
     // Byte 22 comfort_mode
     const comfort_mode = this.comfort_mode ? 0x01 : 0;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       power | prompt_tone,
       mode | target_temperature,
@@ -530,7 +531,7 @@ export class MessageNewProtocolSet extends MessageACBase {
         payload,
         NewProtocolMessageBody.packet(
           NewProtocolTags.FRESH_AIR_1,
-          // biome-ignore format: easier to read
+          // oxfmt-ignore
           Buffer.from([
             fresh_air_power,
             fresh_air_fan_speed,
@@ -545,7 +546,7 @@ export class MessageNewProtocolSet extends MessageACBase {
       pack_count += 1;
       const fresh_air_power = this.fresh_air_2[0] > 0 ? 1 : 0;
       const fresh_air_fan_speed = this.fresh_air_2[1];
-      // biome-ignore format: easier to read
+      // oxfmt-ignore
       payload = Buffer.concat([
         payload,
         NewProtocolMessageBody.packet(

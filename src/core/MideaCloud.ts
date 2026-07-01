@@ -73,7 +73,7 @@ export abstract class CloudBase<S extends CloudSecurity> {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      throw new Error(`Failed to get login ID:\n${msg}`);
+      throw new Error(`Failed to get login ID:\n${msg}`, { cause: e });
     }
   }
 
@@ -104,7 +104,7 @@ export abstract class CloudBase<S extends CloudSecurity> {
 // biome-ignore lint/suspicious/noExplicitAny: had to use any
 type DataObject = { [key: string]: any };
 
-abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
+export abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> {
   // biome-ignore lint/suspicious/noExplicitAny: had to use any
   async apiRequest(endpoint: string, data: { [key: string]: any }) {
     const url = `${this.API_URL}${endpoint}`;
@@ -143,7 +143,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       } catch (error) {
         if (retryCount === 2) {
           // Last retry
-          throw new Error(`Error while sending request to ${url}: ${error}`);
+          throw new Error(`Error while sending request to ${url}: ${error}`, { cause: error });
         }
         // Otherwise continue to retry
       }
@@ -205,7 +205,7 @@ abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudBase<S> 
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      throw new Error(`Error in Adding new accessory:\n${msg}`);
+      throw new Error(`Error in Adding new accessory:\n${msg}`, { cause: e });
     } finally {
       releaseSemaphore();
     }
@@ -265,7 +265,7 @@ class MSmartHomeCloud extends ProxiedCloudBase<MSmartHomeCloudSecurity> {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: might use in the future
+// oxlint-disable-next-line no-unused-vars
 class MeijuCloud extends ProxiedCloudBase<MeijuCloudSecurity> {
   protected readonly APP_ID = '1010';
   protected readonly API_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=';
@@ -333,7 +333,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       } catch (error) {
         if (retryCount === 2) {
           // Last retry
-          throw new Error(`Error while sending request to ${url}: ${error}`);
+          throw new Error(`Error while sending request to ${url}: ${error}`, { cause: error });
         }
         // Otherwise continue to retry
       }
@@ -371,7 +371,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      throw new Error(`Error in Adding new accessory:\n${msg}`);
+      throw new Error(`Error in Adding new accessory:\n${msg}`, { cause: e });
     } finally {
       releaseSemaphore();
     }
@@ -387,7 +387,7 @@ class NetHomePlusCloud extends SimpleCloud<NetHomePlusSecurity> {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: might use in the future
+// oxlint-disable-next-line no-unused-vars
 class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   protected readonly APP_ID = '1005';
   protected readonly API_URL = 'https://mapp.appsmb.com';
@@ -397,20 +397,17 @@ class AristonClimaCloud extends SimpleCloud<ArtisonClimaSecurity> {
   }
 }
 
-// biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
-export default class CloudFactory {
-  static createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
-    switch (cloud) {
-      case 'Midea SmartHome (MSmartHome)':
-        return new MSmartHomeCloud(account, password);
-      // case 'Meiju':
-      //   return new MeijuCloud(account, password);
-      case 'NetHome Plus':
-        return new NetHomePlusCloud(account, password);
-      // case 'Ariston Clima':
-      //   return new AristonClimaCloud(account, password);
-      default:
-        throw new Error(`Cloud ${cloud} is not supported.`);
-    }
+export default function createCloud(account: string, password: string, cloud: string): CloudBase<CloudSecurity> {
+  switch (cloud) {
+    case 'Midea SmartHome (MSmartHome)':
+      return new MSmartHomeCloud(account, password);
+    // case 'Meiju':
+    //   return new MeijuCloud(account, password);
+    case 'NetHome Plus':
+      return new NetHomePlusCloud(account, password);
+    // case 'Ariston Clima':
+    //   return new AristonClimaCloud(account, password);
+    default:
+      throw new Error(`Cloud ${cloud} is not supported.`);
   }
 }

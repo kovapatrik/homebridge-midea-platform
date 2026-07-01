@@ -47,7 +47,7 @@ export class MessageQuery extends MessageA1Base {
   }
 
   get _body() {
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x81, 0x00, 0xff, 0x00,
       0x00, 0x00, 0x00, 0x00,
@@ -127,7 +127,7 @@ export class MessageSet extends MessageA1Base {
     const water_level_set = this.water_level_set;
     // byte14 purifier
     const purifier = this.purifier;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       power | prompt_tone | 0x02,
       mode,

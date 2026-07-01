@@ -8,13 +8,13 @@
  *
  */
 import type { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
-import AccessoryFactory from './accessory/AccessoryFactory.js';
+import createAccessory from './accessory/AccessoryFactory.js';
 import { type DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import Discover from './core/MideaDiscover.js';
-import DeviceFactory from './devices/DeviceFactory.js';
+import createDevice from './devices/DeviceFactory.js';
 import { type Config, type DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import { defaultsDeep } from "lodash-es";
+import { defaultsDeep } from 'lodash-es';
 
 type MideaContext = {
   token: string;
@@ -174,7 +174,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
-    const device = DeviceFactory.createDevice(this.log, device_info, this.platformConfig, deviceConfig);
+    const device = createDevice(this.log, device_info, this.platformConfig, deviceConfig);
     if (device === null) {
       this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
     } else {
@@ -197,7 +197,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
             }
           }
           await device.connect(true);
-          AccessoryFactory.createAccessory(this, existingAccessory, device, deviceConfig);
+          createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);
@@ -226,7 +226,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
           accessory.context.model = device_info.model ?? 'unknown';
           // create the accessory handler for the newly create accessory
           // this is imported from `platformAccessory.ts`
-          AccessoryFactory.createAccessory(this, accessory, device, deviceConfig);
+          createAccessory(this, accessory, device, deviceConfig);
           // link the accessory to your platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         } catch (err) {

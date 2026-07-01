@@ -143,7 +143,7 @@ export class MessageSetSilent extends MessageC3Base {
   }
 
   get _body() {
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       this.silent_level,
       0x00, 0x00, 0x00, 0x00,
@@ -164,7 +164,7 @@ export class MessageSetECO extends MessageC3Base {
 
   get _body() {
     const eco_mode = this.eco_mode ? 0x01 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       eco_mode, 0x00, 0x00, 0x00, 0x00, 0x00
     ]);
@@ -183,7 +183,7 @@ export class MessageSetDisinfect extends MessageC3Base {
 
   get _body() {
     const disinfect = this.disinfect ? 0x01 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       disinfect, 0x00, 0x00, 0x00, 0x00,
     ]);

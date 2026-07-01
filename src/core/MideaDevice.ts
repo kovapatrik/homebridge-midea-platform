@@ -356,9 +356,9 @@ export default abstract class MideaDevice extends EventEmitter {
           }
         } else {
           if (this.logRecoverableErrors) {
-            this.logger.warn(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
+            this.logger.warn(`[${this.name}] Invalid payload length: ${payload_length} (0x${payload_length.toString(16)})`);
           } else {
-            this.logger.debug(`[${this.name}] Invalid payload length: ` + `${payload_length} (0x${payload_length.toString(16)})`);
+            this.logger.debug(`[${this.name}] Invalid payload length: ${payload_length} (0x${payload_length.toString(16)})`);
           }
         }
       } else {

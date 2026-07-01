@@ -25,7 +25,7 @@ export class MessagePower extends MessageE1Base {
 
   get _body() {
     const power = this.power ? 0x01 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       power,
       0x00, 0x00, 0x00
@@ -43,7 +43,7 @@ export class MessageLock extends MessageE1Base {
 
   get _body() {
     const lock = this.lock ? 0x03 : 0x04;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.concat([
       Buffer.from([lock]),
       Buffer.alloc(36)
@@ -61,7 +61,7 @@ export class MessageStorage extends MessageE1Base {
 
   get _body() {
     const storage = this.storage ? 0x01 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.concat([
       Buffer.from([0x00, 0x00, 0x00, storage]),
       Buffer.alloc(6, 0xff),
