@@ -60,7 +60,7 @@ export class MessageSet extends MessageCDBase {
     const power = this.power ? 0x01 : 0x00;
     const target_temperature = Math.round(this.target_temperature * 2 + 30);
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x01, power, this.mode, target_temperature,
       this.tr_temperature,
@@ -90,7 +90,7 @@ export class MessageSetSterilize extends MessageCDBase {
   get _body() {
     const sterilize = this.sterilize ? 0x80 : 0x00;
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       sterilize,
       this.auto_sterilize_week,

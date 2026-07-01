@@ -92,7 +92,7 @@ export class MessageSet extends MessageE2Base {
     const whole_tank_heating = this.whole_tank_heating ? 0x02 : 0x01;
     const target_temperature = this.target_temperature & 0xff;
     const variable_heating = this.variable_heating ? 0x10 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x01,
       0x00,

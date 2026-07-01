@@ -198,7 +198,7 @@ export default class Discover extends EventEmitter {
     try {
       decrypted_buffer = this.security.aes_decrypt(encrypted_data);
     } catch (err) {
-      throw new Error(`Error while decrypting data: ${err}`);
+      throw new Error(`Error while decrypting data: ${err}`, { cause: err });
     }
 
     const ip_address = `${decrypted_buffer.readUint8(3)}.${decrypted_buffer.readUint8(2)}.${decrypted_buffer.readUint8(1)}.${decrypted_buffer.readUint8(0)}`;

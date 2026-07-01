@@ -1,0 +1,176 @@
+<div id="main" data-bs-theme="dark" x-data="discoverApp">
+  <div class="card">
+    <div class="card-header" id="uiButtons">
+      <h5 class="mb-0 text-center">
+        <button class="btn btn-primary" @click="open = !open" style="border: 0">Discover devices</button>
+      </h5>
+    </div>
+
+    <div x-show="open" x-cloak>
+      <div class="card-body">
+        <form @submit.prevent="discover" autocomplete="off">
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in the Add/Update column then you must
+            provide login credentials or use the default profile option so the <i>token/key</i> pair can be retrieved from Midea cloud servers.<br />
+            <i>Note: you don't have to have your devices connected to the account you are using to fetch the token/key pair.</i>
+          </div>
+          <div class="mb-3 form-check form-switch">
+            <input id="useDefaultProfile" type="checkbox" class="form-check-input" role="switch" x-model="useDefaultProfile" />
+            <label for="useDefaultProfile" class="form-check-label">Use default NetHome Plus profile</label>
+          </div>
+          <div class="mb-3" :class="{ disabled: useDefaultProfile }">
+            <div class="mb-3">
+              <label for="registeredApp" class="form-label">Registered app</label>
+              <select id="registeredApp" class="form-select" x-model="registeredApp">
+                <option value="Midea SmartHome (MSmartHome)">Midea SmartHome (MSmartHome)</option>
+                <option value="NetHome Plus">NetHome Plus</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" x-model="username" autocomplete="off" />
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" x-model="password" autocomplete="off" />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on another LAN subnet)</label>
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)" x-model="ipInput" />
+          </div>
+          <button
+            class="btn btn-primary"
+            type="submit"
+            style="border: 0"
+            :disabled="discovering"
+            x-text="discovering ? 'Discovering...' : 'Discover All Devices'"
+          ></button>
+        </form>
+
+        <div class="text-center mt-3" x-show="showTable" x-cloak>
+          <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
+            If your device is not supported, you can download the Lua file (by clicking on the model number in the table) which is used to control the device
+            and attach it to a GitHub issue.
+          </div>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Model</th>
+                <th scope="col">Id</th>
+                <th scope="col">Ver.</th>
+                <th scope="col">Token&nbsp;/&nbsp;Key</th>
+                <th scope="col">Local&nbsp;Ip</th>
+                <th scope="col">Add&nbsp;/&nbsp;Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="device in devices" :key="device.id">
+                <tr>
+                  <td x-text="device.name"></td>
+                  <td x-text="device.displayName"></td>
+                  <td>
+                    <button class="btn btn-outline-secondary btn-sm" @click="downloadLua(device)" x-text="device.model"></button>
+                  </td>
+                  <td x-text="device.id"></td>
+                  <td x-text="device.version"></td>
+                  <td>
+                    <template x-if="device.version === 3">
+                      <span>
+                        <span x-text="device.tokenShort ?? 'token missing'"></span><br />
+                        <span x-text="device.keyShort ?? 'key missing'"></span>
+                      </span>
+                    </template>
+                    <template x-if="device.version !== 3">
+                      <span>not needed</span>
+                    </template>
+                  </td>
+                  <td x-text="device.ip"></td>
+                  <td>
+                    <template x-if="device.status === 'not-supported'">
+                      <span>Not supported!<br />Download the Lua file and attach it to a GitHub issue.</span>
+                    </template>
+                    <template x-if="device.status === 'no-credentials'">
+                      <span>No credentials</span>
+                    </template>
+                    <template x-if="device.status === 'add'">
+                      <button class="btn btn-secondary btn-sm" @click="addDevice(device)">Add</button>
+                    </template>
+                    <template x-if="device.status === 'update'">
+                      <button class="btn btn-outline-secondary btn-sm" @click="updateDevice(device)">Update</button>
+                    </template>
+                    <template x-if="device.status === 'added'">
+                      <span>Added</span>
+                    </template>
+                    <template x-if="device.status === 'updated'">
+                      <span>Updated</span>
+                    </template>
+                  </td>
+                </tr>
+              </template>
+              <tr x-show="devices.length === 0">
+                <td colspan="8">No devices found!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lua modal -->
+  <div class="lua-modal-overlay" x-show="luaModal.show" x-cloak @click.self="luaModal.show = false">
+    <div class="lua-modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" x-text="`Lua Code for ${luaModal.model}`"></h5>
+          <button type="button" class="btn-close" @click="luaModal.show = false"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 btn-toolbar">
+            <div class="btn-group me-2">
+              <button class="btn btn-secondary" @click="selectLuaCode">Select All</button>
+            </div>
+            <small class="text-warning ms-2 align-self-center" x-text="`Save this as ${luaModal.deviceType.toString(16)}_${luaModal.model}.lua`"></small>
+          </div>
+          <pre id="luaCodePre"><code style="color: var(--bs-body-color);" x-text="luaModal.code"></code></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="luaModal.show = false">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+
+  .lua-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1055;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 1.75rem 0.5rem;
+  }
+
+  .lua-modal-dialog {
+    width: 100%;
+    max-width: 800px;
+  }
+</style>
+
+<script src="./ui.ts"></script>

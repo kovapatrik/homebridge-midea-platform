@@ -39,36 +39,33 @@ import HeatPumpWaterHeaterAccessory from './HeatPumpWaterHeaterAccessory.js';
 import MDVWiFiControllerAccessory from './MDVWiFiControllerAccessory.js';
 import type MideaCCDevice from '../devices/cc/MideaCCDevice.js';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: static class is used for factory
-export default class AccessoryFactory {
-  public static createAccessory<T extends MideaDevice>(platform: MideaPlatform, accessory: MideaAccessory, device: T, configDev: DeviceConfig) {
-    switch (device.type) {
-      case DeviceType.DEHUMIDIFIER:
-        return new DehumidifierAccessory(platform, accessory, device as unknown as MideaA1Device, configDev);
-      case DeviceType.AIR_CONDITIONER:
-        return new AirConditionerAccessory(platform, accessory, device as unknown as MideaACDevice, configDev);
-      case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
-        return new HeatPumpWiFiControllerAccessory(platform, accessory, device as unknown as MideaC3Device, configDev);
-      case DeviceType.FRONT_LOAD_WASHER:
-        return new FrontLoadWasherAccessory(platform, accessory, device as unknown as MideaDBDevice, configDev);
-      case DeviceType.DISHWASHER:
-        return new DishwasherAccessory(platform, accessory, device as unknown as MideaE1Device, configDev);
-      case DeviceType.ELECTRIC_WATER_HEATER:
-        return new ElectricWaterHeaterAccessory(platform, accessory, device as unknown as MideaE2Device, configDev);
-      case DeviceType.GAS_WATER_HEATER:
-        return new GasWaterHeaterAccessory(platform, accessory, device as unknown as MideaE3Device, configDev);
-      case DeviceType.FAN:
-        return new FanAccessory(platform, accessory, device as unknown as MideaFADevice, configDev);
-      case DeviceType.HUMIDIFIER:
-        return new HumidifierAccessory(platform, accessory, device as unknown as MideaFDDevice, configDev);
-      case DeviceType.FRESH_AIR_APPLIANCE:
-        return new FreshAirApplianceAccessory(platform, accessory, device as unknown as MideaCEDevice, configDev);
-      case DeviceType.HEAT_PUMP_WATER_HEATER:
-        return new HeatPumpWaterHeaterAccessory(platform, accessory, device as unknown as MideaCDDevice, configDev);
-      case DeviceType.MDV_WIFI_CONTROLLER:
-        return new MDVWiFiControllerAccessory(platform, accessory, device as unknown as MideaCCDevice, configDev);
-      default:
-        throw new Error(`Unsupported device type: ${device.type}`);
-    }
+export default function createAccessory<T extends MideaDevice>(platform: MideaPlatform, accessory: MideaAccessory, device: T, configDev: DeviceConfig) {
+  switch (device.type) {
+    case DeviceType.DEHUMIDIFIER:
+      return new DehumidifierAccessory(platform, accessory, device as unknown as MideaA1Device, configDev);
+    case DeviceType.AIR_CONDITIONER:
+      return new AirConditionerAccessory(platform, accessory, device as unknown as MideaACDevice, configDev);
+    case DeviceType.HEAT_PUMP_WIFI_CONTROLLER:
+      return new HeatPumpWiFiControllerAccessory(platform, accessory, device as unknown as MideaC3Device, configDev);
+    case DeviceType.FRONT_LOAD_WASHER:
+      return new FrontLoadWasherAccessory(platform, accessory, device as unknown as MideaDBDevice, configDev);
+    case DeviceType.DISHWASHER:
+      return new DishwasherAccessory(platform, accessory, device as unknown as MideaE1Device, configDev);
+    case DeviceType.ELECTRIC_WATER_HEATER:
+      return new ElectricWaterHeaterAccessory(platform, accessory, device as unknown as MideaE2Device, configDev);
+    case DeviceType.GAS_WATER_HEATER:
+      return new GasWaterHeaterAccessory(platform, accessory, device as unknown as MideaE3Device, configDev);
+    case DeviceType.FAN:
+      return new FanAccessory(platform, accessory, device as unknown as MideaFADevice, configDev);
+    case DeviceType.HUMIDIFIER:
+      return new HumidifierAccessory(platform, accessory, device as unknown as MideaFDDevice, configDev);
+    case DeviceType.FRESH_AIR_APPLIANCE:
+      return new FreshAirApplianceAccessory(platform, accessory, device as unknown as MideaCEDevice, configDev);
+    case DeviceType.HEAT_PUMP_WATER_HEATER:
+      return new HeatPumpWaterHeaterAccessory(platform, accessory, device as unknown as MideaCDDevice, configDev);
+    case DeviceType.MDV_WIFI_CONTROLLER:
+      return new MDVWiFiControllerAccessory(platform, accessory, device as unknown as MideaCCDevice, configDev);
+    default:
+      throw new Error(`Unsupported device type: ${device.type}`);
   }
 }

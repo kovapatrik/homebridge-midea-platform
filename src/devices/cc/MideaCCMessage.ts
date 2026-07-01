@@ -63,7 +63,7 @@ export enum PurifierMode {
 
 // Control IDs for the 0xFE VRF panel key-value control protocol.
 // Values are the key_maps indices from T_0000_CC_10011006_2025033001.lua.
-// biome-ignore format: easier to read as a flat list
+// oxfmt-ignore
 export enum ControlId {
   POWER              = 0x0000, // power
   TARGET_TEMPERATURE = 0x0003, // temperature_current
@@ -149,7 +149,7 @@ export class MessageSet extends MessageCCBase {
     const swing_lr = this.horizontal_swing_angle !== SwingAngle.Close ? 0x01 : 0;
     const temperature_dot = ((this.target_temperature - temperature_integer) * 10) & 0xff;
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       power | mode,
       fan_speed,

@@ -2,23 +2,22 @@
 
 ## [1.3.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.2.10...v1.3.0) (2026-06-30)
 
-
 ### Features
 
-* **AC:** Add option to expose humidity sensor ([#171](https://github.com/kovapatrik/homebridge-midea-platform/issues/171)) ([c928e43](https://github.com/kovapatrik/homebridge-midea-platform/commit/c928e435961331518ac6701ca97189209c6664c5))
-* protocol reworks ([#178](https://github.com/kovapatrik/homebridge-midea-platform/issues/178)) ([c231ba4](https://github.com/kovapatrik/homebridge-midea-platform/commit/c231ba41282e132b93ea6b8052d20622cf928692))
-* use release please ([1cb1c16](https://github.com/kovapatrik/homebridge-midea-platform/commit/1cb1c167baa8f92767897968f7873133a8a71a59))
-* **AC**: added support for Out Silent Mode and ION (anion) (fixes Add deeper support for Midea Portasplit #105, AC Ioniser (Anion) Control and State Issues #146, Medea Portasplit Silent Mode #172)
-* **A1**: fixed pump setting (fixes Pump Switch not working properly #136)
-* **AC, A1 and CC**: feature parity with midea-local
-
+- **AC:** Add option to expose humidity sensor ([#171](https://github.com/kovapatrik/homebridge-midea-platform/issues/171)) ([c928e43](https://github.com/kovapatrik/homebridge-midea-platform/commit/c928e435961331518ac6701ca97189209c6664c5))
+- protocol reworks ([#178](https://github.com/kovapatrik/homebridge-midea-platform/issues/178)) ([c231ba4](https://github.com/kovapatrik/homebridge-midea-platform/commit/c231ba41282e132b93ea6b8052d20622cf928692))
+- use release please ([1cb1c16](https://github.com/kovapatrik/homebridge-midea-platform/commit/1cb1c167baa8f92767897968f7873133a8a71a59))
+- **AC**: added support for Out Silent Mode and ION (anion) (fixes Add deeper support for Midea Portasplit #105, AC Ioniser (Anion) Control and State Issues #146, Medea Portasplit Silent Mode #172)
+- **A1**: fixed pump setting (fixes Pump Switch not working properly #136)
+- **AC, A1 and CC**: feature parity with midea-local
 
 ### Bug Fixes
 
-* gate reconnect lifecycle logs behind logRecoverableErrors ([#170](https://github.com/kovapatrik/homebridge-midea-platform/issues/170)) ([efc1217](https://github.com/kovapatrik/homebridge-midea-platform/commit/efc12178695258843b68d3ab849f94bd579aa5ed))
-* use workflow call to publish [skip ci] ([8281273](https://github.com/kovapatrik/homebridge-midea-platform/commit/828127308ba5a381b759405f045e9915326893dd))
+- gate reconnect lifecycle logs behind logRecoverableErrors ([#170](https://github.com/kovapatrik/homebridge-midea-platform/issues/170)) ([efc1217](https://github.com/kovapatrik/homebridge-midea-platform/commit/efc12178695258843b68d3ab849f94bd579aa5ed))
+- use workflow call to publish [skip ci] ([8281273](https://github.com/kovapatrik/homebridge-midea-platform/commit/828127308ba5a381b759405f045e9915326893dd))
 
 ## v1.2.10
+
 - fix: added logic to persist fan speed when toggling fan related modes (like sleep mode, boost mode, etc...) in `Air Conditioner` (fixes #158)
 - feat: added separate switch for setting `Air Conditioner` fan auto mode (fixes #152)
 - feat: added basic/partial support for 0xCC `MDV WiFi Controller` (fixes #126)
@@ -27,17 +26,21 @@
 - feat: added option to set Thermostat as the service type for AC devices (by @Ben-Diehlci)
 
 ## v1.2.9
+
 - feat: added separate temperature sensor creation option for `Air Conditioner` (fixes #141)
 
 ## v1.2.8
+
 - fix: boost/comfort/eco mode was not working for `Air Conditioner` (fixes #154)
 
 ## v1.2.7
+
 - feat: emulate HomeKit heat and cool thresholds for `Air Conditioner` (fixes #134)
   - this allows to use HomeKit's `Auto` mode for `Air Conditioner` devices in a way Midea using it
 - fix: removed not needed screen display setter for `Air Conditioner` devices
 
 ## v1.2.6
+
 - feat: added partial support for `Fresh Air Appliance` (issue #118)
 - feat: added sleep mode switch for `Air Conditioner` (fixes #128)
 - feat: added comfort mode switch for `Air Conditioner` (fixes #132)
@@ -47,22 +50,28 @@
   - you can do this from the Homebridge UI: three dots in the top right side -> Settings -> scroll down to the bottom and there will be a `Remove Single Accessory` button -> use that and remove everything which is connected to the plugin `homebridge-midea-platform`
 
 ## v1.2.5
+
 - fix: getting tokens/key for devices
   - IMPORTANT CHANGE: please read the [README](README.md#important-notice) about the change fetching the tokens
 
 ## v1.2.4
+
 - feat: added support for `Humidifiers` (fixes #114)
 - fix: mark accessories as 'Not responding' if the device is presumed offline
 - chore: changed linter and formatter to biome.js and applied all the necessary changes
 
 ## v1.2.3
+
 - fix: checking if cloud provider can be used for downloading Lua files in the discovery process
 
 ## v1.2.2
+
 - version bump to fix the npm package
 
 ## v1.2.1
+
 ### 2024-10-26
+
 - BREAKING CHANGE: the plugin is now following Homebridge 2.0.0 compatible. This caused a lot of eslint and import clause rewrites.
 - BREAKING CHANGE: Node version support is now `^18.20.4 || ^20.18.0 || ^22.10.0`.
 - feat: added support for `Front Load Washers` (fixes #87)
@@ -78,7 +87,9 @@
 - chore: deleted unnecessary flags
 
 ## v1.1.0
+
 ### 2024-07-13
+
 - BREAKING CHANGE: `Air Conditioner` configuration changed: there is now a possibility to create an accessory which can be used to control the slats on the unit. THe configuration structure has changed. Please check [AC docs](/docs/ac.md) for more information (or just save the configuration again in the plugin settings to get the new structure).
 - feat: added support for `Fans` (fixes #74)
 - feat: added feature to turn off the display by default on power on for `Air Conditioners`
@@ -89,7 +100,9 @@
 - fix: wait for device response before adding it to Homebridge
 
 ## v1.0.6
+
 ### 2024-06-15
+
 - BREAKING CHANGE: there is a new conifguration option `fanOnlyModeSwitch` which will only turn on fan only mode. There is a possiblity to create an accessory to manage fan only mode using option `fanAccessory`. Setting fan to auto mode can be done from the fan accessory
 - fix: NetHome Plus login
 - minor quality of life improvements

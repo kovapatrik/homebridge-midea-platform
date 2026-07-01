@@ -21,7 +21,7 @@ export class MessageQuery extends MessageFDBase {
   }
 
   get _body() {
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x81, 0x00, 0xff, 0x03,
       0x00, 0x00, 0x02, 0x00,
@@ -59,7 +59,7 @@ export class MessageSet extends MessageFDBase {
     const power = this.power ? 0x01 : 0x00;
     const prompt_tone = this.prompt_tone ? 0x40 : 0x00;
     const disinfect = this.disinfect === undefined ? 0x00 : this.disinfect ? 0x01 : 0x02;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
 			power | prompt_tone | 0x02,
 			0x00,

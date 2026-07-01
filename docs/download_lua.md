@@ -1,6 +1,7 @@
 # Downloading lua script for devices
 
 If you need support for a device, or a new feature for an existing one, please do the following:
+
 1. Open the Homebridge Config UI X
 2. Do the discovery process through the UI
    - Here you must your or the default NetHome Plus account (if you don't have your own account in these apps)

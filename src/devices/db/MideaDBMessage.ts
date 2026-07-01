@@ -27,7 +27,7 @@ export class MessagePower extends MessageDBBase {
 
   get _body() {
     const power = this.power ? 0x01 : 0x00;
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       power,
       0xff, 0xff, 0xff, 0xff,
@@ -52,7 +52,7 @@ export class MessageStart extends MessageDBBase {
 
   get _body() {
     if (this.start) {
-      // biome-ignore format: easier to read
+      // oxfmt-ignore
       return Buffer.concat([
         Buffer.from([0xff, 0x01]),
         this.washing_data

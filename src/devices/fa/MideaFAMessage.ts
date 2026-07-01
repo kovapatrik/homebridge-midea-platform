@@ -51,7 +51,7 @@ export class MessageSet extends MessageFABase {
   get _body() {
     let body_return: Buffer;
     if ((1 <= this.subtype && this.subtype <= 10) || this.subtype === 161) {
-      // biome-ignore format: easier to read
+      // oxfmt-ignore
       body_return = Buffer.from([
         0x00, 0x00, 0x00, 0x80,
         0x00, 0x00, 0x00, 0x80,
@@ -63,7 +63,7 @@ export class MessageSet extends MessageFABase {
         body_return[13] = 0xff;
       }
     } else {
-      // biome-ignore format: easier to read
+      // oxfmt-ignore
       body_return = Buffer.from([
         0x00, 0x00, 0x00, 0x80,
         0x00, 0x00, 0x00, 0x80,

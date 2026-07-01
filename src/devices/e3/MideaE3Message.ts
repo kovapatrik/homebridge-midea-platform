@@ -80,7 +80,7 @@ export class MessageSet extends MessageE3Base {
     // Byte 5
     const target_temperature = this.target_temperature & 0xff;
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       0x01,
       zero_cold_water | 0x02,
@@ -116,7 +116,7 @@ export class MessageNewProtocolSet extends MessageE3Base {
     } else {
       value = this.value ? 0x01 : 0x00;
     }
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
       key, value,
       0x00, 0x00, 0x00, 0x00,

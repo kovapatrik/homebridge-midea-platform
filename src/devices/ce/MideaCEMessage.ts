@@ -51,7 +51,7 @@ export class MessageSet extends MessageCEBase {
     const auto_set_mode = this.auto_set_mode ? 0x02 : 0x00;
     const silent_mode = this.silent_mode ? 0x04 : 0x00;
 
-    // biome-ignore format: easier to read
+    // oxfmt-ignore
     return Buffer.from([
        power | auto_set_mode | silent_mode,
        this.mode,

@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["oxc", "typescript", "node"],
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "no-param-reassign": "error",
+    "typescript/prefer-as-const": "error",
+    "default-param-last": "error",
+    "typescript/prefer-enum-initializers": "error",
+    "typescript/no-inferrable-types": "error",
+    "no-underscore-dangle": "allow"
+  }
+}

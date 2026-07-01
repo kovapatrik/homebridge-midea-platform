@@ -2,6 +2,7 @@
   "pluginAlias": "midea-platform",
   "pluginType": "platform",
   "customUi": true,
+  "customUiPath": "./dist/homebridge-ui",
   "headerDisplay": "This plugin is currently experimental and under development.  Please report [bugs](https://github.com/kovapatrik/homebridge-midea-platform/issues)",
   "footerDisplay": "For help please see the [homepage](https://github.com/kovapatrik/homebridge-midea-platform)",
   "singular": true,

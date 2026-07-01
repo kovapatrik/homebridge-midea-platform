@@ -8,13 +8,14 @@
 [![npm](https://badgen.net/npm/v/homebridge-midea-platform)](https://www.npmjs.com/package/homebridge-midea-platform)
 [![npm](https://badgen.net/npm/dt/homebridge-midea-platform?label=downloads)](https://www.npmjs.com/package/homebridge-midea-platform)
 
-*Verified* plugin for Midea devices. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant and the project [midea-local](https://github.com/midea-lan/midea-local). Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
+_Verified_ plugin for Midea devices. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant and the project [midea-local](https://github.com/midea-lan/midea-local). Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
 
 Pull requests and/or other offers of development assistance gratefully received.
 
 More information can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki).
 
 ## IMPORTANT NOTICE
+
 - As written by [@wuwentao](https://github.com/wuwentao) in the [midea_ac_lan repository](https://github.com/wuwentao/midea_ac_lan), Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.
 - It's expected that the token fetching in NetHome Plus API will be disabled as well.
 - Make sure you save your devices' token and key to be able to usem them in the future.
@@ -25,16 +26,16 @@ More information can be found in the [wiki](https://github.com/kovapatrik/homebr
 
 Currently supports the following devices:
 
-| Device | ID | Docs |
-|--------|----|------|
-| Air Conditioner | AC | [link](/docs/ac.md) |
-| Dehumidifier | A1 | [link](/docs/a1.md) |
-| Fresh Air Appliance | CE | [link](/docs/ce.md) |
-| Front Load Washer | DB | [link](/docs/db.md) |
-| Electric Water Heater | E2 | [link](/docs/e2.md) |
-| Gas Water Heater | E3 | [link](/docs/e3.md) |
-| Fan | FA | [link](/docs/fa.md) |
-| Humidifier | FD | [link](/docs/fd.md) |
+| Device                | ID  | Docs                |
+| --------------------- | --- | ------------------- |
+| Air Conditioner       | AC  | [link](/docs/ac.md) |
+| Dehumidifier          | A1  | [link](/docs/a1.md) |
+| Fresh Air Appliance   | CE  | [link](/docs/ce.md) |
+| Front Load Washer     | DB  | [link](/docs/db.md) |
+| Electric Water Heater | E2  | [link](/docs/e2.md) |
+| Gas Water Heater      | E3  | [link](/docs/e3.md) |
+| Fan                   | FA  | [link](/docs/fa.md) |
+| Humidifier            | FD  | [link](/docs/fd.md) |
 
 ### Unsupported Devices
 
@@ -52,7 +53,7 @@ Search for "midea" in [homebridge-config-ui-x](https://github.com/oznu/homebridg
 sudo npm install -g homebridge-midea-platform
 ```
 
-Midea device status is retrieved over your Local Area Network (LAN) and credentials are obtained from the Midea cloud services over the internet. While the plugin maintains a status cache, **use of Homebridge [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges)** is strongly encouraged. As noted below in the *network resiliency* section, this plugin will make multiple attempts to fulfill a request if necessary, which can take time.
+Midea device status is retrieved over your Local Area Network (LAN) and credentials are obtained from the Midea cloud services over the internet. While the plugin maintains a status cache, **use of Homebridge [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges)** is strongly encouraged. As noted below in the _network resiliency_ section, this plugin will make multiple attempts to fulfill a request if necessary, which can take time.
 
 ## Configuration
 
