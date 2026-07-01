@@ -9,7 +9,7 @@
 import type { Logger } from 'homebridge';
 import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
-import { type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
+import { ACMode, type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
 import {
   MessageACResponse,
   MessageCapabilitiesAdditionalQuery,
@@ -34,7 +34,7 @@ export interface ACAttributes extends DeviceAttributeBase {
   PROMPT_TONE: boolean;
   POWER: boolean | undefined;
   // OFF, AUTO, COOL, DRY, HEAT, FAN_ONLY
-  MODE: number;
+  MODE: ACMode;
   TARGET_TEMPERATURE: number;
   FAN_SPEED: number;
   SWING_VERTICAL: boolean | undefined;
@@ -126,7 +126,7 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes = {
       PROMPT_TONE: false,
       POWER: undefined,
-      MODE: 0,
+      MODE: ACMode.OFF,
       TARGET_TEMPERATURE: 0,
       FAN_SPEED: 0,
       SWING_VERTICAL: undefined, // invalid
@@ -400,6 +400,12 @@ export default class MideaACDevice extends MideaDevice {
                 messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
               }
             }
+            if (k === 'MODE') {
+              // Reset dry flag when changing mode to avoid conflicts
+              // The dry flag (byte 9, bit 0x04) can block mode changes
+              // when transitioning from DRY mode to other modes
+              messageToSend.GENERAL.dry = false;
+            }
           }
         } else {
           this.logger.debug(`[${this.name}] Tried to set ${k} to: ${v}, but it's not allowed.`);
@@ -461,20 +467,15 @@ export default class MideaACDevice extends MideaDevice {
     message.sleep_mode = false;
     message.boost_mode = false;
     message.eco_mode = false;
-
-    if (message instanceof MessageGeneralSet) {
-      message.frost_protect = false;
-      message.comfort_mode = false;
-    }
+    message.frost_protect = false;
+    message.comfort_mode = false;
 
     // Update attributes
     this.attributes.SLEEP_MODE = false;
     this.attributes.BOOST_MODE = false;
     this.attributes.ECO_MODE = false;
-    if (message instanceof MessageGeneralSet) {
-      this.attributes.FROST_PROTECT = false;
-      this.attributes.COMFORT_MODE = false;
-    }
+    this.attributes.FROST_PROTECT = false;
+    this.attributes.COMFORT_MODE = false;
   }
 
   async set_fan_auto(fan_auto: boolean) {

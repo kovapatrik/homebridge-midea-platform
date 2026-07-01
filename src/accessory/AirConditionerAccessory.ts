@@ -605,11 +605,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       return this.platform.Characteristic.CurrentHeatingCoolingState.OFF;
     }
 
-    if (!this.device.attributes.POWER || !this.device.attributes.MODE) {
+    if (!this.device.attributes.POWER || this.device.attributes.MODE === ACMode.OFF) {
       return this.platform.Characteristic.CurrentHeaterCoolerState.INACTIVE;
     }
 
-    const isPossiblyCooling = [ACMode.COOLING, ACMode.AUTO].includes(this.device.attributes.MODE);
+    const isPossiblyCooling = [ACMode.COOLING, ACMode.DRY, ACMode.AUTO].includes(this.device.attributes.MODE);
     const isPossiblyHeating = [ACMode.HEATING, ACMode.AUTO].includes(this.device.attributes.MODE) && this.configDev.AC_options.heatingCapable;
 
     const currentTemperature = Number(this.getCurrentTemperature());
@@ -635,11 +635,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
       switch (this.device.attributes.MODE) {
         case ACMode.COOLING:
+        case ACMode.DRY:
           return this.platform.Characteristic.TargetHeatingCoolingState.COOL;
         case ACMode.HEATING:
           return this.platform.Characteristic.TargetHeatingCoolingState.HEAT;
-        case ACMode.AUTO:
-          return this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
         default:
           return this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
       }
@@ -647,6 +646,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     switch (this.device.attributes.MODE) {
       case ACMode.COOLING:
+      case ACMode.DRY:
         return this.platform.Characteristic.TargetHeaterCoolerState.COOL;
       case ACMode.HEATING:
         return this.platform.Characteristic.TargetHeaterCoolerState.HEAT;
@@ -895,7 +895,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (value) {
       await this.device.set_attribute({ POWER: true, MODE: ACMode.DRY });
     } else {
-      await this.device.set_attribute({ POWER: false, MODE: ACMode.OFF });
+      await this.device.set_attribute({ POWER: false });
     }
   }
 
