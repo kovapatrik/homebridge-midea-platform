@@ -118,6 +118,7 @@ export default class MideaCEDevice extends MideaDevice {
         if (v !== undefined) {
           this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
           await this.build_send(v);
+          this.update(attributes);
         }
       }
     } catch (err) {
