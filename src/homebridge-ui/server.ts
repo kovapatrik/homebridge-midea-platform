@@ -9,10 +9,10 @@
  */
 import fs from 'node:fs';
 import { HomebridgePluginUiServer, RequestError } from '@homebridge/plugin-ui-utils';
-import CloudFactory, { type CloudBase } from '../core/MideaCloud.js';
+import createCloud, { ProxiedCloudBase, type CloudBase } from '../core/MideaCloud.js';
 import { DeviceTypeToName, Endianness, ProtocolVersion, TCPMessageType } from '../core/MideaConstants.js';
 import Discover from '../core/MideaDiscover.js';
-import { type CloudSecurity, LocalSecurity } from '../core/MideaSecurity.js';
+import { type CloudSecurity, LocalSecurity, ProxiedSecurity } from '../core/MideaSecurity.js';
 import { PromiseSocket } from '../core/MideaUtils.js';
 
 const DEFAULT_ACCOUNT = [
@@ -84,13 +84,6 @@ class Logger {
   }
 }
 
-type CloudInstance = CloudBase<CloudSecurity> & {
-  loggedIn: boolean;
-  login(): Promise<void>;
-  getTokenKey(id: number, endianness: Endianness): Promise<[Buffer | undefined, Buffer | undefined]>;
-  getProtocolLua(deviceType: number, deviceSn: string): Promise<string>;
-};
-
 type DiscoveredDevice = {
   id: number;
   name: string;
@@ -106,8 +99,8 @@ type DiscoveredDevice = {
 };
 
 class UiServer extends HomebridgePluginUiServer {
-  cloud!: CloudInstance;
-  smartHomeCloud?: CloudInstance;
+  cloud!: CloudBase<CloudSecurity>;
+  smartHomeCloud?: ProxiedCloudBase<ProxiedSecurity>;
   promiseSocket: PromiseSocket;
   security: LocalSecurity;
   logger: Logger;
@@ -119,7 +112,6 @@ class UiServer extends HomebridgePluginUiServer {
     ).platforms.find((obj) => obj.platform === 'midea-platform');
     this.logger = new Logger(config?.uiDebug ?? false);
     this.logger.info('Custom UI created.');
-    this.logger.debug(`ENV:\n${JSON.stringify(process.env, null, 2)}`);
     this.security = new LocalSecurity();
     this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
 
@@ -137,16 +129,20 @@ class UiServer extends HomebridgePluginUiServer {
         useDefaultProfile: boolean;
       }) => {
         try {
+          let effectiveUsername = username;
+          let effectivePassword = password;
+          let effectiveApp = registeredApp;
           if (useDefaultProfile) {
             this.logger.debug('Using default profile.');
-            registeredApp = 'NetHome Plus';
-            username = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
-            password = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
+            effectiveApp = 'NetHome Plus';
+            effectiveUsername = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
+            effectivePassword = Buffer.from((DEFAULT_ACCOUNT[0] ^ DEFAULT_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
           }
-          this.cloud = CloudFactory.createCloud(username, password, registeredApp) as CloudInstance;
-          if (username && password && registeredApp) {
-            await this.cloud.login();
+          if (!effectiveUsername || !effectivePassword || !effectiveApp) {
+            throw new RequestError('Login failed! Username, password or the name of the registered app is missing.', { status: 501 });
           }
+          this.cloud = createCloud(effectiveUsername, effectivePassword, effectiveApp);
+          await this.cloud.login();
         } catch (e) {
           const msg = e instanceof Error ? e.stack : e;
           this.logger.warn(`Login failed:\n${msg}`);
@@ -179,7 +175,7 @@ class UiServer extends HomebridgePluginUiServer {
         if (!this.smartHomeCloud) {
           const username = Buffer.from((DEFAULT_SMARTHOME_ACCOUNT[0] ^ DEFAULT_SMARTHOME_ACCOUNT[1]).toString(16), 'hex').toString('ascii');
           const password = Buffer.from((DEFAULT_SMARTHOME_ACCOUNT[0] ^ DEFAULT_SMARTHOME_ACCOUNT[2]).toString(16), 'hex').toString('ascii');
-          this.smartHomeCloud = CloudFactory.createCloud(username, password, 'Midea SmartHome (MSmartHome)') as CloudInstance;
+          this.smartHomeCloud = createCloud(username, password, 'Midea SmartHome (MSmartHome)') as ProxiedCloudBase<ProxiedSecurity>;
         }
         if (!this.smartHomeCloud.loggedIn) {
           await this.smartHomeCloud.login();
@@ -249,9 +245,8 @@ class UiServer extends HomebridgePluginUiServer {
     const discover = new Discover(this.logger);
     return new Promise((resolve) => {
       this.logger.info('Start device discovery...');
-      try {
-        this.pushEvent('showToast', { success: true, msg: 'Start device discovery' });
-      } catch (_) {}
+      this.pushEvent('showToast', { success: true, msg: 'Start device discovery' });
+
       if (ipAddrs && ipAddrs.length > 0) {
         for (const ip of ipAddrs) {
           discover.discoverDeviceByIP(ip);
@@ -266,16 +261,12 @@ class UiServer extends HomebridgePluginUiServer {
 
       discover.on('retry', (_nTry: number, nDevices: number) => {
         this.logger.info('Device discovery complete.');
-        try {
-          this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices (${nDevices} found)` });
-        } catch (_) {}
+        this.pushEvent('showToast', { success: true, msg: `Continuing to search for devices (${nDevices} found)` });
       });
 
       discover.on('complete', () => {
         this.logger.info('Device discovery complete.');
-        try {
-          this.pushEvent('showToast', { success: true, msg: 'Discovery complete' });
-        } catch (_) {}
+        this.pushEvent('showToast', { success: true, msg: 'Discovery complete' });
         resolve(devices);
       });
     });

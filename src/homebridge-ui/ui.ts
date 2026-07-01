@@ -1,10 +1,16 @@
-import type { IHomebridgePluginUi } from '@homebridge/plugin-ui-utils';
+import type { IHomebridgePluginUi, IHomebridgeUiFormHelper } from '@homebridge/plugin-ui-utils';
 import type { PluginSchema } from '@homebridge/plugin-ui-utils/ui.interface';
 import Alpine from 'alpinejs';
 import { defaultsDeep, isEmpty, isEqual, isPlainObject, transform } from 'lodash-es';
 import { type Config, defaultConfig, defaultDeviceConfig } from '../platformUtils.js';
 
 declare const homebridge: IHomebridgePluginUi;
+
+declare global {
+  interface Window {
+    Alpine: Alpine.Alpine;
+  }
+}
 
 type DeviceStatus = 'add' | 'update' | 'added' | 'updated' | 'no-credentials' | 'not-supported';
 
@@ -42,12 +48,12 @@ function filterOutDefaults(object: Record<string, unknown>, defaults: Record<str
   );
 }
 
-(window as unknown as Record<string, unknown>).Alpine = Alpine;
+window.Alpine = Alpine;
 
 Alpine.data('discoverApp', () => {
   let configuration = {} as Config;
-  let configSchema: PluginSchema | null = null;
-  let currentForm: { end: () => void } | null = null;
+  let configSchema = {} as PluginSchema;
+  let currentForm: IHomebridgeUiFormHelper | null = null;
 
   return {
     open: false,
@@ -68,9 +74,8 @@ Alpine.data('discoverApp', () => {
     async init() {
       homebridge.showSpinner();
 
-      const [pluginConfig, cs] = await Promise.all([homebridge.getPluginConfig(), homebridge.getPluginConfigSchema()]);
-
-      configSchema = cs;
+      const pluginConfig = await homebridge.getPluginConfig();
+      configSchema = await homebridge.getPluginConfigSchema();
 
       if (!pluginConfig.length) pluginConfig.push({});
 
@@ -81,23 +86,25 @@ Alpine.data('discoverApp', () => {
         defaultsDeep(device, defaultDeviceConfig);
       }
 
-      homebridge.showSchemaForm();
+      this.createForm();
       homebridge.hideSpinner();
 
       homebridge.addEventListener('showToast', (event: Event) => {
         const { success, msg } = (event as MessageEvent).data as { success: boolean; msg: string };
-        success ? homebridge.toast.success(msg) : homebridge.toast.error(msg);
+        if (success) {
+          homebridge.toast.success(msg);
+        } else {
+          homebridge.toast.error(msg);
+        }
       });
     },
 
     createForm() {
       currentForm?.end();
-      const form = homebridge.createForm(configSchema!, configuration as unknown as Record<string, unknown>);
-      form.onChange(async (changes: Record<string, unknown>) => {
-        const filtered = filterOutDefaults(changes, defaultConfig as unknown as Record<string, unknown>);
-        await homebridge.updatePluginConfig([filtered]);
+      currentForm = homebridge.createForm({ schema: configSchema.schema ?? {}, layout: configSchema.layout, form: configSchema.form }, configuration);
+      currentForm.onChange(async (changes: Record<string, unknown>) => {
+        await homebridge.updatePluginConfig([filterOutDefaults(changes, defaultConfig as unknown as Record<string, unknown>)]);
       });
-      currentForm = form;
     },
 
     async discover() {
@@ -125,6 +132,7 @@ Alpine.data('discoverApp', () => {
 
       this.resolvedIpAddrs = ipAddrs;
       this.discovering = true;
+      homebridge.showSpinner();
 
       try {
         await homebridge.request('/login', {
@@ -167,11 +175,11 @@ Alpine.data('discoverApp', () => {
         homebridge.toast.error((e as Error).message);
       } finally {
         this.discovering = false;
-        this.createForm();
+        homebridge.hideSpinner();
       }
     },
 
-    addDevice(device: DeviceRow) {
+    async addDevice(device: DeviceRow) {
       (configuration.devices as Record<string, unknown>[]).push({
         ...(defaultDeviceConfig as unknown as Record<string, unknown>),
         id: device.id,
@@ -184,27 +192,36 @@ Alpine.data('discoverApp', () => {
           key: device.key,
         },
       });
+      await homebridge.updatePluginConfig([
+        filterOutDefaults(configuration as unknown as Record<string, unknown>, defaultConfig as unknown as Record<string, unknown>),
+      ]);
       this.createForm();
       device.status = 'added';
     },
 
-    updateDevice(device: DeviceRow) {
+    async updateDevice(device: DeviceRow) {
       const devices = configuration.devices as Record<string, unknown>[];
       const i = devices.findIndex((d) => (d as Record<string, unknown>).id === device.id);
       const opts = (devices[i] as Record<string, unknown>).advanced_options as Record<string, unknown>;
       opts.token = device.token;
       opts.key = device.key;
       opts.ip = opts.ip ? device.ip : undefined;
+      await homebridge.updatePluginConfig([
+        filterOutDefaults(configuration as unknown as Record<string, unknown>, defaultConfig as unknown as Record<string, unknown>),
+      ]);
       this.createForm();
       device.status = 'updated';
     },
 
     async downloadLua(device: DeviceRow) {
+      homebridge.showSpinner();
       try {
         const code = (await homebridge.request('/downloadLua', { deviceType: device.type, deviceSn: device.sn })) as string;
         this.luaModal = { show: true, model: device.model, deviceType: device.type, code };
       } catch (e: unknown) {
         homebridge.toast.error((e as Error).message);
+      } finally {
+        homebridge.hideSpinner();
       }
     },
 

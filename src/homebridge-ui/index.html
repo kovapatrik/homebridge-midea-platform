@@ -1,11 +1,8 @@
 <div id="main" data-bs-theme="dark" x-data="discoverApp">
   <div class="card">
-
     <div class="card-header" id="uiButtons">
       <h5 class="mb-0 text-center">
-        <button class="btn btn-primary" @click="open = !open" style="border: 0;">
-          Discover devices
-        </button>
+        <button class="btn btn-primary" @click="open = !open" style="border: 0">Discover devices</button>
       </h5>
     </div>
 
@@ -13,13 +10,12 @@
       <div class="card-body">
         <form @submit.prevent="discover" autocomplete="off">
           <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
-            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in
-            the Add/Update column then you must provide login credentials or use the default profile option so the
-            <i>token/key</i> pair can be retrieved from Midea cloud servers.<br/>
+            You can discover your devices without providing credentials. However, if you see <i>No Credentials</i> in the Add/Update column then you must
+            provide login credentials or use the default profile option so the <i>token/key</i> pair can be retrieved from Midea cloud servers.<br />
             <i>Note: you don't have to have your devices connected to the account you are using to fetch the token/key pair.</i>
           </div>
           <div class="mb-3 form-check form-switch">
-            <input id="useDefaultProfile" type="checkbox" class="form-check-input" role="switch" x-model="useDefaultProfile">
+            <input id="useDefaultProfile" type="checkbox" class="form-check-input" role="switch" x-model="useDefaultProfile" />
             <label for="useDefaultProfile" class="form-check-label">Use default NetHome Plus profile</label>
           </div>
           <div class="mb-3" :class="{ disabled: useDefaultProfile }">
@@ -32,25 +28,30 @@
             </div>
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" x-model="username" autocomplete="off">
+              <input type="text" class="form-control" id="username" x-model="username" autocomplete="off" />
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">Password</label>
-              <input type="password" class="form-control" id="password" x-model="password" autocomplete="off">
+              <input type="password" class="form-control" id="password" x-model="password" autocomplete="off" />
             </div>
           </div>
           <div class="mb-3">
-            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on
-              another LAN subnet)</label>
-            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)" x-model="ipInput">
+            <label for="ip" class="form-label">IP Addresses (comma or space separated list for when devices are on another LAN subnet)</label>
+            <input type="text" class="form-control" id="ip" placeholder="IP addresses (optional)" x-model="ipInput" />
           </div>
-          <button class="btn btn-primary" type="submit" style="border: 0;" :disabled="discovering" x-text="discovering ? 'Discovering...' : 'Discover All Devices'"></button>
+          <button
+            class="btn btn-primary"
+            type="submit"
+            style="border: 0"
+            :disabled="discovering"
+            x-text="discovering ? 'Discovering...' : 'Discover All Devices'"
+          ></button>
         </form>
 
         <div class="text-center mt-3" x-show="showTable" x-cloak>
           <div class="mb-3 bg-info-subtle border-info-subtle p-3 rounded-2">
-            If your device is not supported, you can download the Lua file (by clicking on the model number in the table)
-            which is used to control the device and attach it to a GitHub issue.
+            If your device is not supported, you can download the Lua file (by clicking on the model number in the table) which is used to control the device
+            and attach it to a GitHub issue.
           </div>
           <table class="table table-sm">
             <thead>
@@ -78,7 +79,7 @@
                   <td>
                     <template x-if="device.version === 3">
                       <span>
-                        <span x-text="device.tokenShort ?? 'token missing'"></span><br>
+                        <span x-text="device.tokenShort ?? 'token missing'"></span><br />
                         <span x-text="device.keyShort ?? 'key missing'"></span>
                       </span>
                     </template>
@@ -89,7 +90,7 @@
                   <td x-text="device.ip"></td>
                   <td>
                     <template x-if="device.status === 'not-supported'">
-                      <span>Not supported!<br>Download the Lua file and attach it to a GitHub issue.</span>
+                      <span>Not supported!<br />Download the Lua file and attach it to a GitHub issue.</span>
                     </template>
                     <template x-if="device.status === 'no-credentials'">
                       <span>No credentials</span>
@@ -132,8 +133,7 @@
             <div class="btn-group me-2">
               <button class="btn btn-secondary" @click="selectLuaCode">Select All</button>
             </div>
-            <small class="text-warning ms-2 align-self-center"
-              x-text="`Save this as ${luaModal.deviceType.toString(16)}_${luaModal.model}.lua`"></small>
+            <small class="text-warning ms-2 align-self-center" x-text="`Save this as ${luaModal.deviceType.toString(16)}_${luaModal.model}.lua`"></small>
           </div>
           <pre id="luaCodePre"><code style="color: var(--bs-body-color);" x-text="luaModal.code"></code></pre>
         </div>
@@ -143,7 +143,6 @@
       </div>
     </div>
   </div>
-
 </div>
 
 <style>
