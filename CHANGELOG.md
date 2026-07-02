@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.1](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.0...v1.3.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* lodash dep ([c0061f6](https://github.com/kovapatrik/homebridge-midea-platform/commit/c0061f62b493430866860eeb0c6533e5b1922e8d))
+* type safe custom UI, linter/formatter changed to oxc ([#184](https://github.com/kovapatrik/homebridge-midea-platform/issues/184)) ([6463180](https://github.com/kovapatrik/homebridge-midea-platform/commit/6463180927a93a98bd02215cc6466aeda4f014ab))
+* update all accessory states on setting a state, contributing ([#186](https://github.com/kovapatrik/homebridge-midea-platform/issues/186)) ([8b85b63](https://github.com/kovapatrik/homebridge-midea-platform/commit/8b85b635085955501dc79f7d92a7ae5e6ea634d1))
+
 ## [1.3.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.2.10...v1.3.0) (2026-06-30)
 
 ### Features
