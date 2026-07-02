@@ -8,19 +8,23 @@
 [![npm](https://badgen.net/npm/v/homebridge-midea-platform)](https://www.npmjs.com/package/homebridge-midea-platform)
 [![npm](https://badgen.net/npm/dt/homebridge-midea-platform?label=downloads)](https://www.npmjs.com/package/homebridge-midea-platform)
 
-_Verified_ plugin for Midea devices. This is implemented by building on the Homebridge platform plugin template and the work done by [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant and the project [midea-local](https://github.com/midea-lan/midea-local). Also thanks to the work done by [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
+_Verified_ plugin for Midea devices. This is implemented by building on the Homebridge platform plugin template and the work done by:
 
-Pull requests and/or other offers of development assistance gratefully received.
+- [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant
+- The [midea-local](https://github.com/midea-lan/midea-local) project.
+- [@mill1000](https://github.com/mill1000) in the [midea-msmart (msmart-ng)](https://github.com/mill1000/midea-msmart) project.
 
 More information can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki).
 
 ## IMPORTANT NOTICE
 
-- As written by [@wuwentao](https://github.com/wuwentao) in the [midea_ac_lan repository](https://github.com/wuwentao/midea_ac_lan), Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.
-- It's expected that the token fetching in NetHome Plus API will be disabled as well.
-- Make sure you save your devices' token and key to be able to usem them in the future.
-- [@wuwentao](https://github.com/wuwentao) also wrote a nice summary about the history of what happened: https://github.com/mill1000/midea-msmart/issues/201#issuecomment-2746782457
-- For these reasons, only NetHome Plus is enabled in the discovery process.
+- Fetching the token/key using Midea SmartHome is available again thanks to [cauan](https://github.com/cauan) and [their PR](https://github.com/midea-lan/midea-local/pull/470)
+- It's still HIGHLY advised to save the token/key.
+- ~~As written by [@wuwentao](https://github.com/wuwentao) in the [midea_ac_lan repository](https://github.com/wuwentao/midea_ac_lan), Midea disabled the token fetching APIs in both Meiju and Midea SmartHome, and now it's only available using the NetHome Plus API.~~
+- ~~It's expected that the token fetching in NetHome Plus API will be disabled as well.~~
+- ~~Make sure you save your devices' token and key to be able to usem them in the future.~~
+- ~~[@wuwentao](https://github.com/wuwentao) also wrote a nice summary about the history of what happened: https://github.com/mill1000/midea-msmart/issues/201#issuecomment-2746782457~~
+- ~~For these reasons, only NetHome Plus is enabled in the discovery process.~~
 
 ## Features
 
@@ -62,6 +66,10 @@ Midea device status is retrieved over your Local Area Network (LAN) and credenti
 [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest and **strongly recommended** way to configure this plugin.
 
 You should use the UI to discover and add devices. More information on the settings can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki#device-discovery).
+
+## Contribution
+
+Help is always welcome. If you'd like to get involved, check out the [contribution notes](CONTRIBUTING.md).
 
 ## License
 
