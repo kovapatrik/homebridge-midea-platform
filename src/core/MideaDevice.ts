@@ -467,10 +467,10 @@ export default abstract class MideaDevice extends EventEmitter {
         try {
           const now = Date.now();
           if (0 < this.refresh_interval && this.refresh_interval <= now - previous_refresh) {
-            this.refresh_status();
+            await this.refresh_status();
             previous_refresh = now;
           } else if (now - previous_heartbeat >= this.heartbeat_interval) {
-            this.send_heartbeat();
+            await this.send_heartbeat();
             previous_heartbeat = now;
           }
           // We wait up to one second for a message, in effect we cause the while loop

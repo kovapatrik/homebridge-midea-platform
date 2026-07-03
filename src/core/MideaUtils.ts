@@ -85,9 +85,9 @@ export class PromiseSocket {
       } else {
         this.logger.debug(`Socket error:\n${msg}`);
       }
-      // According to https://nodejs.org/api/net.html#event-error_1 the "close" event
-      // will be called immediately following an "error" event.  So don't throw an error
-      // and handle the destory in the close event.
+    });
+    this.innerSok.on('end', () => {
+      this.destroy();
     });
     this.innerSok.on('close', async (hadError: boolean) => {
       this.destroy();
