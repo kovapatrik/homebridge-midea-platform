@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.1...v1.3.2) (2026-07-03)
+
+
+### Bug Fixes
+
+* await refreshes, socket event handler, capabilities only once ([#189](https://github.com/kovapatrik/homebridge-midea-platform/issues/189)) ([c5b6857](https://github.com/kovapatrik/homebridge-midea-platform/commit/c5b68570e401649936e0acf8e3d1362f8e292037))
+
 ## [1.3.1](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.0...v1.3.1) (2026-07-02)
 
 
