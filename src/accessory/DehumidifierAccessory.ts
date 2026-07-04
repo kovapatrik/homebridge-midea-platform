@@ -9,6 +9,7 @@
  * An instance of this class is created for each accessory the platform registers.
  *
  */
+import fakegato, { type FakeGatoHistoryService } from 'fakegato-history';
 import type { CharacteristicValue, Service } from 'homebridge';
 import type MideaA1Device from '../devices/a1/MideaA1Device.js';
 import type { A1Attributes } from '../devices/a1/MideaA1Device.js';
@@ -32,6 +33,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private pumpService?: Service;
   private waterTankContactService?: Service;
   private waterTankLeakService?: Service;
+  private loggingService?: FakeGatoHistoryService;
   // Increment this every time we make a change to accessory that requires
   // previously cached Homebridge service to be deleted/replaced.
   private serviceVersion = 1;
@@ -111,9 +113,11 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
     this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
 
-    // Temperature sensor
+    // Temperature sensor. The Eve history service uses the FakeGato 'weather' type, which
+    // requires a temperature characteristic, so force the sensor on when history is enabled.
+    const enableHistoryStorage = this.configDev.A1_options.enableHistoryStorage;
     this.temperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, temperatureSubtype);
-    if (this.configDev.A1_options.temperatureSensor) {
+    if (this.configDev.A1_options.temperatureSensor || enableHistoryStorage) {
       this.temperatureService ??= this.accessory.addService(this.platform.Service.TemperatureSensor, undefined, temperatureSubtype);
       this.handleConfiguredName(this.temperatureService, temperatureSubtype, 'Temperature');
       this.temperatureService.getCharacteristic(this.platform.Characteristic.CurrentTemperature).onGet(this.getTemperature.bind(this));
@@ -183,6 +187,16 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         this.waterTankLeakService = undefined;
       }
     }
+
+    // FakeGato history service. Exposes temperature and humidity history that the Eve app
+    // can display as graphs. Persisted to disk so the data survives Homebridge restarts.
+    if (enableHistoryStorage) {
+      const FakeGatoHistoryService = fakegato(this.platform.api);
+      this.loggingService = new FakeGatoHistoryService('weather', this.accessory, {
+        storage: 'fs',
+        path: this.platform.api.user.persistPath(),
+      });
+    }
   }
 
   /*********************************************************************
@@ -190,6 +204,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
    * any attribute value.
    */
   protected async updateCharacteristics(attributes: Partial<A1Attributes>) {
+    // Track whether this update touched temperature or humidity so we log a single
+    // history entry per update rather than one per changed attribute.
+    let logHistory = false;
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
@@ -210,12 +227,14 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
           this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
           updateState = true;
+          logHistory = true;
           break;
         case 'mode':
           updateState = true;
           break;
         case 'current_temperature':
           this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+          logHistory = true;
           break;
         case 'tank_level':
           this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
@@ -248,6 +267,16 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.currentHumidifierDehumidifierState());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
       }
+    }
+
+    // Record a history data point for the Eve app. The humidity value mirrors what HomeKit
+    // reports (including the configured offset); temperature is reported as-is.
+    if (logHistory && this.loggingService) {
+      this.loggingService.addEntry({
+        time: Math.floor(Date.now() / 1000),
+        temp: this.device.attributes.CURRENT_TEMPERATURE,
+        humidity: this.device.attributes.CURRENT_HUMIDITY + this.configDev.A1_options.humidityOffset,
+      });
     }
   }
 

@@ -119,6 +119,7 @@ type A1Options = {
   maxHumidity: number;
   humidityStep: number;
   humidityOffset: number;
+  enableHistoryStorage: boolean;
 };
 
 type C3Options = {
@@ -248,6 +249,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     maxHumidity: 85,
     humidityStep: 5,
     humidityOffset: 0,
+    enableHistoryStorage: false,
   },
   C3_options: {
     zone1: false,
