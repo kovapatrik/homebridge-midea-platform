@@ -163,7 +163,7 @@
                 },
                 "enableHistoryStorage": {
                   "title": "Enable History Storage",
-                  "description": "Record temperature and humidity measurements over time, viewable as History in the Eve app. Enabling this also creates the temperature sensor, which the history graph requires.",
+                  "description": "Record temperature and humidity measurements over time, viewable as History in the Eve app. Humidity is always recorded; temperature is recorded only when the Temperature Sensor is also enabled.",
                   "type": "boolean",
                   "required": false
                 }
