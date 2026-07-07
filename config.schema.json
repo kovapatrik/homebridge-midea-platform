@@ -160,6 +160,12 @@
                   "description": "Offset for the humidity sensor. This is useful if the humidity sensor is not accurate or if you want to adjust the humidity value.",
                   "type": "number",
                   "required": true
+                },
+                "enableHistoryStorage": {
+                  "title": "Enable History Storage",
+                  "description": "Record temperature and humidity measurements over time, viewable as History in the Eve app. Humidity is always recorded; temperature is recorded only when the Temperature Sensor is also enabled.",
+                  "type": "boolean",
+                  "required": false
                 }
               }
             },
@@ -696,7 +702,8 @@
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
                 "devices[].A1_options.humidityStep",
-                "devices[].A1_options.humidityOffset"
+                "devices[].A1_options.humidityOffset",
+                "devices[].A1_options.enableHistoryStorage"
               ]
             },
             {
