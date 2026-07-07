@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.2...v1.3.3) (2026-07-07)
+
+
+### Bug Fixes
+
+* custom IP validation false negatives from stateful global regex ([#194](https://github.com/kovapatrik/homebridge-midea-platform/issues/194)) ([c748a1a](https://github.com/kovapatrik/homebridge-midea-platform/commit/c748a1af2afde204f8876851e05742a96ec7d7f3))
+
 ## [1.3.2](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.1...v1.3.2) (2026-07-03)
 
 
