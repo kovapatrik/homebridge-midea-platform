@@ -124,7 +124,7 @@ Alpine.data('discoverApp', () => {
       }
       ipAddrs = [...new Set(ipAddrs)];
 
-      const ipRegex = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
+      const ipRegex = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/i;
       if (ipAddrs.length > 0 && !ipAddrs.every((ip) => ipRegex.test(ip))) {
         homebridge.toast.error('Invalid IP address provided');
         return;
