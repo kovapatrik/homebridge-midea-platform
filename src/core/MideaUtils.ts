@@ -7,6 +7,7 @@
  * Includes very basic implementation of a promise-wrapped Socket class.
  *
  */
+import { once } from 'node:events';
 import { Socket } from 'node:net';
 import type { Logger } from 'homebridge';
 import { Endianness } from './MideaConstants.js';
@@ -68,56 +69,69 @@ export function calculate(data: Buffer) {
  *
  */
 export class PromiseSocket {
-  private innerSok: Socket;
-  public destroyed: boolean;
+  private innerSok = new Socket();
+  public destroyed = false;
+
+  // read() is a single-consumer queue: chunks arriving between reads are buffered,
+  // and a waiting read() is parked in `pending` until data/timeout/end/error.
+  private queue: Buffer[] = [];
+  private pending?: { resolve: (b: Buffer) => void; reject: (e: Error) => void };
+  private finished = false;
+  private pendingErr?: Error;
 
   constructor(
     private readonly logger: Logger,
     private readonly logerror: boolean,
   ) {
-    this.innerSok = new Socket();
-    this.destroyed = false;
-    this.innerSok.on('error', (e) => {
-      // Log the error
-      const msg = e instanceof Error ? e.stack : e;
-      if (this.logerror) {
-        this.logger.warn(`Socket error:\n${msg}`);
+    this.innerSok.on('data', (chunk: Buffer) => {
+      if (this.pending) {
+        this.pending.resolve(chunk);
+        this.pending = undefined;
       } else {
-        this.logger.debug(`Socket error:\n${msg}`);
+        this.queue.push(chunk);
       }
     });
+
+    // timeout / end / close all mean "no data available right now" -> resolve empty,
+    // matching the contract the run() heartbeat loop in MideaDevice relies on.
+    const resolveEmpty = () => {
+      this.pending?.resolve(Buffer.alloc(0));
+      this.pending = undefined;
+    };
+    this.innerSok.on('timeout', resolveEmpty);
     this.innerSok.on('end', () => {
+      this.finished = true;
+      resolveEmpty();
       this.destroy();
     });
-    this.innerSok.on('close', async (hadError: boolean) => {
+    this.innerSok.on('close', (hadError: boolean) => {
+      this.finished = true;
+      resolveEmpty();
       this.destroy();
-      if (this.logerror) {
-        this.logger.warn(`Socket closed ${hadError ? 'with' : 'without'} error`);
+      this.log(`Socket closed ${hadError ? 'with' : 'without'} error`);
+    });
+    this.innerSok.on('error', (e: Error) => {
+      this.log(`Socket error:\n${e instanceof Error ? e.stack : e}`);
+      if (this.pending) {
+        this.pending.reject(e);
+        this.pending = undefined;
       } else {
-        this.logger.debug(`Socket closed ${hadError ? 'with' : 'without'} error`);
+        this.pendingErr = e; // surface on next read()
       }
     });
   }
 
+  private log(msg: string) {
+    if (this.logerror) {
+      this.logger.warn(msg);
+    } else {
+      this.logger.debug(msg);
+    }
+  }
+
   public async connect(port: number, host: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const errorHandler = (err: Error) => {
-        removeListeners();
-        reject(err);
-      };
-      const removeListeners = () => {
-        this.innerSok.removeListener('error', errorHandler);
-      };
-
-      this.innerSok.connect(port, host, () => {
-        // This function is added as a "connect" listener so called
-        // on successful connection.
-        removeListeners();
-        resolve();
-      });
-
-      this.innerSok.on('error', errorHandler);
-    });
+    this.innerSok.connect(port, host);
+    await once(this.innerSok, 'connect'); // once() rejects automatically if 'error' fires first
   }
 
   public setTimeout(t: number) {
@@ -129,73 +143,53 @@ export class PromiseSocket {
     this.innerSok.destroy();
   }
 
-  public async write(data: string | Buffer, encoding?: BufferEncoding) {
-    return new Promise<void>((resolve, reject) => {
-      const errorHandler = (err: Error) => {
-        removeListeners();
-        reject(err);
-      };
-      const removeListeners = () => {
-        this.innerSok.removeListener('error', errorHandler);
-      };
-
-      this.innerSok.on('error', errorHandler);
-
-      try {
-        this.innerSok.write(data, encoding, (err) => {
-          // This function is called when all data successfully sent
-          removeListeners();
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      } catch (err) {
-        removeListeners();
-        reject(err);
+  public async write(data: string | Buffer, encoding?: BufferEncoding): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const callback = (err?: Error | null) => (err ? reject(err) : resolve());
+      if (encoding) {
+        this.innerSok.write(data, encoding, callback);
+      } else {
+        this.innerSok.write(data, callback);
       }
     });
   }
 
-  public async read() {
+  // Resolve the next chunk: a queued/incoming buffer, an empty buffer on
+  // timeout-or-finished, or a rejection if the socket errored.
+  private nextChunk(): Promise<Buffer> {
+    if (this.queue.length) {
+      return Promise.resolve(this.queue.shift()!);
+    }
+    if (this.pendingErr) {
+      const err = this.pendingErr;
+      this.pendingErr = undefined;
+      return Promise.reject(err);
+    }
+    if (this.finished) {
+      return Promise.resolve(Buffer.alloc(0));
+    }
     return new Promise<Buffer>((resolve, reject) => {
-      let buf = Buffer.alloc(0);
-
-      const dataHandler = (data: Buffer) => {
-        buf = Buffer.concat([buf, data]);
-        removeListeners();
-        resolve(buf);
-      };
-      const timeoutHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const endHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const errorHandler = (err: Error) => {
-        removeListeners();
-        reject(err);
-      };
-      const closeHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const removeListeners = () => {
-        this.innerSok.removeListener('close', closeHandler);
-        this.innerSok.removeListener('data', dataHandler);
-        this.innerSok.removeListener('timeout', timeoutHandler);
-        this.innerSok.removeListener('end', endHandler);
-        this.innerSok.removeListener('error', errorHandler);
-      };
-
-      this.innerSok.on('close', closeHandler);
-      this.innerSok.on('data', dataHandler);
-      this.innerSok.on('timeout', timeoutHandler);
-      this.innerSok.on('end', endHandler);
-      this.innerSok.on('error', errorHandler);
+      this.pending = { resolve, reject };
     });
+  }
+
+  // One-shot read. Resolves with an empty buffer on timeout/end/close
+  // (the handshake and heartbeat-poll paths rely on this), rejects on error.
+  public async read(): Promise<Buffer> {
+    return this.nextChunk();
+  }
+
+  // Continuous consumption: yields every non-empty chunk, returns cleanly when
+  // the socket ends, and throws if the socket errors. Empty buffers (timeout
+  // ticks) are skipped so a `for await` loop blocks until real data arrives.
+  public async *[Symbol.asyncIterator](): AsyncGenerator<Buffer> {
+    while (true) {
+      const chunk = await this.nextChunk();
+      if (chunk.length > 0) {
+        yield chunk;
+      } else if (this.finished) {
+        return;
+      }
+    }
   }
 }

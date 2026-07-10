@@ -22,6 +22,8 @@ export type DeviceAttributeBase = {
 
 export default abstract class MideaDevice extends EventEmitter {
   private readonly SOCKET_TIMEOUT = 1000; // milliseconds
+  private readonly HEARTBEAT_TIMEOUT = 120_000; // milliseconds — force reconnect if no valid response arrives
+  private readonly RECONNECT_INTERVAL = 5000; // milliseconds — backoff between reconnect attempts
 
   public readonly ip: string;
   protected readonly port: number;
@@ -128,8 +130,27 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   public async connect(refresh_status = true) {
+    this.logger.debug(`Connecting to device ${this.name} (${this.ip}:${this.port})...`);
+    if (await this.establishSocket(refresh_status)) {
+      // Start listening for network traffic
+      this.open();
+      return true;
+    }
+    // Do NOT start the run loop with a broken connection — clean up instead
+    this.logger.error(`[${this.name}] Failed to connect to device (${this.ip}:${this.port}).`);
+    this.close_socket();
+    return false;
+  }
+
+  /**
+   * Create a fresh socket, connect, authenticate (V3) and optionally send the
+   * initial status query. Shared by connect() and the run() reconnect loop.
+   * Returns true on success; on failure the socket is torn down and false is
+   * returned (callers decide how loudly to log and whether to retry).
+   */
+  private async establishSocket(refresh_status: boolean): Promise<boolean> {
+    this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
     try {
-      this.logger.debug(`Connecting to device ${this.name} (${this.ip}:${this.port})...`);
       await this.promiseSocket.connect(this.port, this.ip);
       this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
       if (this.version === ProtocolVersion.V3) {
@@ -140,16 +161,18 @@ export default abstract class MideaDevice extends EventEmitter {
         // The network listener will pick up the device's responses asynchronously.
         await this.refresh_status(false);
       }
-      // Start listening for network traffic
-      this.open();
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
-      this.logger.error(`[${this.name}] Failed to connect to device (${this.ip}:${this.port}):\n${msg}`);
-      // Do NOT start the run loop with a broken connection — clean up instead
-      this.close_socket();
+      this.logger.debug(`[${this.name}] Connection attempt failed (${this.ip}:${this.port}):\n${msg}`);
+      this._authenticated = false;
+      this.promiseSocket.destroy();
       return false;
     }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async authenticate() {
@@ -197,23 +220,26 @@ export default abstract class MideaDevice extends EventEmitter {
     }
   }
 
-  private async send_message_v2(data: Buffer, retries = 3, force_reinit = false) {
-    if (retries === 0) {
-      throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
-    }
-    if (force_reinit || !this.promiseSocket || this.promiseSocket.destroyed) {
-      this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
-      let connected = await this.connect(false);
-      while (!connected) {
-        connected = await this.connect(false);
+  private async send_message_v2(data: Buffer, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      if (this.promiseSocket.destroyed) {
+        if (this.is_running) {
+          // run() owns the socket lifecycle and is (re)connecting — wait for it
+          // to restore the socket rather than racing it with a second connection.
+          await this.sleep(this.SOCKET_TIMEOUT);
+        } else {
+          // No listener loop is active — bootstrap a fresh connection ourselves.
+          await this.connect(false);
+        }
+      }
+      try {
+        await this.promiseSocket.write(data);
+        return;
+      } catch (err) {
+        this.logger.debug(`[${this.name}] Error when sending data to device (attempt ${attempt}/${retries}): ${err}`);
       }
     }
-    try {
-      await this.promiseSocket.write(data);
-    } catch {
-      this.logger.debug(`[${this.name}] Error when sending data to device, retrying...`);
-      await this.send_message_v2(data, retries - 1, true);
-    }
+    throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
   }
 
   private async send_message_v3(data: Buffer, message_type: TCPMessageType = TCPMessageType.ENCRYPTED_REQUEST) {
@@ -425,92 +451,108 @@ export default abstract class MideaDevice extends EventEmitter {
   private async run() {
     this.logger.info(`[${this.name}] Starting network listener.`);
     while (this.is_running) {
-      while (this.promiseSocket.destroyed && this.is_running) {
+      // (Re)establish the socket if it is down. On first entry the socket is
+      // already connected (from connect()), so this block is skipped.
+      if (this.promiseSocket.destroyed) {
         if (this.logRecoverableErrors) {
           this.logger.info(`[${this.name}] Create new socket, reconnect`);
         } else {
           this.logger.debug(`[${this.name}] Create new socket, reconnect`);
         }
-        this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
-        // Reconnect inline — do NOT call this.connect() which would call this.open()
-        try {
-          await this.promiseSocket.connect(this.port, this.ip);
-          this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
-          if (this.version === ProtocolVersion.V3) {
-            await this.authenticate();
-          }
-          // Refresh status after successful reconnect
-          await this.refresh_status(false);
+        if (!(await this.establishSocket(true))) {
           if (this.logRecoverableErrors) {
-            this.logger.info(`[${this.name}] Reconnected successfully.`);
+            this.logger.warn(`[${this.name}] Reconnect failed.`);
           } else {
-            this.logger.debug(`[${this.name}] Reconnected successfully.`);
+            this.logger.debug(`[${this.name}] Reconnect failed.`);
           }
-          break; // Exit reconnect loop
-        } catch (err) {
-          const msg = err instanceof Error ? err.stack : err;
-          this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
-          this._authenticated = false;
-          if (this.promiseSocket) {
-            this.promiseSocket.destroy();
+          if (this.is_running) {
+            await this.sleep(this.RECONNECT_INTERVAL);
           }
-          this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
+          continue;
         }
-        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        await sleep(5000);
+        if (this.logRecoverableErrors) {
+          this.logger.info(`[${this.name}] Reconnected successfully.`);
+        } else {
+          this.logger.debug(`[${this.name}] Reconnected successfully.`);
+        }
       }
-      let timeout_counter = 0;
-      const start = Date.now(); // milliseconds
-      let previous_refresh = start;
-      let previous_heartbeat = start;
-      while (!this.promiseSocket.destroyed) {
-        try {
-          const now = Date.now();
-          if (0 < this.refresh_interval && this.refresh_interval <= now - previous_refresh) {
-            await this.refresh_status();
-            previous_refresh = now;
-          } else if (now - previous_heartbeat >= this.heartbeat_interval) {
-            await this.send_heartbeat();
-            previous_heartbeat = now;
+
+      // Capture the socket for this connection. run() is the sole owner of the
+      // socket lifecycle while is_running, so this reference stays valid for the
+      // whole for-await loop below.
+      const socket = this.promiseSocket;
+      // Disable the poll timeout: heartbeat/refresh run on their own timers and
+      // the watchdog handles staleness, so reads can block until data arrives.
+      socket.setTimeout(0);
+
+      const connectedAt = Date.now();
+      const activity = { last: connectedAt };
+      const timers: NodeJS.Timeout[] = [];
+      if (this.heartbeat_interval > 0) {
+        timers.push(
+          setInterval(() => {
+            this.send_heartbeat().catch((e) => this.logger.debug(`[${this.name}] Heartbeat failed: ${e}`));
+          }, this.heartbeat_interval),
+        );
+      }
+      if (this.refresh_interval > 0) {
+        timers.push(
+          setInterval(() => {
+            this.refresh_status().catch((e) => this.logger.debug(`[${this.name}] Refresh failed: ${e}`));
+          }, this.refresh_interval),
+        );
+      }
+      // Watchdog: if no valid response arrives within HEARTBEAT_TIMEOUT, assume
+      // the connection is broken and destroy the socket, which ends the loop below.
+      timers.push(
+        setInterval(() => {
+          if (Date.now() - activity.last > this.HEARTBEAT_TIMEOUT) {
+            if (this.logRecoverableErrors) {
+              this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
+            } else {
+              this.logger.debug(`[${this.name} | run] Heartbeat timeout, closing.`);
+            }
+            socket.destroy();
           }
-          // We wait up to one second for a message, in effect we cause the while loop
-          // we are in to itterate once a second... allowing us to check for heartbeat
-          // and refresh intervals (above).
-          this.promiseSocket.setTimeout(this.SOCKET_TIMEOUT);
-          const msg = await this.promiseSocket.read();
-          if (msg.length > 0) {
-            const result = this.parse_message(msg);
-            if (result === ParseMessageResult.ERROR) {
-              this.logger.debug(`[${this.name} | run] Error return from ParseMessageResult.`);
-              break;
-            }
-            if (result === ParseMessageResult.SUCCESS) {
-              timeout_counter = 0;
-            }
-          } else {
-            timeout_counter++;
-            if (timeout_counter > 120 / (this.SOCKET_TIMEOUT / 1000)) {
-              // we've looped for ~two minutes and not received a successful response
-              // to heartbeat or status refresh.  Therefore something must be broken.
-              if (this.logRecoverableErrors) {
-                this.logger.warn(`[${this.name} | run] Heartbeat timeout, closing.`);
-              } else {
-                this.logger.debug(`[${this.name} | run] Heartbeat timeout, closing.`);
-              }
-              this.close_socket();
-              // We break out of inner loop, but within outer loop we will attempt to
-              // reopen the socket and continue.
-              break;
-            }
+        }, this.SOCKET_TIMEOUT),
+      );
+
+      try {
+        for await (const msg of socket) {
+          const result = this.parse_message(msg);
+          if (result === ParseMessageResult.ERROR) {
+            this.logger.debug(`[${this.name} | run] Error return from ParseMessageResult.`);
+            break;
           }
-        } catch (e) {
-          const msg = e instanceof Error ? e.stack : e;
-          if (this.logRecoverableErrors) {
-            this.logger.warn(`[${this.name} | run] Error reading from socket:\n${msg}`);
-          } else {
-            this.logger.debug(`[${this.name} | run] Error reading from socket:\n${msg}`);
+          if (result === ParseMessageResult.SUCCESS) {
+            activity.last = Date.now();
           }
         }
+      } catch (e) {
+        const msg = e instanceof Error ? e.stack : e;
+        if (this.logRecoverableErrors) {
+          this.logger.warn(`[${this.name} | run] Error reading from socket:\n${msg}`);
+        } else {
+          this.logger.debug(`[${this.name} | run] Error reading from socket:\n${msg}`);
+        }
+      } finally {
+        for (const timer of timers) {
+          clearInterval(timer);
+        }
+      }
+
+      // The socket has ended (closed, errored, or watchdog fired). Reset the
+      // per-connection state and let the outer loop reconnect.
+      this._authenticated = false;
+      this.unsupported_protocol = [];
+      this.buffer = Buffer.alloc(0);
+      socket.destroy();
+
+      // Back off only if the connection was short-lived, so a flapping device
+      // doesn't churn while a long-lived connection still recovers promptly.
+      const uptime = Date.now() - connectedAt;
+      if (this.is_running && uptime < this.RECONNECT_INTERVAL) {
+        await this.sleep(this.RECONNECT_INTERVAL - uptime);
       }
     }
     this.logger.info(`[${this.name}] Stopping network listener.`);
