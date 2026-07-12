@@ -454,7 +454,8 @@ export default abstract class MideaDevice extends EventEmitter {
           if (this.promiseSocket) {
             this.promiseSocket.destroy();
           }
-          this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
+          // Keep the destroyed socket so the loop retries; a fresh socket here would
+          // exit the reconnect loop (destroyed === false) without ever connecting.
         }
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
