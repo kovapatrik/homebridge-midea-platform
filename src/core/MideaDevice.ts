@@ -449,12 +449,17 @@ export default abstract class MideaDevice extends EventEmitter {
           break; // Exit reconnect loop
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
-          this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
+          if (this.logRecoverableErrors) {
+            this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
+          } else {
+            this.logger.debug(`[${this.name}] Reconnect failed: ${msg}`);
+          }
           this._authenticated = false;
           if (this.promiseSocket) {
             this.promiseSocket.destroy();
           }
-          this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
+          // Keep the destroyed socket so the loop retries; a fresh socket here would
+          // exit the reconnect loop (destroyed === false) without ever connecting.
         }
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
         await sleep(5000);
