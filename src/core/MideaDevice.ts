@@ -449,7 +449,11 @@ export default abstract class MideaDevice extends EventEmitter {
           break; // Exit reconnect loop
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
-          this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
+          if (this.logRecoverableErrors) {
+            this.logger.warn(`[${this.name}] Reconnect failed: ${msg}`);
+          } else {
+            this.logger.debug(`[${this.name}] Reconnect failed: ${msg}`);
+          }
           this._authenticated = false;
           if (this.promiseSocket) {
             this.promiseSocket.destroy();
