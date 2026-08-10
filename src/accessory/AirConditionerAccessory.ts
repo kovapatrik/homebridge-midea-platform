@@ -428,6 +428,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           .onGet(this.getSwingAngleTargetVerticalTiltAngle.bind(this))
           .onSet(this.setSwingAngleTargetVerticalTiltAngle.bind(this));
       }
+    } else if (this.swingAngleService) {
+      this.accessory.removeService(this.swingAngleService);
     }
     // Misc
     this.device.attributes.PROMPT_TONE = configDev.AC_options.audioFeedback;
