@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.4](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.3...v1.3.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* reconnect retry after failed handshake, and quiet the recoverable log ([#197](https://github.com/kovapatrik/homebridge-midea-platform/issues/197)) ([681e230](https://github.com/kovapatrik/homebridge-midea-platform/commit/681e23029ae4eb1dba730de849c66b1436922f7e))
+* remove disabled swing angle accessory ([#198](https://github.com/kovapatrik/homebridge-midea-platform/issues/198)) ([0892409](https://github.com/kovapatrik/homebridge-midea-platform/commit/0892409ea58e0ecbb82d6baab8f73c7f4ac5deca))
+* report failed device updates to HomeKit ([#201](https://github.com/kovapatrik/homebridge-midea-platform/issues/201)) ([d8a5284](https://github.com/kovapatrik/homebridge-midea-platform/commit/d8a52847e16153ea7d9acb57f90e7068770f8d11))
+
 ## [1.3.3](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.2...v1.3.3) (2026-07-07)
 
 
