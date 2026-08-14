@@ -135,6 +135,14 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       if (!this.discoveredDevices.get(device.id)) {
         // This device was not found by network discovery.
         missingDevices++;
+        const accessory = this.accessories.get(this.api.hap.uuid.generate(device.id.toString()));
+        const service = accessory?.services.find((cachedService) => cachedService.UUID !== this.Service.AccessoryInformation.UUID);
+        const characteristic = [this.Characteristic.Active, this.Characteristic.On, this.Characteristic.CurrentHeatingCoolingState].find((candidate) =>
+          service?.testCharacteristic(candidate),
+        );
+        if (service && characteristic) {
+          service.updateCharacteristic(characteristic, new Error('Device not found'));
+        }
         if (this.discoveredDevices.get(device.id) === undefined) {
           this.discoveredDevices.set(device.id, false);
           this.log.warn(`[${device.name}] Device not found (id: ${device.id}), will retry every ${this.discoveryInterval} seconds`);
@@ -196,11 +204,20 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             }
           }
-          await device.connect(true);
+          if (!(await device.connect(true))) {
+            throw new Error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
+          }
           createAccessory(this, existingAccessory, device, deviceConfig);
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);
+          const service = existingAccessory.services.find((cachedService) => cachedService.UUID !== this.Service.AccessoryInformation.UUID);
+          const characteristic = [this.Characteristic.Active, this.Characteristic.On, this.Characteristic.CurrentHeatingCoolingState].find((candidate) =>
+            service?.testCharacteristic(candidate),
+          );
+          if (service && characteristic) {
+            service.updateCharacteristic(characteristic, new Error('Cannot connect to device'));
+          }
         }
       } else {
         try {
