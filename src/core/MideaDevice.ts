@@ -218,8 +218,7 @@ export default abstract class MideaDevice extends EventEmitter {
 
   private async send_message_v3(data: Buffer, message_type: TCPMessageType = TCPMessageType.ENCRYPTED_REQUEST) {
     if (!this._authenticated) {
-      this.logger.warn(`[${this.name}] Cannot send V3 message — not authenticated. Dropping message.`);
-      return;
+      throw new Error(`[${this.name}] Cannot send V3 message — not authenticated.`);
     }
     const encrypted_data = this.security.encode_8370(data, message_type);
     await this.send_message_v2(encrypted_data);
@@ -288,6 +287,7 @@ export default abstract class MideaDevice extends EventEmitter {
         return false;
       }
     } catch (err) {
+      this.emit('error_refresh');
       const msg = err instanceof Error ? err.stack : err;
       if (this.logRecoverableErrors) {
         this.logger.warn(`[${this.name} | refresh_status] Recoverable error:\n${msg}`);
