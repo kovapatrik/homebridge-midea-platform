@@ -69,18 +69,20 @@ Search for "midea" in [homebridge-config-ui-x](https://github.com/oznu/homebridg
 sudo npm install -g homebridge-midea-platform
 ```
 
- Midea device status is retrieved over your Local Area Network (LAN) and credentials are obtained from the Midea cloud services over the internet. While the plugin maintains a status cache, **use of Homebridge [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges)** is strongly encouraged. As noted below in the _network resiliency_ section, this plugin will make multiple attempts to fulfill a request if necessary, which can take time.
+Midea device status is retrieved over your Local Area Network (LAN) and credentials are obtained from the Midea cloud services over the internet. While the plugin maintains a status cache, **use of Homebridge [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges)** is strongly encouraged. As noted below in the _network resiliency_ section, this plugin will make multiple attempts to fulfill a request if necessary, which can take time.
 
 ## Matter & Multi-platform Compatibility
 
 This plugin is fully compatible with **Matter**, the unifying standard for smart homes. By exposing your Midea devices via a Matter bridge, you can control them across all major platforms including **Apple Home**, **Google Home**, **Amazon Alexa**, and **Samsung SmartThings**.
 
 ### How to set up Matter
+
 1.  **Homebridge 2.0+**: Enable the native Matter bridge in your Homebridge settings.
 2.  **Homebridge 1.x**: Use a plugin like `homebridge-matter` or [Matterbridge](https://github.com/Luligu/matterbridge).
 3.  **Pairing**: Once enabled, Homebridge will provide a Matter setup code/QR. Pair this code with your preferred platform (e.g., Google Home app).
 
 ### Tips for Matter
+
 - **Fan Speed**: For best compatibility with Google Home via Matter, set `fanSpeedMode` to `5 levels` (Silent, Low, Medium, High, Full + Auto) in the AC options.
 - **Child Bridge**: Matter works best when the plugin is running in a [Child Bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges).
 - **Dependencies**: If you see "Module not found" errors after an update, run `npm run setup-remote` again to update the dependencies on your server.
@@ -90,26 +92,32 @@ This plugin is fully compatible with **Matter**, the unifying standard for smart
 This plugin provides real-time power (Watts) and total energy (kWh) monitoring.
 
 #### For Eve Home App (Recommended)
-The plugin automatically exposes standard energy characteristics that are natively visible in the **Eve Home** app. 
+
+The plugin automatically exposes standard energy characteristics that are natively visible in the **Eve Home** app.
+
 - **History**: The plugin supports local data logging (via `fakegato-history`). This allows you to see consumption and climate graphs directly in the Eve app.
 - **Auto-Config**: No extra configuration is needed beyond enabling the `Power Meter` option in the device settings.
 
 #### For Homebridge UI (Web Dashboard)
+
 You can see real-time consumption directly in your browser:
+
 1.  Go to the **Accessories** tab in the Homebridge web interface.
 2.  Find your Air Conditioner.
 3.  Click on the tile to see all details, including **Electric Power (W)** and **Total Consumption (kWh)**.
-    *Note: History graphs are NOT displayed in the Homebridge UI accessories tab; they are exclusively for the Eve app.*
+    _Note: History graphs are NOT displayed in the Homebridge UI accessories tab; they are exclusively for the Eve app._
 
 #### For Apple Home App (Standard)
+
 Since Apple's Home app does not natively support power meters, the plugin uses a workaround by exposing values via other sensor types. You can configure this in the AC options:
 
 - **Power Display Type**: Choose how to show real-time Watts (e.g., as Lux, Humidity %, CO2 ppm, or Temperature °).
 - **Energy Display Type**: Choose how to show total energy kWh (e.g., as a separate Temperature or Humidity sensor).
 
 > [!TIP]
-> **To see the number on the dashboard**: 
-> - **Lux** and **Temperature** types show the value directly on the tile (e.g., "339 lx" or "339°"). 
+> **To see the number on the dashboard**:
+>
+> - **Lux** and **Temperature** types show the value directly on the tile (e.g., "339 lx" or "339°").
 > - **CO2** type only shows "Normal" or "Detected" on the tile; you have to click to see the numeric value (ppm).
 > - **Humidity** is limited to 100%, so it's not recommended for power display.
 
@@ -127,20 +135,24 @@ If your Midea device has a broken humidity sensor (e.g., it always reports 0% or
 
 > [!NOTE]
 > If humidity still shows **0%** after configuration:
+>
 > 1. Check the Homebridge logs for `[WeatherService]` updates.
 > 2. Ensure your API key is active (it can take up to 2 hours).
-> 3. **Per-Device Activation**: You must enable **Humidity Weather Fallback** in the *specific* settings of your Air Conditioner/Dehumidifier, not just globally.
+> 3. **Per-Device Activation**: You must enable **Humidity Weather Fallback** in the _specific_ settings of your Air Conditioner/Dehumidifier, not just globally.
 > 4. **Wait a few minutes**: The plugin will automatically update the display as soon as it receives the first weather data.
 
 ## HomeKit Tips & Troubleshooting
 
 ### "Accessory Not Certified" Message
+
 If you see a message saying "This accessory has not been certified to work with HomeKit", **this is normal**. Homebridge is an open-source project and is not officially certified by Apple.
+
 - **Does it affect functionality?** No. All features work exactly the same.
 - **Can it be removed?** No, as only official commercial hardware gets this certification. You can safely dismiss this warning.
 - **Is it the cause of missing sensors?** **No.** If your sensors are missing from the Home tab, it's an interface setting (see below), not a certification issue.
 
 ### Accessories Missing from Home View
+
 If some accessories (like Humidity or Power consumption) do not appear on your main "Home" tab, they are likely just hidden or grouped by Apple Home:
 
 1.  **Check the "Climate" Status**: Apple Home often groups sensors (Temperature, Humidity) at the top of the Home tab under a single "Climate" icon. Tap it to see individual values.
@@ -169,7 +181,7 @@ If you are developing this plugin and want to test it on a remote Homebridge ser
 1.  **Initial Setup**: Run `npm run setup-remote` to prepare your server (installs `rsync`, updates Node.js to v22, and installs dependencies).
 2.  **Fast Deploy**: Run `npm run deploy` to build the plugin, sync files to the server, and restart Homebridge automatically.
 
-*Note: Make sure to update the IP address and credentials in `package.json` before running these scripts.*
+_Note: Make sure to update the IP address and credentials in `package.json` before running these scripts._
 
 ## Contribution
 

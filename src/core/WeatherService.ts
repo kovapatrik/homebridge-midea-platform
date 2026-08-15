@@ -46,7 +46,9 @@ export class WeatherService extends EventEmitter {
       } else if (this.config.location && this.config.location.length > 2) {
         // Try geocoding
         this.log.debug(`Attempting geocoding for location: ${this.config.location}`);
-        const geoResponse = await axios.get(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.config.location)}&limit=1&appid=${this.config.apiKey}`);
+        const geoResponse = await axios.get(
+          `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(this.config.location)}&limit=1&appid=${this.config.apiKey}`,
+        );
         if (geoResponse.data && geoResponse.data.length > 0) {
           lat = geoResponse.data[0].lat;
           lon = geoResponse.data[0].lon;
@@ -69,20 +71,24 @@ export class WeatherService extends EventEmitter {
 
       this.log.debug(`Fetching weather for ${lat}, ${lon}...`);
       const weatherResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${this.config.apiKey}&units=metric`);
-      
+
       if (weatherResponse.data && weatherResponse.data.main) {
         this._humidity = weatherResponse.data.main.humidity;
         this._temperature = weatherResponse.data.main.temp;
         if (this._humidity === 0) {
-          this.log.warn(`[WeatherService] Received 0% humidity from OpenWeatherMap for location ${lat}, ${lon}. This might be a temporary error or specific local condition.`);
+          this.log.warn(
+            `[WeatherService] Received 0% humidity from OpenWeatherMap for location ${lat}, ${lon}. This might be a temporary error or specific local condition.`,
+          );
         }
-        this.log.info(`Weather updated: Humidity ${this._humidity}%, Temperature ${this._temperature}°C (Location: ${weatherResponse.data.name || lat + ',' + lon})`);
+        this.log.info(
+          `Weather updated: Humidity ${this._humidity}%, Temperature ${this._temperature}°C (Location: ${weatherResponse.data.name || lat + ',' + lon})`,
+        );
         this.emit('update', { humidity: this._humidity, temperature: this._temperature });
       } else {
         throw new Error('Invalid response from OpenWeatherMap API.');
       }
     } catch (error) {
-      const msg = axios.isAxiosError(error) ? (error.response?.data?.message || error.message) : (error instanceof Error ? error.message : String(error));
+      const msg = axios.isAxiosError(error) ? error.response?.data?.message || error.message : error instanceof Error ? error.message : String(error);
       this.log.error(`[WeatherService] Failed to update weather: ${msg}`);
       if (msg.includes('Invalid API key')) {
         this.log.error('[WeatherService] Your OpenWeatherMap API key seems to be invalid or not yet active (it can take up to 2 hours after creation).');

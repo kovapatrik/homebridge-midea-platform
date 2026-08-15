@@ -206,7 +206,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
         }
         if (this.humiditySensorService) {
-          this.platform.log.info(`[${this.device.name}] Updating HumiditySensor service (iid: ${this.humiditySensorService.iid}) characteristic to ${humidity}%`);
+          this.platform.log.info(
+            `[${this.device.name}] Updating HumiditySensor service (iid: ${this.humiditySensorService.iid}) characteristic to ${humidity}%`,
+          );
           this.humiditySensorService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
         }
         this.historyService?.addEntry({ time: Math.round(new Date().getTime() / 1000), humidity: humidity as number });
@@ -225,7 +227,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         this.platform.log.info(`[${this.device.name}] Humidity weather fallback enabled, waiting for first weather update.`);
       }
     } else if (this.platform.platformConfig.weather.enabled && this.configDev.A1_options.humiditySensor) {
-      this.platform.log.info(`[${this.device.name}] Tip: Global Weather Service is enabled. To use it as a fallback for this device, enable "Humidity Weather Fallback" in this device's settings.`);
+      this.platform.log.info(
+        `[${this.device.name}] Tip: Global Weather Service is enabled. To use it as a fallback for this device, enable "Humidity Weather Fallback" in this device's settings.`,
+      );
     }
   }
 
@@ -370,17 +374,25 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   // Handle requests to get the current value of the "RelativeHumidity" characteristic
   private getCurrentRelativeHumidity(): CharacteristicValue {
     let humidity = this.device.attributes.CURRENT_HUMIDITY;
-    this.platform.log.debug(`[${this.device.name}] getCurrentRelativeHumidity: Device reports ${humidity}% (Fallback enabled: ${this.configDev.A1_options.humidityWeatherFallback})`);
+    this.platform.log.debug(
+      `[${this.device.name}] getCurrentRelativeHumidity: Device reports ${humidity}% (Fallback enabled: ${this.configDev.A1_options.humidityWeatherFallback})`,
+    );
     if (humidity === undefined || humidity === 0 || humidity === 255) {
       if (this.configDev.A1_options.humidityWeatherFallback) {
         if (this.platform.weatherService.humidity !== undefined) {
-          this.platform.log.info(`[${this.device.name}] Current humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`);
+          this.platform.log.info(
+            `[${this.device.name}] Current humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`,
+          );
           humidity = this.platform.weatherService.humidity;
         } else {
-          this.platform.log.warn(`[${this.device.name}] Current humidity is invalid (${humidity}%) and weather fallback is enabled but no weather data is available yet.`);
+          this.platform.log.warn(
+            `[${this.device.name}] Current humidity is invalid (${humidity}%) and weather fallback is enabled but no weather data is available yet.`,
+          );
         }
       } else if (humidity === 0 && this.platform.platformConfig.weather.enabled && !this.accessory.context.fallbackSuggested) {
-        this.platform.log.info(`[${this.device.name}] Device reports 0% humidity. If this is incorrect, enable "Humidity Weather Fallback" in settings to use local weather data.`);
+        this.platform.log.info(
+          `[${this.device.name}] Device reports 0% humidity. If this is incorrect, enable "Humidity Weather Fallback" in settings to use local weather data.`,
+        );
         this.accessory.context.fallbackSuggested = true;
       }
     }

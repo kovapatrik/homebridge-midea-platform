@@ -899,12 +899,7 @@
           "title": "Weather Service (Humidity Fallback)",
           "expandable": true,
           "expanded": false,
-          "items": [
-            "weather.enabled",
-            "weather.apiKey",
-            "weather.location",
-            "weather.interval"
-          ]
+          "items": ["weather.enabled", "weather.apiKey", "weather.location", "weather.interval"]
         },
         {
           "key": "devices",
@@ -938,11 +933,7 @@
                   "title": "Sensors",
                   "expandable": true,
                   "expanded": false,
-                  "items": [
-                    "devices[].A1_options.temperatureSensor",
-                    "devices[].A1_options.humiditySensor",
-                    "devices[].A1_options.humidityWeatherFallback"
-                  ]
+                  "items": ["devices[].A1_options.temperatureSensor", "devices[].A1_options.humiditySensor", "devices[].A1_options.humidityWeatherFallback"]
                 },
                 "devices[].A1_options.fanAccessory",
                 "devices[].A1_options.pumpSwitch",
@@ -964,11 +955,7 @@
                   "title": "Swing Options",
                   "expandable": true,
                   "expanded": false,
-                  "items": [
-                    "devices[].AC_options.swing.mode",
-                    "devices[].AC_options.swing.angleAccessory",
-                    "devices[].AC_options.swing.angleMainControl"
-                  ]
+                  "items": ["devices[].AC_options.swing.mode", "devices[].AC_options.swing.angleAccessory", "devices[].AC_options.swing.angleMainControl"]
                 },
                 {
                   "type": "fieldset",
@@ -1011,11 +998,7 @@
                   "title": "Display & Audio",
                   "expandable": true,
                   "expanded": false,
-                  "items": [
-                    "devices[].AC_options.displaySwitch",
-                    "devices[].AC_options.displaySwitchAlternate",
-                    "devices[].AC_options.audioFeedbackSwitch"
-                  ]
+                  "items": ["devices[].AC_options.displaySwitch", "devices[].AC_options.displaySwitchAlternate", "devices[].AC_options.audioFeedbackSwitch"]
                 },
                 {
                   "type": "fieldset",
@@ -1034,11 +1017,7 @@
                   "title": "Fan Settings",
                   "expandable": true,
                   "expanded": false,
-                  "items": [
-                    "devices[].AC_options.fanAccessory",
-                    "devices[].AC_options.fanAutoSwitch",
-                    "devices[].AC_options.fanSpeedMode"
-                  ]
+                  "items": ["devices[].AC_options.fanAccessory", "devices[].AC_options.fanAutoSwitch", "devices[].AC_options.fanSpeedMode"]
                 },
                 {
                   "type": "fieldset",

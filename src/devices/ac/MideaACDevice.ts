@@ -497,7 +497,7 @@ export default class MideaACDevice extends MideaDevice {
         this.last_fan_speed = this.attributes.FAN_SPEED;
       }
     }
-    const fan_speed = fan_auto ? AUTO_FAN_SPEED : (this.last_fan_speed === AUTO_FAN_SPEED ? 80 : this.last_fan_speed);
+    const fan_speed = fan_auto ? AUTO_FAN_SPEED : this.last_fan_speed === AUTO_FAN_SPEED ? 80 : this.last_fan_speed;
     message.fan_speed = fan_speed;
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;

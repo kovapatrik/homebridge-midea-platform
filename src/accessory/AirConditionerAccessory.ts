@@ -289,7 +289,6 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.service.addLinkedService(this.fanService);
       this.fanService.getCharacteristic(this.platform.Characteristic.Active)?.onGet(this.getActive.bind(this)).onSet(this.setActive.bind(this));
 
-      const fanSpeedSteps = this.getFanSpeedSteps();
       const fanRotationSpeedCharacteristic = this.fanService.getCharacteristic(this.platform.Characteristic.RotationSpeed);
       if (fanRotationSpeedCharacteristic) {
         fanRotationSpeedCharacteristic.setProps({
@@ -614,7 +613,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     const currentPowerService = this.accessory.services.find((s) => s.subtype === powerWattsSubtype);
     const targetPowerServiceType = this.getDisplayServiceType(this.configDev.AC_options.powerDisplayType);
     if (currentPowerService && (currentPowerService.UUID !== targetPowerServiceType.UUID || this.configDev.AC_options.powerDisplayType === 'None')) {
-      this.platform.log.info(`[${this.device.name}] Removing old power display service (${currentPowerService.UUID === this.platform.Service.LightSensor.UUID ? 'Lux' : 'Other'})`);
+      this.platform.log.info(
+        `[${this.device.name}] Removing old power display service (${currentPowerService.UUID === this.platform.Service.LightSensor.UUID ? 'Lux' : 'Other'})`,
+      );
       this.accessory.removeService(currentPowerService);
       this.powerWattsService = undefined;
     } else {
@@ -644,7 +645,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     const currentEnergyService = this.accessory.services.find((s) => s.subtype === energykWhSubtype);
     const targetEnergyServiceType = this.getDisplayServiceType(this.configDev.AC_options.energyDisplayType);
     if (currentEnergyService && (currentEnergyService.UUID !== targetEnergyServiceType.UUID || this.configDev.AC_options.energyDisplayType === 'None')) {
-      this.platform.log.info(`[${this.device.name}] Removing old energy display service (${currentEnergyService.UUID === this.platform.Service.LightSensor.UUID ? 'Lux' : 'Other'})`);
+      this.platform.log.info(
+        `[${this.device.name}] Removing old energy display service (${currentEnergyService.UUID === this.platform.Service.LightSensor.UUID ? 'Lux' : 'Other'})`,
+      );
       this.accessory.removeService(currentEnergyService);
       this.energykWhService = undefined;
     } else {
@@ -719,7 +722,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.platform.log.info(`[${this.device.name}] Weather service updated (${data.humidity}%), refreshing humidity characteristic.`);
         const humidity = this.getIndoorHumidity();
         if (this.humiditySensorService) {
-          this.platform.log.info(`[${this.device.name}] Updating HumiditySensor service (iid: ${this.humiditySensorService.iid}) characteristic to ${humidity}%`);
+          this.platform.log.info(
+            `[${this.device.name}] Updating HumiditySensor service (iid: ${this.humiditySensorService.iid}) characteristic to ${humidity}%`,
+          );
           this.humiditySensorService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
         } else {
           this.platform.log.warn(`[${this.device.name}] Humidity fallback enabled but Humidity Sensor service is not enabled in config.`);
@@ -746,7 +751,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         this.platform.log.info(`[${this.device.name}] Humidity weather fallback enabled, waiting for first weather update.`);
       }
     } else if (this.platform.platformConfig.weather.enabled && this.configDev.AC_options.humiditySensor) {
-      this.platform.log.info(`[${this.device.name}] Tip: Global Weather Service is enabled. To use it as a fallback for this device, enable "Humidity Weather Fallback" in this device's settings.`);
+      this.platform.log.info(
+        `[${this.device.name}] Tip: Global Weather Service is enabled. To use it as a fallback for this device, enable "Humidity Weather Fallback" in this device's settings.`,
+      );
     }
   }
 
@@ -1245,17 +1252,25 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   getIndoorHumidity(): CharacteristicValue {
     let humidity = this.device.attributes.INDOOR_HUMIDITY;
-    this.platform.log.debug(`[${this.device.name}] getIndoorHumidity: Device reports ${humidity}% (Fallback enabled: ${this.configDev.AC_options.humidityWeatherFallback})`);
+    this.platform.log.debug(
+      `[${this.device.name}] getIndoorHumidity: Device reports ${humidity}% (Fallback enabled: ${this.configDev.AC_options.humidityWeatherFallback})`,
+    );
     if (humidity === undefined || humidity === 0 || humidity === 255) {
       if (this.configDev.AC_options.humidityWeatherFallback) {
         if (this.platform.weatherService.humidity !== undefined) {
-          this.platform.log.info(`[${this.device.name}] Indoor humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`);
+          this.platform.log.info(
+            `[${this.device.name}] Indoor humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`,
+          );
           humidity = this.platform.weatherService.humidity;
         } else {
-          this.platform.log.warn(`[${this.device.name}] Indoor humidity is invalid (${humidity}%) and weather fallback is enabled but no weather data is available yet.`);
+          this.platform.log.warn(
+            `[${this.device.name}] Indoor humidity is invalid (${humidity}%) and weather fallback is enabled but no weather data is available yet.`,
+          );
         }
       } else if (humidity === 0 && this.platform.platformConfig.weather.enabled && !this.accessory.context.fallbackSuggested) {
-        this.platform.log.info(`[${this.device.name}] Device reports 0% humidity. If this is incorrect, enable "Humidity Weather Fallback" in settings to use local weather data.`);
+        this.platform.log.info(
+          `[${this.device.name}] Device reports 0% humidity. If this is incorrect, enable "Humidity Weather Fallback" in settings to use local weather data.`,
+        );
         this.accessory.context.fallbackSuggested = true;
       }
     }
