@@ -28,25 +28,33 @@ export default abstract class BaseAccessory<T extends MideaDevice> {
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
-    this.device.on('update', this.updateCharacteristics.bind(this));
+    this.device.on('update', (attributes: DeviceAttributeBase) => {
+      if (this.initialized) {
+        this.updateCharacteristics(attributes);
+      }
+    });
     this.device.on('error_refresh', () => {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, new Error('Error refreshing device status'));
+      if (this.initialized) {
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, new Error('Error refreshing device status'));
+      }
     });
   }
 
-  handleConfiguredName(service: Service, subtype: string, fallbackName: string) {
-    service
-      .getCharacteristic(this.platform.Characteristic.ConfiguredName)
-      .onGet(() => this.accessory.context.configuredNames[subtype] ?? `${this.device.name} ${fallbackName}`)
-      .onSet((value) => {
-        this.accessory.context.configuredNames[subtype] = value as string;
-      });
+  protected initialized = false;
+
+  handleConfiguredName(service: Service, subtype: string, fallbackName: string, customName?: string) {
+    const name = customName || `${this.device.name} ${fallbackName}`;
+    service.setCharacteristic(this.platform.Characteristic.Name, name);
   }
 
   // protected abstract handleErrorRefresh(): void;
   protected abstract updateCharacteristics(attributes: DeviceAttributeBase): Promise<void>;
 }
 
-export function limitValue(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max));
+export function limitValue(value: any, min: number, max: number): number {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return min;
+  }
+  return Math.max(min, Math.min(n, max));
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.4](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.3...v1.3.4) (2026-08-14)
+
+### Bug Fixes
+* Fixed a crash during accessory restoration from cache caused by duplicate Eve energy characteristics being added to the `Outlet` service.
+* Resolved `TypeError` crashes during startup and status updates by ensuring services are fully initialized before processing events.
+* Fixed `NaN` and "illegal value" warnings for temperature thresholds and fan speed by correctly ordering characteristic property and value initialization.
+* Improved HAP compliance by removing non-standard characteristics (`ConfiguredName`, `TargetFanState`, `CurrentRelativeHumidity` in certain services) to eliminate Homebridge warnings.
+* Enhanced robustness of `limitValue` utility to handle non-numeric inputs gracefully.
+
+### Documentation
+* Updated AC documentation and configuration schema to clarify that `humiditySensor` option is required to see indoor humidity in HomeKit.
+
 ## [1.3.3](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.2...v1.3.3) (2026-07-07)
 
 

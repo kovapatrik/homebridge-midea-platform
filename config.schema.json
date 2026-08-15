@@ -28,6 +28,35 @@
         "type": "boolean",
         "description": "Debug data for the custom UI device discovery process will be logged to the Homebridge log and Javascript console."
       },
+      "weather": {
+        "title": "Weather Service (Humidity Fallback)",
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "title": "Enable Weather Service",
+            "type": "boolean",
+            "default": false,
+            "description": "Enables fetching local weather data to provide a humidity fallback when device sensors fail."
+          },
+          "apiKey": {
+            "title": "OpenWeatherMap API Key",
+            "type": "string",
+            "description": "Your OpenWeatherMap API key. You can get one for free at [https://openweathermap.org/api](https://openweathermap.org/api) (use the 'Current Weather Data' API)."
+          },
+          "location": {
+            "title": "Manual Location (Lat,Lon)",
+            "type": "string",
+            "description": "Manually specify location as 'latitude,longitude' (e.g. '48.8566,2.3522'). If left blank, location will be determined by server IP."
+          },
+          "interval": {
+            "title": "Update Interval (minutes)",
+            "type": "number",
+            "default": 30,
+            "minimum": 5,
+            "description": "How often to update weather data. Default is 30 minutes."
+          }
+        }
+      },
       "devices": {
         "type": "array",
         "items": {
@@ -122,7 +151,7 @@
                 },
                 "humiditySensor": {
                   "title": "Humidity Sensor",
-                  "description": "Toggles if a seperated humidity sensor is created with the accessory. This sensor can be used for automations as for some reason the internal humidity sensor is not usable for this.",
+                  "description": "Toggles if a separate humidity sensor is created. This sensor can be used for automations as for some reason the internal humidity sensor is not usable for this.",
                   "type": "boolean"
                 },
                 "pumpSwitch": {
@@ -160,6 +189,12 @@
                   "description": "Offset for the humidity sensor. This is useful if the humidity sensor is not accurate or if you want to adjust the humidity value.",
                   "type": "number",
                   "required": true
+                },
+                "humidityWeatherFallback": {
+                  "title": "Humidity Weather Fallback",
+                  "description": "Use local weather humidity if the device sensor reports 0% or is unavailable.",
+                  "type": "boolean",
+                  "default": false
                 }
               }
             },
@@ -196,6 +231,11 @@
                       "description": "Toggles if the swing angle accessory is created with the accessory. The accessory can be used to set the angle of the slat to a specified value. The `mode` property will be used to determine the direction of the slat. The main position bar will be used to set the angle of the direction which is selected in the `mode` property.",
                       "type": "boolean"
                     },
+                    "angleAccessoryName": {
+                      "title": "Swing Angle Accessory Name",
+                      "description": "Custom name for the swing angle accessory.",
+                      "type": "string"
+                    },
                     "angleMainControl": {
                       "title": "Swing Angle Main Control",
                       "description": "If `mode` property is Both and the swing angle accessory is enabled, this property will be used to determine which direction will be controlled by the main position bar of the accessory.",
@@ -215,75 +255,186 @@
                   "description": "Toggles if the outdoor temperature is created with the accessory.",
                   "type": "boolean"
                 },
-                "audioFeedback": {
-                  "title": "Audio Feedback",
-                  "description": "Toggles if the unit beeps when a command is sent.",
+                "outDoorTempName": {
+                  "title": "Outdoor Temperature Name",
+                  "description": "Custom name for the outdoor temperature sensor.",
+                  "type": "string"
+                },
+                "audioFeedbackSwitch": {
+                  "title": "Audio Feedback Switch",
+                  "description": "Toggles if the audio feedback switch is created with the accessory.",
                   "type": "boolean"
                 },
-                "screenOff": {
-                  "title": "Diplay screen off by default",
-                  "description": "Toggles if the screen is turned off by default when the unit is turned on.",
+                "audioFeedbackSwitchName": {
+                  "title": "Audio Feedback Switch Name",
+                  "description": "Custom name for the audio feedback switch.",
+                  "type": "string"
+                },
+                "smartEyeSwitch": {
+                  "title": "iSense (Smart Eye) Switch",
+                  "description": "Toggles if the iSense switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "smartEyeSwitchName": {
+                  "title": "iSense Switch Name",
+                  "description": "Custom name for the iSense switch.",
+                  "type": "string"
+                },
+                "powerMeter": {
+                  "title": "Power Meter",
+                  "description": "Toggles if the power meter accessory is created with the accessory. This displays real-time power consumption and total energy usage.",
+                  "type": "boolean"
+                },
+                "powerMeterName": {
+                  "title": "Power Meter Name",
+                  "description": "Custom name for the power meter accessory.",
+                  "type": "string"
+                },
+                "powerDisplayType": {
+                  "title": "Power Display Type (Native App)",
+                  "description": "How real-time power (Watts) should be displayed in the standard Home app and Homebridge widgets. 'Lux' and 'Temperature' show the number directly. 'CO2' only shows 'Normal' on the main widget.",
+                  "type": "string",
+                  "default": "Lux",
+                  "oneOf": [
+                    { "title": "Lux (Shows number + 'lx')", "enum": ["Lux"] },
+                    { "title": "Temperature (Shows number + '°')", "enum": ["Temperature"] },
+                    { "title": "CO2 (Shows 'Normal', number hidden)", "enum": ["CarbonDioxide"] },
+                    { "title": "Humidity (Shows number + '%', max 100)", "enum": ["Humidity"] },
+                    { "title": "None (Hidden)", "enum": ["None"] }
+                  ]
+                },
+                "energyDisplayType": {
+                  "title": "Energy Display Type (Native App)",
+                  "description": "How total energy (kWh) should be displayed in the standard Home app and Homebridge widgets.",
+                  "type": "string",
+                  "default": "None",
+                  "oneOf": [
+                    { "title": "None (Hidden)", "enum": ["None"] },
+                    { "title": "Lux (Shows number + 'lx')", "enum": ["Lux"] },
+                    { "title": "Temperature (Shows number + '°')", "enum": ["Temperature"] },
+                    { "title": "CO2 (Shows 'Normal', number hidden)", "enum": ["CarbonDioxide"] },
+                    { "title": "Humidity (Shows number + '%', max 100)", "enum": ["Humidity"] }
+                  ]
+                },
+                "timerSwitch": {
+                  "title": "Off Timer Switch",
+                  "description": "Toggles if the off timer switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "timerSwitchName": {
+                  "title": "Off Timer Switch Name",
+                  "description": "Custom name for the off timer switch.",
+                  "type": "string"
                 },
                 "ecoSwitch": {
                   "title": "Eco Mode Switch",
                   "description": "Toggles if the ECO mode switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "ecoSwitchName": {
+                  "title": "Eco Mode Switch Name",
+                  "description": "Custom name for the ECO mode switch.",
+                  "type": "string"
+                },
                 "dryModeSwitch": {
-                  "title": "Dry Mode Switch",
+                  "title": "Mode: Dry Switch",
                   "description": "Toggles if the dry mode switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "dryModeSwitchName": {
+                  "title": "Mode: Dry Switch Name",
+                  "description": "Custom name for the dry mode switch.",
+                  "type": "string"
                 },
                 "boostModeSwitch": {
                   "title": "Boost/Turbo Mode Switch",
                   "description": "Toggles if the boost/turbo mode switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "boostModeSwitchName": {
+                  "title": "Boost/Turbo Mode Switch Name",
+                  "description": "Custom name for the boost/turbo mode switch.",
+                  "type": "string"
+                },
                 "breezeAwaySwitch": {
                   "title": "Breeze Away Mode",
                   "description": "Toggles if the breeze away mode swtich is created with the accessory.",
                   "type": "boolean"
                 },
+                "breezeAwaySwitchName": {
+                  "title": "Breeze Away Mode Switch Name",
+                  "description": "Custom name for the breeze away mode switch.",
+                  "type": "string"
+                },
                 "displaySwitch": {
-                  "type": "object",
-                  "properties": {
-                    "flag": {
-                      "title": "Display Switch",
-                      "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
-                      "type": "boolean"
-                    },
-                    "command": {
-                      "title": "Display Switch Alternate Command",
-                      "description": "Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature.",
-                      "type": "boolean"
-                    }
-                  }
+                  "title": "Display Switch",
+                  "description": "Toggles if a switch, which can turn the display on or off will be created or not.",
+                  "type": "boolean"
+                },
+                "displaySwitchAlternate": {
+                  "title": "Display Switch Alternate Command",
+                  "description": "Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature.",
+                  "type": "boolean"
+                },
+                "displaySwitchName": {
+                  "title": "Display Switch Name",
+                  "description": "Custom name for the display switch.",
+                  "type": "string"
                 },
                 "auxHeatingSwitches": {
                   "title": "Auxiliary Heating Switches",
                   "description": "Toggles if the aux and aux+heat switches are created with the accessory.",
                   "type": "boolean"
                 },
+                "auxHeatingSwitchesName": {
+                  "title": "Auxiliary Heating Switch Name",
+                  "description": "Custom name for the auxiliary heating switch.",
+                  "type": "string"
+                },
+                "auxHeatingSwitchesPlusHeatName": {
+                  "title": "Auxiliary Heating + Heat Switch Name",
+                  "description": "Custom name for the auxiliary heating + heat switch.",
+                  "type": "string"
+                },
                 "selfCleanSwitch": {
-                  "title": "Self-cleaning Switch",
+                  "title": "Mode: Auto Clean Switch",
                   "description": "Toggles if the self-cleaning switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "selfCleanSwitchName": {
+                  "title": "Mode: Auto Clean Switch Name",
+                  "description": "Custom name for the self-cleaning switch.",
+                  "type": "string"
                 },
                 "ionSwitch": {
                   "title": "ION Switch",
                   "description": "Toggles if the ION switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "ionSwitchName": {
+                  "title": "ION Switch Name",
+                  "description": "Custom name for the ION switch.",
+                  "type": "string"
+                },
                 "outSilentSwitch": {
                   "title": "Out Silent Mode switch",
                   "description": "Toggles if the Out Silent Mode switch is created with the accessory. This mode reduces the outdoor unit noise by about 6dB.",
                   "type": "boolean"
                 },
+                "outSilentSwitchName": {
+                  "title": "Out Silent Mode Switch Name",
+                  "description": "Custom name for the outdoor silent mode switch.",
+                  "type": "string"
+                },
                 "rateSelector": {
                   "title": "Gear / Rate Selector",
                   "description": "Toggles if the gear / rate selector is created with the accessory.",
                   "type": "boolean"
+                },
+                "rateSelectorName": {
+                  "title": "Gear / Rate Selector Name",
+                  "description": "Custom name for the gear / rate selector.",
+                  "type": "string"
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
@@ -305,39 +456,121 @@
                   "type": "boolean"
                 },
                 "fanOnlyModeSwitch": {
-                  "title": "Fan Only Mode Switch",
+                  "title": "Mode: Fan Switch",
                   "description": "Toggles if the fan only mode switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "fanOnlyModeSwitchName": {
+                  "title": "Mode: Fan Switch Name",
+                  "description": "Custom name for the fan only mode switch.",
+                  "type": "string"
                 },
                 "fanAccessory": {
                   "title": "Fan Accessory",
                   "description": "Toggles if the fan accessory is created with the accessory.",
                   "type": "boolean"
                 },
+                "fanAccessoryName": {
+                  "title": "Fan Accessory Name",
+                  "description": "Custom name for the fan accessory.",
+                  "type": "string"
+                },
+                "fanSpeedMode": {
+                  "title": "Fan Speed Mode",
+                  "description": "Choose between a continuous slider (None) or discrete speed steps (3 or 5 levels).",
+                  "type": "string",
+                  "default": "None",
+                  "oneOf": [
+                    { "title": "None (Continuous Slider)", "enum": ["None"] },
+                    { "title": "3 Levels (Low, Medium, High)", "enum": ["3"] },
+                    { "title": "5 Levels (Silent, Low, Medium, High, Full)", "enum": ["5"] }
+                  ]
+                },
                 "fanAutoSwitch": {
                   "title": "Fan Auto Switch",
                   "description": "Toggles if the fan auto switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "fanAutoSwitchName": {
+                  "title": "Fan Auto Switch Name",
+                  "description": "Custom name for the fan auto switch.",
+                  "type": "string"
+                },
+                "coolModeSwitch": {
+                  "title": "Mode: Cool Switch",
+                  "description": "Toggles if the cool mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "coolModeSwitchName": {
+                  "title": "Mode: Cool Switch Name",
+                  "description": "Custom name for the cool mode switch.",
+                  "type": "string"
+                },
+                "heatModeSwitch": {
+                  "title": "Mode: Heat Switch",
+                  "description": "Toggles if the heat mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "heatModeSwitchName": {
+                  "title": "Mode: Heat Switch Name",
+                  "description": "Custom name for the heat mode switch.",
+                  "type": "string"
+                },
+                "autoModeSwitch": {
+                  "title": "Mode: Auto Switch",
+                  "description": "Toggles if the auto mode switch is created with the accessory.",
+                  "type": "boolean"
+                },
+                "autoModeSwitchName": {
+                  "title": "Mode: Auto Switch Name",
+                  "description": "Custom name for the auto mode switch.",
+                  "type": "string"
                 },
                 "sleepModeSwitch": {
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "sleepModeSwitchName": {
+                  "title": "Sleep Mode Switch Name",
+                  "description": "Custom name for the sleep mode switch.",
+                  "type": "string"
+                },
                 "comfortModeSwitch": {
                   "title": "Comfort Mode Switch",
                   "description": "Toggles if the comfort mode switch is created with the accessory.",
                   "type": "boolean"
+                },
+                "comfortModeSwitchName": {
+                  "title": "Comfort Mode Switch Name",
+                  "description": "Custom name for the comfort mode switch.",
+                  "type": "string"
                 },
                 "temperatureSensor": {
                   "title": "Indoor Temperature Sensor",
                   "description": "Toggles if a seperated indoor temperature is created with the accessory. This sensor can be used for automations as for some reason the internal sensors are not usable for this.",
                   "type": "boolean"
                 },
+                "temperatureSensorName": {
+                  "title": "Indoor Temperature Sensor Name",
+                  "description": "Custom name for the indoor temperature sensor.",
+                  "type": "string"
+                },
                 "humiditySensor": {
                   "title": "Humidity Sensor",
-                  "description": "Toggles if a separate humidity sensor is created with the accessory. This sensor can be used for automations.",
+                  "description": "Toggles if a separate humidity sensor is created. Required to see indoor humidity in HomeKit.",
                   "type": "boolean"
+                },
+                "humiditySensorName": {
+                  "title": "Humidity Sensor Name",
+                  "description": "Custom name for the humidity sensor.",
+                  "type": "string"
+                },
+                "humidityWeatherFallback": {
+                  "title": "Humidity Weather Fallback",
+                  "description": "Use local weather humidity if the device sensor reports 0% or is unavailable.",
+                  "type": "boolean",
+                  "default": false
                 }
               }
             },
@@ -662,6 +895,18 @@
           "items": ["refreshInterval", "heartbeatInterval", "uiDebug"]
         },
         {
+          "type": "fieldset",
+          "title": "Weather Service (Humidity Fallback)",
+          "expandable": true,
+          "expanded": false,
+          "items": [
+            "weather.enabled",
+            "weather.apiKey",
+            "weather.location",
+            "weather.interval"
+          ]
+        },
+        {
           "key": "devices",
           "type": "tabarray",
           "title": "{{ value.name || 'new device' }}",
@@ -688,9 +933,18 @@
               "expandable": true,
               "expanded": false,
               "items": [
-                "devices[].A1_options.temperatureSensor",
+                {
+                  "type": "fieldset",
+                  "title": "Sensors",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].A1_options.temperatureSensor",
+                    "devices[].A1_options.humiditySensor",
+                    "devices[].A1_options.humidityWeatherFallback"
+                  ]
+                },
                 "devices[].A1_options.fanAccessory",
-                "devices[].A1_options.humiditySensor",
                 "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.waterTankSensor",
                 "devices[].A1_options.minHumidity",
@@ -706,37 +960,99 @@
               "items": [
                 "devices[].AC_options.serviceType",
                 {
-                  "key": "devices[].AC_options.swing",
-                  "items": ["devices[].AC_options.swing.mode", "devices[].AC_options.swing.angleAccessory", "devices[].AC_options.swing.angleMainControl"]
+                  "type": "fieldset",
+                  "title": "Swing Options",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.swing.mode",
+                    "devices[].AC_options.swing.angleAccessory",
+                    "devices[].AC_options.swing.angleMainControl"
+                  ]
                 },
-                "devices[].AC_options.heatingCapable",
-                "devices[].AC_options.outDoorTemp",
-                "devices[].AC_options.audioFeedback",
-                "devices[].AC_options.screenOff",
-                "devices[].AC_options.ecoSwitch",
-                "devices[].AC_options.breezeAwaySwitch",
-                "devices[].AC_options.dryModeSwitch",
-                "devices[].AC_options.boostModeSwitch",
-                "devices[].AC_options.auxHeatingSwitches",
-                "devices[].AC_options.selfCleanSwitch",
-                "devices[].AC_options.ionSwitch",
-                "devices[].AC_options.outSilentSwitch",
-                "devices[].AC_options.rateSelector",
                 {
-                  "key": "devices[].AC_options.displaySwitch",
-                  "items": ["devices[].AC_options.displaySwitch.flag", "devices[].AC_options.displaySwitch.command"]
+                  "type": "fieldset",
+                  "title": "Mode Switches",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.coolModeSwitch",
+                    "devices[].AC_options.heatModeSwitch",
+                    "devices[].AC_options.autoModeSwitch",
+                    "devices[].AC_options.dryModeSwitch",
+                    "devices[].AC_options.fanOnlyModeSwitch",
+                    "devices[].AC_options.selfCleanSwitch"
+                  ]
                 },
-                "devices[].AC_options.minTemp",
-                "devices[].AC_options.maxTemp",
-                "devices[].AC_options.tempStep",
-                "devices[].AC_options.fahrenheit",
-                "devices[].AC_options.fanOnlyModeSwitch",
-                "devices[].AC_options.fanAccessory",
-                "devices[].AC_options.fanAutoSwitch",
-                "devices[].AC_options.sleepModeSwitch",
-                "devices[].AC_options.comfortModeSwitch",
-                "devices[].AC_options.temperatureSensor",
-                "devices[].AC_options.humiditySensor"
+                {
+                  "type": "fieldset",
+                  "title": "Advanced Features",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.ecoSwitch",
+                    "devices[].AC_options.boostModeSwitch",
+                    "devices[].AC_options.ionSwitch",
+                    "devices[].AC_options.breezeAwaySwitch",
+                    "devices[].AC_options.outSilentSwitch",
+                    "devices[].AC_options.rateSelector",
+                    "devices[].AC_options.smartEyeSwitch",
+                    "devices[].AC_options.powerMeter",
+                    "devices[].AC_options.powerDisplayType",
+                    "devices[].AC_options.energyDisplayType",
+                    "devices[].AC_options.timerSwitch",
+                    "devices[].AC_options.sleepModeSwitch",
+                    "devices[].AC_options.comfortModeSwitch",
+                    "devices[].AC_options.auxHeatingSwitches"
+                  ]
+                },
+                {
+                  "type": "fieldset",
+                  "title": "Display & Audio",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.displaySwitch",
+                    "devices[].AC_options.displaySwitchAlternate",
+                    "devices[].AC_options.audioFeedbackSwitch"
+                  ]
+                },
+                {
+                  "type": "fieldset",
+                  "title": "Sensors",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.outDoorTemp",
+                    "devices[].AC_options.temperatureSensor",
+                    "devices[].AC_options.humiditySensor",
+                    "devices[].AC_options.humidityWeatherFallback"
+                  ]
+                },
+                {
+                  "type": "fieldset",
+                  "title": "Fan Settings",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.fanAccessory",
+                    "devices[].AC_options.fanAutoSwitch",
+                    "devices[].AC_options.fanSpeedMode"
+                  ]
+                },
+                {
+                  "type": "fieldset",
+                  "title": "Thresholds & Unit",
+                  "expandable": true,
+                  "expanded": false,
+                  "items": [
+                    "devices[].AC_options.minTemp",
+                    "devices[].AC_options.maxTemp",
+                    "devices[].AC_options.tempStep",
+                    "devices[].AC_options.fahrenheit",
+                    "devices[].AC_options.heatingCapable"
+                  ]
+                }
               ]
             },
             {

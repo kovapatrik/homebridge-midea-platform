@@ -111,10 +111,9 @@ export default class MideaACDevice extends MideaDevice {
   private power_analysis_method?: number;
 
   private alternate_switch_display = false;
-  private last_fan_speed = AUTO_FAN_SPEED; // default to Auto
+  private last_fan_speed = 80; // default to High when leaving auto
 
   private defaultFahrenheit: boolean;
-  private defaultScreenOff: boolean;
 
   /*********************************************************************
    * Constructor initializes all the attributes.  We set some to invalid
@@ -169,7 +168,6 @@ export default class MideaACDevice extends MideaDevice {
     };
 
     this.defaultFahrenheit = deviceConfig.AC_options.fahrenheit;
-    this.defaultScreenOff = deviceConfig.AC_options.screenOff;
   }
 
   build_query() {
@@ -215,6 +213,9 @@ export default class MideaACDevice extends MideaDevice {
     for (const status of Object.keys(this.attributes)) {
       const value = message.get_body_attribute(status.toLowerCase());
       if (value !== undefined) {
+        if (status === 'FAN_SPEED' && value !== AUTO_FAN_SPEED) {
+          this.last_fan_speed = value as number;
+        }
         if (this.attributes[status] !== value) {
           // Track only those attributes that change value.  So when we send to the Homebridge /
           // HomeKit accessory we only update values that change.  First time through this
@@ -401,9 +402,9 @@ export default class MideaACDevice extends MideaDevice {
             if (k === 'POWER' && v === true && messageToSend.GENERAL instanceof MessageGeneralSet) {
               messageToSend.GENERAL.temp_fahrenheit = this.defaultFahrenheit;
               this.attributes.TEMP_FAHRENHEIT = this.defaultFahrenheit;
-              if (this.defaultScreenOff) {
-                messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
-              }
+              // Always send prompt tone state when turning on
+              messageToSend.SWITCH_DISPLAY ??= new MessageSwitchDisplay(this.device_protocol_version);
+              messageToSend.SWITCH_DISPLAY.prompt_tone = this.attributes.PROMPT_TONE;
             }
             if (k === 'MODE') {
               // Reset dry flag when changing mode to avoid conflicts
@@ -492,9 +493,11 @@ export default class MideaACDevice extends MideaDevice {
 
     if (fan_auto) {
       // Save last fan speed before setting to auto
-      this.last_fan_speed = this.attributes.FAN_SPEED;
+      if (this.attributes.FAN_SPEED !== AUTO_FAN_SPEED) {
+        this.last_fan_speed = this.attributes.FAN_SPEED;
+      }
     }
-    const fan_speed = fan_auto ? AUTO_FAN_SPEED : this.last_fan_speed;
+    const fan_speed = fan_auto ? AUTO_FAN_SPEED : (this.last_fan_speed === AUTO_FAN_SPEED ? 80 : this.last_fan_speed);
     message.fan_speed = fan_speed;
     this.attributes.FAN_SPEED = fan_speed;
     this.attributes.FAN_AUTO = fan_auto;

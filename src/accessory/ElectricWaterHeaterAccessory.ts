@@ -79,11 +79,13 @@ export default class ElectricWaterHeaterAccessory extends BaseAccessory<MideaE2D
       this.handleConfiguredName(this.wholeTankHeatingService, wholeTankHeatingSubtype, 'Whole Tank Heating');
       this.wholeTankHeatingService
         .getCharacteristic(this.platform.Characteristic.On)
-        .onGet(this.getWholeTankHeating.bind(this))
+        ?.onGet(this.getWholeTankHeating.bind(this))
         .onSet(this.setWholeTankHeating.bind(this));
     } else if (this.wholeTankHeatingService) {
       this.accessory.removeService(this.wholeTankHeatingService);
     }
+
+    this.initialized = true;
   }
 
   /*********************************************************************

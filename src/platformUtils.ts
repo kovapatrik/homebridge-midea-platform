@@ -3,6 +3,14 @@ export type Config = {
   heartbeatInterval: number;
   uiDebug: boolean;
   devices: DeviceConfig[];
+  weather: WeatherConfig;
+};
+
+export type WeatherConfig = {
+  enabled: boolean;
+  apiKey: string;
+  location?: string;
+  interval: number;
 };
 
 export const defaultConfig: Config = {
@@ -10,6 +18,11 @@ export const defaultConfig: Config = {
   heartbeatInterval: 10,
   uiDebug: false,
   devices: [],
+  weather: {
+    enabled: false,
+    apiKey: '',
+    interval: 30,
+  },
 };
 
 export type DeviceConfig = {
@@ -77,36 +90,70 @@ type ACOptions = {
   swing: {
     mode: SwingMode;
     angleAccessory: boolean;
+    angleAccessoryName?: string;
     angleMainControl: SwingAngle;
   };
   heatingCapable: boolean;
   ecoSwitch: boolean;
-  displaySwitch: {
-    flag: boolean;
-    command: boolean;
-  };
+  ecoSwitchName?: string;
+  displaySwitch: boolean;
+  displaySwitchAlternate: boolean;
+  displaySwitchName?: string;
   minTemp: number;
   maxTemp: number;
   tempStep: number;
   fahrenheit: boolean;
   fanOnlyModeSwitch: boolean;
+  fanOnlyModeSwitchName?: string;
   fanAccessory: boolean;
+  fanAccessoryName?: string;
   fanAutoSwitch: boolean;
+  fanAutoSwitchName?: string;
+  coolModeSwitch: boolean;
+  coolModeSwitchName?: string;
+  heatModeSwitch: boolean;
+  heatModeSwitchName?: string;
+  autoModeSwitch: boolean;
+  autoModeSwitchName?: string;
   breezeAwaySwitch: boolean;
+  breezeAwaySwitchName?: string;
   dryModeSwitch: boolean;
+  dryModeSwitchName?: string;
   boostModeSwitch: boolean;
+  boostModeSwitchName?: string;
   auxHeatingSwitches: boolean;
+  auxHeatingSwitchesName?: string;
+  auxHeatingSwitchesPlusHeatName?: string;
   selfCleanSwitch: boolean;
+  selfCleanSwitchName?: string;
   ionSwitch: boolean;
+  ionSwitchName?: string;
   outSilentSwitch: boolean;
+  outSilentSwitchName?: string;
   rateSelector: boolean;
+  rateSelectorName?: string;
   outDoorTemp: boolean;
-  audioFeedback: boolean;
-  screenOff: boolean;
+  outDoorTempName?: string;
+  audioFeedbackSwitch: boolean;
+  audioFeedbackSwitchName?: string;
+  smartEyeSwitch: boolean;
+  smartEyeSwitchName?: string;
+  powerMeter: boolean;
+  powerMeterName?: string;
+  timerSwitch: boolean;
+  timerSwitchName?: string;
   sleepModeSwitch: boolean;
+  sleepModeSwitchName?: string;
   comfortModeSwitch: boolean;
+  comfortModeSwitchName?: string;
   temperatureSensor: boolean;
+  temperatureSensorName?: string;
   humiditySensor: boolean;
+  humiditySensorName?: string;
+  humidityWeatherFallback: boolean;
+  powerDisplayType: 'None' | 'Lux' | 'Humidity' | 'CarbonDioxide' | 'Temperature';
+  energyDisplayType: 'None' | 'Lux' | 'Humidity' | 'CarbonDioxide' | 'Temperature';
+  fanSpeedMode: 'None' | '3' | '5';
 };
 
 type A1Options = {
@@ -119,6 +166,7 @@ type A1Options = {
   maxHumidity: number;
   humidityStep: number;
   humidityOffset: number;
+  humidityWeatherFallback: boolean;
 };
 
 type C3Options = {
@@ -211,19 +259,19 @@ export const defaultDeviceConfig: DeviceConfig = {
     },
     heatingCapable: true,
     outDoorTemp: false,
-    audioFeedback: false,
-    screenOff: false,
+    audioFeedbackSwitch: false,
+    smartEyeSwitch: false,
+    powerMeter: false,
     ecoSwitch: false,
+    displaySwitch: false,
+    displaySwitchAlternate: false,
     dryModeSwitch: false,
     boostModeSwitch: false,
     breezeAwaySwitch: false,
-    displaySwitch: {
-      flag: true,
-      command: false,
-    },
     auxHeatingSwitches: false,
     selfCleanSwitch: false,
     ionSwitch: false,
+    timerSwitch: false,
     outSilentSwitch: false,
     rateSelector: false,
     minTemp: 16,
@@ -233,10 +281,17 @@ export const defaultDeviceConfig: DeviceConfig = {
     fanOnlyModeSwitch: false,
     fanAccessory: false,
     fanAutoSwitch: false,
+    coolModeSwitch: false,
+    heatModeSwitch: false,
+    autoModeSwitch: false,
     sleepModeSwitch: false,
     comfortModeSwitch: false,
     temperatureSensor: false,
     humiditySensor: false,
+    humidityWeatherFallback: false,
+    powerDisplayType: 'Lux',
+    energyDisplayType: 'None',
+    fanSpeedMode: 'None',
   },
   A1_options: {
     temperatureSensor: false,
@@ -248,6 +303,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     maxHumidity: 85,
     humidityStep: 5,
     humidityOffset: 0,
+    humidityWeatherFallback: false,
   },
   C3_options: {
     zone1: false,

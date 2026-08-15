@@ -10,6 +10,8 @@
  *
  */
 import type { CharacteristicValue, Service } from 'homebridge';
+// @ts-ignore
+import FakegatoHistory from 'fakegato-history';
 import type MideaA1Device from '../devices/a1/MideaA1Device.js';
 import type { A1Attributes } from '../devices/a1/MideaA1Device.js';
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
@@ -32,6 +34,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
   private pumpService?: Service;
   private waterTankContactService?: Service;
   private waterTankLeakService?: Service;
+  private historyService?: any;
   // Increment this every time we make a change to accessory that requires
   // previously cached Homebridge service to be deleted/replaced.
   private serviceVersion = 1;
@@ -183,6 +186,47 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         this.waterTankLeakService = undefined;
       }
     }
+
+    this.initialized = true;
+
+    // Eve History
+    const FakeGatoHistoryService = FakegatoHistory(this.platform.api);
+    this.historyService = new FakeGatoHistoryService('weather', this.accessory, {
+      storage: 'fs',
+      log: this.platform.log,
+    });
+
+    // Weather Service updates
+    this.platform.weatherService.on('update', (data) => {
+      if (this.configDev.A1_options.humidityWeatherFallback) {
+        this.platform.log.info(`[${this.device.name}] Weather service updated (${data.humidity}%), refreshing humidity characteristic.`);
+        const humidity = this.getCurrentRelativeHumidity();
+        if (this.service) {
+          this.platform.log.info(`[${this.device.name}] Updating Dehumidifier service (iid: ${this.service.iid}) characteristic to ${humidity}%`);
+          this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+        }
+        if (this.humiditySensorService) {
+          this.platform.log.info(`[${this.device.name}] Updating HumiditySensor service (iid: ${this.humiditySensorService.iid}) characteristic to ${humidity}%`);
+          this.humiditySensorService.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+        }
+        this.historyService?.addEntry({ time: Math.round(new Date().getTime() / 1000), humidity: humidity as number });
+      }
+    });
+
+    // Initial weather fallback check
+    if (this.configDev.A1_options.humidityWeatherFallback) {
+      this.platform.log.info(`[${this.device.name}] Humidity weather fallback enabled.`);
+      if (this.platform.weatherService.humidity !== undefined) {
+        const humidity = this.getCurrentRelativeHumidity();
+        this.platform.log.info(`[${this.device.name}] Using initial weather fallback humidity: ${humidity}%`);
+        this.service?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+        this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+      } else {
+        this.platform.log.info(`[${this.device.name}] Humidity weather fallback enabled, waiting for first weather update.`);
+      }
+    } else if (this.platform.platformConfig.weather.enabled && this.configDev.A1_options.humiditySensor) {
+      this.platform.log.info(`[${this.device.name}] Tip: Global Weather Service is enabled. To use it as a fallback for this device, enable "Humidity Weather Fallback" in this device's settings.`);
+    }
   }
 
   /*********************************************************************
@@ -190,6 +234,7 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
    * any attribute value.
    */
   protected async updateCharacteristics(attributes: Partial<A1Attributes>) {
+    let historyEntry: any = {};
     for (const [k, v] of Object.entries(attributes)) {
       this.platform.log.debug(`[${this.device.name}] Set attribute ${k} to: ${v}`);
       let updateState = false;
@@ -198,27 +243,31 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           updateState = true;
           break;
         case 'target_humidity':
-          this.service.updateCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold, v as CharacteristicValue);
+          this.service?.updateCharacteristic(this.platform.Characteristic.RelativeHumidityDehumidifierThreshold, v as CharacteristicValue);
           updateState = true;
           break;
         case 'fan_speed':
-          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          this.service?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
           this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
           updateState = true;
           break;
-        case 'current_humidity':
-          this.service.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
-          this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, v as CharacteristicValue);
+        case 'current_humidity': {
+          const humidity = this.getCurrentRelativeHumidity();
+          this.service?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+          this.humiditySensorService?.updateCharacteristic(this.platform.Characteristic.CurrentRelativeHumidity, humidity);
+          historyEntry.humidity = humidity as number;
           updateState = true;
           break;
+        }
         case 'mode':
           updateState = true;
           break;
         case 'current_temperature':
           this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
+          historyEntry.temp = v as number;
           break;
         case 'tank_level':
-          this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
+          this.service?.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
           break;
         case 'pump':
           this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
@@ -240,14 +289,20 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
       }
       if (updateState) {
-        this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
-        this.service.updateCharacteristic(
+        this.service?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+        this.service?.updateCharacteristic(
           this.platform.Characteristic.TargetHumidifierDehumidifierState,
           this.platform.Characteristic.TargetHumidifierDehumidifierState.DEHUMIDIFIER,
         );
-        this.service.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.currentHumidifierDehumidifierState());
+        this.service?.updateCharacteristic(this.platform.Characteristic.CurrentHumidifierDehumidifierState, this.currentHumidifierDehumidifierState());
         this.fanService?.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
       }
+    }
+
+    // Add history entry if any of the monitored attributes changed
+    if (Object.keys(historyEntry).length > 0) {
+      historyEntry.time = Math.round(new Date().getTime() / 1000);
+      this.historyService?.addEntry(historyEntry);
     }
   }
 
@@ -314,12 +369,29 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
 
   // Handle requests to get the current value of the "RelativeHumidity" characteristic
   private getCurrentRelativeHumidity(): CharacteristicValue {
+    let humidity = this.device.attributes.CURRENT_HUMIDITY;
+    this.platform.log.debug(`[${this.device.name}] getCurrentRelativeHumidity: Device reports ${humidity}% (Fallback enabled: ${this.configDev.A1_options.humidityWeatherFallback})`);
+    if (humidity === undefined || humidity === 0 || humidity === 255) {
+      if (this.configDev.A1_options.humidityWeatherFallback) {
+        if (this.platform.weatherService.humidity !== undefined) {
+          this.platform.log.info(`[${this.device.name}] Current humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`);
+          humidity = this.platform.weatherService.humidity;
+        } else {
+          this.platform.log.warn(`[${this.device.name}] Current humidity is invalid (${humidity}%) and weather fallback is enabled but no weather data is available yet.`);
+        }
+      } else if (humidity === 0 && this.platform.platformConfig.weather.enabled && !this.accessory.context.fallbackSuggested) {
+        this.platform.log.info(`[${this.device.name}] Device reports 0% humidity. If this is incorrect, enable "Humidity Weather Fallback" in settings to use local weather data.`);
+        this.accessory.context.fallbackSuggested = true;
+      }
+    }
     this.platform.log.debug(
-      `[${this.device.name}] GET CurrentRelativeHumidity, value: ${this.device.attributes.CURRENT_HUMIDITY},\
+      `[${this.device.name}] GET CurrentRelativeHumidity, value: ${humidity},\
                                                                    custom offset: ${this.configDev.A1_options.humidityOffset}`,
     );
+    const result = (humidity ?? 0) + this.configDev.A1_options.humidityOffset;
+    this.platform.log.debug(`[${this.device.name}] getCurrentRelativeHumidity returning ${result}%`);
     // Adding custom offset to the humidity value
-    return this.device.attributes.CURRENT_HUMIDITY + this.configDev.A1_options.humidityOffset;
+    return result;
   }
 
   // Handle requests to get the Relative value of the "HumidityDehumidifierThreshold" characteristic

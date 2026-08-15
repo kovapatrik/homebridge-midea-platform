@@ -12,6 +12,7 @@ import createAccessory from './accessory/AccessoryFactory.js';
 import { type DeviceInfo, ProtocolVersion } from './core/MideaConstants.js';
 import Discover from './core/MideaDiscover.js';
 import createDevice from './devices/DeviceFactory.js';
+import { WeatherService } from './core/WeatherService.js';
 import { type Config, type DeviceConfig, defaultConfig, defaultDeviceConfig } from './platformUtils.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import { defaultsDeep } from 'lodash-es';
@@ -26,6 +27,8 @@ type MideaContext = {
   serviceVersion: number;
   configuredNames: { [key: string]: string };
   thresholds: { [key: string]: number };
+  energy?: number;
+  fallbackSuggested?: boolean;
 };
 
 export type MideaAccessory = PlatformAccessory<MideaContext>;
@@ -36,14 +39,15 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
   public readonly accessories: Map<string, MideaAccessory> = new Map();
   public readonly discoveredCacheUUIDs: string[] = [];
+  public readonly weatherService: WeatherService;
 
   // Keep track of all devices discovered by broadcast
   private discoveredDevices: Map<number, boolean> = new Map();
   private discoveryInterval = 60; // seconds
 
-  private readonly discover: Discover;
+  public readonly discover: Discover;
   // Need seperate variable because the DynamicPlatformPlugin constructor won't accept anything but the PlatformConfig type
-  private readonly platformConfig: Config;
+  public readonly platformConfig: Config;
 
   constructor(
     public readonly log: Logger,
@@ -63,6 +67,8 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.log.debug(`Configuration:\n${JSON.stringify(this.platformConfig, null, 2)}`);
 
     this.discover = new Discover(log);
+
+    this.weatherService = new WeatherService(log, this.platformConfig.weather);
 
     // Register callback with Discover class that is called for each device as
     // they are discovered on the network.
@@ -175,6 +181,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     // Add default config values
     defaultsDeep(deviceConfig, defaultDeviceConfig);
     const device = createDevice(this.log, device_info, this.platformConfig, deviceConfig);
+    this.log.debug(`[${device_info.name}] Device config: ${JSON.stringify(deviceConfig, null, 2)}`);
     if (device === null) {
       this.log.error(`Device type is unsupported by the plugin: ${device_info.type}`);
     } else {

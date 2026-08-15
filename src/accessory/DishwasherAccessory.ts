@@ -39,6 +39,8 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
       .getCharacteristic(this.platform.Characteristic.RemainingDuration)
       .setProps({ minValue: 0, maxValue: 60 * 60 * 8, minStep: 1 })
       .onGet(this.getRemainingDuration.bind(this));
+
+    this.initialized = true;
   }
 
   async updateCharacteristics(attributes: Partial<E1Attributes>) {
