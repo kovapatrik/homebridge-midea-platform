@@ -443,11 +443,15 @@
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",
@@ -632,11 +636,15 @@
               "properties": {
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",
@@ -686,11 +694,15 @@
               "properties": {
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",
@@ -739,11 +751,15 @@
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",
@@ -790,11 +806,15 @@
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",
@@ -828,11 +848,15 @@
                 },
                 "minTemp": {
                   "title": "Minimum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "maxTemp": {
                   "title": "Maximum Temperature (°C)",
-                  "type": "number"
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 40
                 },
                 "tempStep": {
                   "title": "Temperature Step (°C)",

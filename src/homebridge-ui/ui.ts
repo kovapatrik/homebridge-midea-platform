@@ -75,9 +75,14 @@ Alpine.data('discoverApp', () => {
       homebridge.showSpinner();
 
       const pluginConfig = await homebridge.getPluginConfig();
+      console.log('[UI] getPluginConfig returned:', JSON.stringify(pluginConfig, null, 2));
       configSchema = await homebridge.getPluginConfigSchema();
+      console.log('[UI] getPluginConfigSchema returned schema for:', configSchema.pluginAlias);
 
-      if (!pluginConfig.length) pluginConfig.push({});
+      if (!pluginConfig.length) {
+        console.log('[UI] No config found, creating new one.');
+        pluginConfig.push({ platform: configSchema.pluginAlias });
+      }
 
       configuration = pluginConfig[0] as Config;
       defaultsDeep(configuration, defaultConfig);

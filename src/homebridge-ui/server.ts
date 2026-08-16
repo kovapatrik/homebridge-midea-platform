@@ -107,13 +107,19 @@ class UiServer extends HomebridgePluginUiServer {
 
   constructor() {
     super();
-    const config = (
-      JSON.parse(fs.readFileSync(this.homebridgeConfigPath!, 'utf8')) as { platforms: Array<{ platform: string; uiDebug?: boolean }> }
-    ).platforms.find((obj) => obj.platform === 'midea-portasplit');
-    this.logger = new Logger(config?.uiDebug ?? false);
+    const configPath = this.homebridgeConfigPath!;
+    const fileContent = fs.readFileSync(configPath, 'utf8');
+    const fullConfig = JSON.parse(fileContent);
+    const mideaConfig = fullConfig.platforms.find((obj: { platform: string }) => obj.platform === 'midea-portasplit');
+    
+    console.log('[UI Server] Config path:', configPath);
+    console.log('[UI Server] Found platforms:', fullConfig.platforms.map((p: { platform: string }) => p.platform));
+    console.log('[UI Server] Selected midea-portasplit config:', mideaConfig ? 'FOUND' : 'NOT FOUND');
+
+    this.logger = new Logger(mideaConfig?.uiDebug ?? false);
     this.logger.info('Custom UI created.');
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
+    this.promiseSocket = new PromiseSocket(this.logger, mideaConfig?.uiDebug ?? false);
 
     this.onRequest(
       '/login',
