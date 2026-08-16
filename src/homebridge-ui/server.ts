@@ -109,7 +109,7 @@ class UiServer extends HomebridgePluginUiServer {
     super();
     const config = (
       JSON.parse(fs.readFileSync(this.homebridgeConfigPath!, 'utf8')) as { platforms: Array<{ platform: string; uiDebug?: boolean }> }
-    ).platforms.find((obj) => obj.platform === 'midea-platform');
+    ).platforms.find((obj) => obj.platform === 'midea-portasplit');
     this.logger = new Logger(config?.uiDebug ?? false);
     this.logger.info('Custom UI created.');
     this.security = new LocalSecurity();

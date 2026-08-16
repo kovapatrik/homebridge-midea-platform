@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "Midea-platform",
+  "pluginAlias": "midea-portasplit",
   "pluginType": "platform",
   "customUi": true,
   "customUiPath": "./dist/homebridge-ui",
