@@ -2,13 +2,9 @@
   <a href="https://github.com/homebridge/verified/blob/master/verified-plugins.json"><img alt="Homebridge Verified" src="./branding/Homebridge_x_Midea.svg" width="500px"></a>
 </p>
 
-# homebridge-midea-platform
+# @jouskaio/homebridge-midea-portasplit
 
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-[![npm](https://badgen.net/npm/v/homebridge-midea-platform)](https://www.npmjs.com/package/homebridge-midea-platform)
-[![npm](https://badgen.net/npm/dt/homebridge-midea-platform?label=downloads)](https://www.npmjs.com/package/homebridge-midea-platform)
-
-_Verified_ plugin for Midea devices. This is implemented by building on the Homebridge platform plugin template and the work done by:
+_Custom version_ for Midea devices. Developed by [Jouskaio](https://github.com/Jouskaio). Based on the original work by [kovapatrik](https://github.com/kovapatrik/homebridge-midea-platform).
 
 - [@georgezhao2010](https://github.com/georgezhao2010) in the [midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) project for Home Assistant
 - The [midea-local](https://github.com/midea-lan/midea-local) project.
@@ -41,6 +37,12 @@ Currently supports the following devices:
 | Fan                   | FA  | [link](/docs/fa.md) |
 | Humidifier            | FD  | [link](/docs/fd.md) |
 
+### Getting Started
+
+1.  **Wi-Fi Connection**: Ensure your device is connected to your local network. If it's not, follow the [Wi-Fi Setup Guide](/docs/wifi-setup.md).
+2.  **Installation**: Install the plugin via Homebridge UI.
+3.  **Discovery**: Use the built-in discovery tool in the settings to find your devices and obtain security keys.
+
 ### Key Features (Air Conditioners)
 
 - **Comprehensive Mode Control**: Dedicated switches for Cool, Heat, Auto, Dry, Fan, and Self-cleaning modes.
@@ -61,12 +63,12 @@ If you have a device not supported by the plugin then useful information will be
 
 **Option 1: Install via Homebridge Config UI X:**
 
-Search for "midea" in [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) and install `homebridge-midea-platform`.
+Search for "portasplit" in [homebridge-config-ui-x](https://github.com/oznu/homebridge-config-ui-x) and install `@jouskaio/homebridge-midea-portasplit`.
 
 **Option 2: Manually Install:**
 
 ```text
-sudo npm install -g homebridge-midea-platform
+sudo npm install -g @jouskaio/homebridge-midea-portasplit
 ```
 
 Midea device status is retrieved over your Local Area Network (LAN) and credentials are obtained from the Midea cloud services over the internet. While the plugin maintains a status cache, **use of Homebridge [child bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges)** is strongly encouraged. As noted below in the _network resiliency_ section, this plugin will make multiple attempts to fulfill a request if necessary, which can take time.
@@ -85,7 +87,7 @@ This plugin is fully compatible with **Matter**, the unifying standard for smart
 
 - **Fan Speed**: For best compatibility with Google Home via Matter, set `fanSpeedMode` to `5 levels` (Silent, Low, Medium, High, Full + Auto) in the AC options.
 - **Child Bridge**: Matter works best when the plugin is running in a [Child Bridge](https://github.com/homebridge/homebridge/wiki/Child-Bridges).
-- **Dependencies**: If you see "Module not found" errors after an update, run `npm run setup-remote` again to update the dependencies on your server.
+- **Updates**: As this is an official npm package, updates can be handled directly via the Homebridge UI.
 
 ## Power & Energy Monitoring
 
@@ -158,7 +160,7 @@ If some accessories (like Humidity or Power consumption) do not appear on your m
 1.  **Check the "Climate" Status**: Apple Home often groups sensors (Temperature, Humidity) at the top of the Home tab under a single "Climate" icon. Tap it to see individual values.
 2.  **Make them "Favorites"**: To show a sensor as a separate tile on the main screen:
     - Long-press the accessory (e.g., the AC unit) -> **Accessory Details**.
-    - Scroll down to the list of services (Humidité, Température).
+    - Scroll down to the list of services (Humidity, Temperature).
     - Tap on the specific sensor -> **Accessory Details** (gear icon).
     - Ensure **Add to Favorites** is turned **ON**.
 3.  **Check "Show in Home View"**: In the same settings menu, ensure **Show in Home View** is enabled.
@@ -173,15 +175,6 @@ If some accessories (like Humidity or Power consumption) do not appear on your m
 [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) is the easiest and **strongly recommended** way to configure this plugin.
 
 You should use the UI to discover and add devices. More information on the settings can be found in the [wiki](https://github.com/kovapatrik/homebridge-midea-platform/wiki#device-discovery).
-
-### Development & Remote Testing
-
-If you are developing this plugin and want to test it on a remote Homebridge server (e.g., on a Raspberry Pi/Proxmox on your LAN), you can use the built-in deployment scripts:
-
-1.  **Initial Setup**: Run `npm run setup-remote` to prepare your server (installs `rsync`, updates Node.js to v22, and installs dependencies).
-2.  **Fast Deploy**: Run `npm run deploy` to build the plugin, sync files to the server, and restart Homebridge automatically.
-
-_Note: Make sure to update the IP address and credentials in `package.json` before running these scripts._
 
 ## Contribution
 

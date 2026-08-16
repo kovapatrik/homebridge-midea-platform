@@ -37,6 +37,7 @@ export type DeviceConfig = {
     logRecoverableErrors: boolean;
     logRefreshStatusErrors: boolean;
     registerIfOffline: boolean;
+    refreshBeforeSet: boolean;
     sub_type?: number;
   };
   AC_options: ACOptions;
@@ -249,6 +250,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     logRecoverableErrors: true,
     logRefreshStatusErrors: true,
     registerIfOffline: false,
+    refreshBeforeSet: false,
   },
   AC_options: {
     serviceType: ACServiceType.HEATER_COOLER,

@@ -143,9 +143,11 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         missingDevices++;
         if (this.discoveredDevices.get(device.id) === undefined) {
           this.discoveredDevices.set(device.id, false);
-          this.log.warn(`[${device.name}] Device not found (id: ${device.id}), will retry every ${this.discoveryInterval} seconds`);
+          this.log.warn(
+            `[${device.name}] Device not found (id: ${device.id}). Check if it's powered on and connected to Wi-Fi. See docs/wifi-setup.md for troubleshooting.`,
+          );
         } else {
-          this.log.debug(`[${device.name}] Device not found (id: ${device.id}), will retry in ${this.discoveryInterval} seconds`);
+          this.log.debug(`[${device.name}] Device not found (id: ${device.id}), retrying discovery...`);
         }
       }
     }

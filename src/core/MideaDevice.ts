@@ -45,8 +45,13 @@ export default abstract class MideaDevice extends EventEmitter {
   protected verbose: boolean;
   protected logRecoverableErrors: boolean;
   protected logRefreshStatusErrors: boolean;
+  protected refreshBeforeSet: boolean;
 
   private _sub_type?: number;
+  private pendingAttributes: DeviceAttributeBase = {};
+  private setAttributePromises: { resolve: () => void; reject: (err: any) => void }[] = [];
+  private setAttributeTimer: NodeJS.Timeout | null = null;
+  private isApplyingAttributes = false;
 
   public token: KeyToken = undefined;
   public key: KeyToken = undefined;
@@ -61,7 +66,62 @@ export default abstract class MideaDevice extends EventEmitter {
   protected abstract build_query(): MessageRequest[];
   protected abstract process_message(message: Buffer): void;
   protected abstract set_subtype(): void;
-  public abstract set_attribute(status: DeviceAttributeBase): Promise<void>;
+  protected abstract apply_attributes(attributes: DeviceAttributeBase): Promise<void>;
+
+  public async set_attribute(attributes: DeviceAttributeBase): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.logger.debug(`[${this.name}] Enqueuing attribute change: ${JSON.stringify(attributes)}`);
+      Object.assign(this.pendingAttributes, attributes);
+      this.setAttributePromises.push({ resolve, reject });
+
+      if (this.setAttributeTimer) {
+        clearTimeout(this.setAttributeTimer);
+      }
+
+      this.setAttributeTimer = setTimeout(async () => {
+        this.setAttributeTimer = null;
+        await this.processPendingAttributes();
+      }, 250); // 250ms debounce
+    });
+  }
+
+  private async processPendingAttributes() {
+    if (this.isApplyingAttributes) {
+      return;
+    }
+
+    if (Object.keys(this.pendingAttributes).length === 0) {
+      return;
+    }
+
+    this.isApplyingAttributes = true;
+    const attrs = { ...this.pendingAttributes };
+    const promises = [...this.setAttributePromises];
+    this.pendingAttributes = {};
+    this.setAttributePromises = [];
+
+    try {
+      this.logger.debug(`[${this.name}] Applying consolidated attributes: ${JSON.stringify(attrs)}`);
+      if (this.refreshBeforeSet) {
+        this.logger.debug(`[${this.name}] Refreshing status before set as requested in config`);
+        await this.refresh_status(true);
+      }
+      await this.apply_attributes(attrs);
+      promises.forEach((p) => p.resolve());
+    } catch (err) {
+      this.logger.error(`[${this.name}] Error applying attributes: ${err}`);
+      promises.forEach((p) => p.reject(err));
+    } finally {
+      this.isApplyingAttributes = false;
+      // If more attributes were added while we were processing, schedule another run
+      if (Object.keys(this.pendingAttributes).length > 0 && !this.setAttributeTimer) {
+        this.setAttributeTimer = setTimeout(async () => {
+          this.setAttributeTimer = null;
+          await this.processPendingAttributes();
+        }, 100);
+      }
+    }
+  }
 
   constructor(
     protected readonly logger: Logger,
@@ -86,6 +146,7 @@ export default abstract class MideaDevice extends EventEmitter {
     this.verbose = configDev.advanced_options.verbose;
     this.logRecoverableErrors = configDev.advanced_options.logRecoverableErrors;
     this.logRefreshStatusErrors = configDev.advanced_options.logRefreshStatusErrors;
+    this.refreshBeforeSet = configDev.advanced_options.refreshBeforeSet;
 
     this.logger.debug(`[${this.name}] Device specific verbose debug logging is set to ${configDev.advanced_options.verbose}`);
     this.logger.debug(`[${this.name}] Device specific log recoverable errors is set to ${configDev.advanced_options.logRecoverableErrors}`);
@@ -178,11 +239,15 @@ export default abstract class MideaDevice extends EventEmitter {
         }
       } else {
         this._authenticated = false;
-        throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}.`);
+        throw Error(`Authenticate error when receiving data from ${this.ip}:${this.port}. (No response)`);
       }
     } catch (err) {
       this._authenticated = false;
-      throw err;
+      const msg = err instanceof Error ? err.message : err;
+      throw new Error(
+        `Authentication failed: ${msg}. Hint: check if your token/key are still valid. If you recently removed the device from the Midea app, you may need to re-generate them.`,
+        { cause: err },
+      );
     }
   }
 
@@ -203,22 +268,27 @@ export default abstract class MideaDevice extends EventEmitter {
     }
     if (force_reinit || !this.promiseSocket || this.promiseSocket.destroyed) {
       this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
-      let connected = await this.connect(false);
-      while (!connected) {
-        connected = await this.connect(false);
+      const connected = await this.connect(false);
+      if (!connected) {
+        throw new Error(`[${this.name}] Connection failed`);
       }
     }
     try {
       await this.promiseSocket.write(data);
-    } catch {
-      this.logger.debug(`[${this.name}] Error when sending data to device, retrying...`);
+    } catch (err) {
+      this.logger.debug(`[${this.name}] Error when sending data to device, retrying in 2s... (${retries} retries left): ${err}`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       await this.send_message_v2(data, retries - 1, true);
     }
   }
 
   private async send_message_v3(data: Buffer, message_type: TCPMessageType = TCPMessageType.ENCRYPTED_REQUEST) {
     if (!this._authenticated) {
-      this.logger.warn(`[${this.name}] Cannot send V3 message — not authenticated. Dropping message.`);
+      this.logger.debug(`[${this.name}] Not authenticated, attempting to connect...`);
+      await this.connect(false);
+    }
+    if (!this._authenticated) {
+      this.logger.warn(`[${this.name}] Cannot send V3 message — authentication failed. Dropping message.`);
       return;
     }
     const encrypted_data = this.security.encode_8370(data, message_type);

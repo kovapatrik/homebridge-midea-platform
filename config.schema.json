@@ -1,10 +1,10 @@
 {
-  "pluginAlias": "midea-platform",
+  "pluginAlias": "Midea-platform",
   "pluginType": "platform",
   "customUi": true,
   "customUiPath": "./dist/homebridge-ui",
-  "headerDisplay": "This plugin is currently experimental and under development.  Please report [bugs](https://github.com/kovapatrik/homebridge-midea-platform/issues)",
-  "footerDisplay": "For help please see the [homepage](https://github.com/kovapatrik/homebridge-midea-platform)",
+  "headerDisplay": "Custom version of the Midea Platform plugin. Report issues at [GitHub](https://github.com/Jouskaio/homebridge-midea-platform/issues)",
+  "footerDisplay": "Based on the work of [kovapatrik](https://github.com/kovapatrik/homebridge-midea-platform). Forked by Jouskaio.",
   "singular": true,
   "schema": {
     "type": "object",
@@ -129,6 +129,11 @@
                   "title": "Log refresh status errors",
                   "type": "boolean",
                   "description": "If you see warning and errors which are related to the refresh status process you can suppress these messages by disabling this setting. (e.g.: `Does not supports the protocol...`)"
+                },
+                "refreshBeforeSet": {
+                  "title": "Refresh status before set",
+                  "type": "boolean",
+                  "description": "If enabled, the plugin will refresh the device status before sending any command. This is useful if the device status can be changed by other applications (e.g. Midea SmartHome) to avoid command conflicts."
                 }
               }
             },

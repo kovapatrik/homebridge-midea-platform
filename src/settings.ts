@@ -6,4 +6,4 @@ export const PLATFORM_NAME = 'midea-platform';
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = 'homebridge-midea-platform';
+export const PLUGIN_NAME = '@jouskaio/homebridge-midea-portasplit';

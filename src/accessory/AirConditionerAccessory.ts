@@ -1258,7 +1258,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (humidity === undefined || humidity === 0 || humidity === 255) {
       if (this.configDev.AC_options.humidityWeatherFallback) {
         if (this.platform.weatherService.humidity !== undefined) {
-          this.platform.log.info(
+          this.platform.log.debug(
             `[${this.device.name}] Indoor humidity is invalid (${humidity}%), using weather fallback: ${this.platform.weatherService.humidity}%`,
           );
           humidity = this.platform.weatherService.humidity;
@@ -1462,10 +1462,10 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
         await this.device.set_attribute({ POWER: true });
       }
       if (this.getRateSelect() === 100) {
-        await this.device.set_rate_select(2); // 50%
+        await this.device.set_attribute({ RATE_SELECT: 2 }); // 50%
       }
     } else {
-      await this.device.set_rate_select(0); // 100% (No limit)
+      await this.device.set_attribute({ RATE_SELECT: 0 }); // 100% (No limit)
     }
   }
 
@@ -1506,7 +1506,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (val > 3 && (this.device.attributes.RATE_SELECT === undefined || this.device.attributes.RATE_SELECT > 3)) {
       code = val;
     }
-    await this.device.set_rate_select(code);
+    await this.device.set_attribute({ RATE_SELECT: code });
   }
 
   getSwingAngleCurrentPosition(): CharacteristicValue {

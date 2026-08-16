@@ -189,7 +189,7 @@ export default class MideaCCDevice extends MideaDevice {
     return controls;
   }
 
-  async set_attribute(attributes: Partial<CCAttributes>) {
+  protected async apply_attributes(attributes: Partial<CCAttributes>) {
     try {
       const changed: Partial<CCAttributes> = {};
       for (const [k, v] of Object.entries(attributes)) {

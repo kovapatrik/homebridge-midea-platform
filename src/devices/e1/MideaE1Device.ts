@@ -118,7 +118,7 @@ export default class MideaE1Device extends MideaDevice {
     }
   }
 
-  async set_attribute(attributes: Partial<E1Attributes>) {
+  protected async apply_attributes(attributes: Partial<E1Attributes>) {
     const messageToSend: {
       POWER: MessagePower | undefined;
       CHILD_LOCK: MessageLock | undefined;
@@ -154,9 +154,9 @@ export default class MideaE1Device extends MideaDevice {
         if (v !== undefined) {
           this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
           await this.build_send(v);
-          this.update(attributes);
         }
       }
+      this.update(attributes);
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);

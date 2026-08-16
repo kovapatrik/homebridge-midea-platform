@@ -48,12 +48,18 @@ export default class Discover extends EventEmitter {
         // Only add device if it has not already been added.
         this.ips.push(rinfo.address);
 
-        const device_version = this.getDeviceVersion(msg);
-        const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
-        this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
+        try {
+          const device_version = this.getDeviceVersion(msg);
+          const device_info = await this.getDeviceInfo(rinfo.address, device_version, msg);
+          this.logger.info(`Discovered device: ${JSON.stringify(device_info)}`);
 
-        // Send signal to Homebridge platform with details on the discovered device
-        this.emit('device', device_info);
+          // Send signal to Homebridge platform with details on the discovered device
+          this.emit('device', device_info);
+        } catch (err) {
+          this.logger.error(`Error while processing discovery message from ${rinfo.address}: ${err}`);
+          // Remove from list so we can try again
+          this.ips = this.ips.filter((ip) => ip !== rinfo.address);
+        }
       }
     });
   }
@@ -115,7 +121,7 @@ export default class Discover extends EventEmitter {
       const msg = e instanceof Error ? e.stack : e;
       this.logger.error(`Fatal error during plugin initialization:\n${msg}`);
     }
-    // this.logger.info(`Broadcast addresses: ${JSON.stringify(list)}`);
+    this.logger.debug(`Broadcasting to: ${JSON.stringify(list)}`);
     return list;
   }
 
@@ -125,6 +131,7 @@ export default class Discover extends EventEmitter {
    * up to an additional "retries" times each spaced by 3 seconds.
    */
   public startDiscover(retries = 3, timeout = 2000) {
+    this.ips = [];
     let tries = 0;
     // force timeout to be between 500ms and 5 seconds
     const limitedTimeout = Math.max(500, Math.min(timeout, 5000));

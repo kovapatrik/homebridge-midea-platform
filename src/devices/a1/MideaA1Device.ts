@@ -155,7 +155,7 @@ export default class MideaA1Device extends MideaDevice {
     return message;
   }
 
-  async set_attribute(attributes: Partial<A1Attributes>) {
+  protected async apply_attributes(attributes: Partial<A1Attributes>) {
     const messageToSend: {
       SET: MessageSet | undefined;
     } = {
@@ -184,13 +184,12 @@ export default class MideaA1Device extends MideaDevice {
         }
       }
 
-      for (const [k, v] of Object.entries(messageToSend)) {
+      for (const v of Object.values(messageToSend)) {
         if (v !== undefined) {
-          this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
           await this.build_send(v);
-          this.update(attributes);
         }
       }
+      this.update(attributes);
     } catch (err) {
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
