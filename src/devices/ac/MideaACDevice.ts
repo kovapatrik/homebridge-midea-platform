@@ -182,7 +182,8 @@ export default class MideaACDevice extends MideaDevice {
     }
     const queries = [
       new MessageQuery(this.device_protocol_version),
-      new MessageNewProtocolQuery(this.device_protocol_version),
+      // Querying display status wakes the screen on some Q-series units.
+      new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display),
       new MessagePowerQuery(this.device_protocol_version),
       new MessageHumidityQuery(this.device_protocol_version),
       new MessageGroupZeroQuery(this.device_protocol_version),
