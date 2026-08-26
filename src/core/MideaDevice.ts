@@ -56,6 +56,10 @@ export default abstract class MideaDevice extends EventEmitter {
 
   private promiseSocket: PromiseSocket;
 
+  private pending_attributes: DeviceAttributeBase = {};
+  private flush_timer?: ReturnType<typeof setTimeout>;
+  protected readonly COALESCE_WINDOW_MS = 50;
+
   public abstract attributes: DeviceAttributeBase;
 
   protected abstract build_query(): MessageRequest[];
@@ -228,6 +232,18 @@ export default abstract class MideaDevice extends EventEmitter {
     const data = command.serialize();
     const message = new PacketBuilder(this.id, data).finalize();
     await this.send_message(message);
+  }
+
+  public queue_attribute(attributes: DeviceAttributeBase) {
+    Object.assign(this.pending_attributes, attributes);
+    if (this.flush_timer === undefined) {
+      this.flush_timer = setTimeout(async () => {
+        this.flush_timer = undefined;
+        const queued_attributes = this.pending_attributes;
+        this.pending_attributes = {};
+        await this.set_attribute(queued_attributes);
+      }, this.COALESCE_WINDOW_MS);
+    }
   }
 
   public async refresh_status(wait_response = false, ignore_unsupported = false) {
