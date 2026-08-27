@@ -399,7 +399,7 @@ export default class MideaACDevice extends MideaDevice {
               messageToSend.GENERAL.swing_vertical = false;
             }
           } else if (k === 'SWING_HORIZONTAL' || k === 'SWING_VERTICAL') {
-            messageToSend.GENERAL ??= this.make_message_unique_set();
+            messageToSend.GENERAL ??= this.make_message_set();
             messageToSend.GENERAL[k.toLowerCase()] = v;
             this.attributes.WIND_SWING_LR_ANGLE = 0;
             this.attributes.WIND_SWING_UD_ANGLE = 0;
