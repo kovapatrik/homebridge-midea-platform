@@ -56,6 +56,13 @@ export default abstract class MideaDevice extends EventEmitter {
 
   private promiseSocket: PromiseSocket;
 
+  private pending_attributes: DeviceAttributeBase = {};
+  private flush_timer?: ReturnType<typeof setTimeout>;
+  private flush_promise?: Promise<void>;
+  private flush_reject?: (reason: Error) => void;
+  private flush_chain: Promise<void> = Promise.resolve();
+  protected readonly COALESCE_WINDOW_MS = 50;
+
   public abstract attributes: DeviceAttributeBase;
 
   protected abstract build_query(): MessageRequest[];
@@ -228,6 +235,26 @@ export default abstract class MideaDevice extends EventEmitter {
     const data = command.serialize();
     const message = new PacketBuilder(this.id, data).finalize();
     await this.send_message(message);
+  }
+
+  public queue_attribute(attributes: DeviceAttributeBase) {
+    Object.assign(this.pending_attributes, attributes);
+    this.flush_promise ??= new Promise<void>((resolve, reject) => {
+      this.flush_reject = reject;
+      this.flush_timer = setTimeout(() => {
+        this.flush_timer = undefined;
+        this.flush_promise = undefined;
+        this.flush_reject = undefined;
+
+        const queued_attributes = this.pending_attributes;
+        this.pending_attributes = {};
+
+        const flush = this.flush_chain.then(() => this.set_attribute(queued_attributes));
+        this.flush_chain = flush.catch(() => {});
+        flush.then(resolve, reject);
+      }, this.COALESCE_WINDOW_MS);
+    });
+    return this.flush_promise;
   }
 
   public async refresh_status(wait_response = false, ignore_unsupported = false) {
@@ -404,6 +431,16 @@ export default abstract class MideaDevice extends EventEmitter {
   public close() {
     if (this.is_running) {
       this.is_running = false;
+      if (this.flush_timer !== undefined) {
+        clearTimeout(this.flush_timer);
+        this.flush_timer = undefined;
+        this.flush_promise = undefined;
+
+        this.pending_attributes = {};
+
+        this.flush_reject?.(new Error(`[${this.name}] Device closed before queued attributes were sent`));
+        this.flush_reject = undefined;
+      }
       this.close_socket();
     }
   }

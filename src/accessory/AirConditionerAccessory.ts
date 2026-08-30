@@ -661,16 +661,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (this.useThermostat) {
       switch (value) {
         case this.platform.Characteristic.TargetHeatingCoolingState.OFF:
-          await this.device.set_attribute({ POWER: false });
+          await this.device.queue_attribute({ POWER: false });
           break;
         case this.platform.Characteristic.TargetHeatingCoolingState.COOL:
-          await this.device.set_attribute({ POWER: true, MODE: ACMode.COOLING });
+          await this.device.queue_attribute({ POWER: true, MODE: ACMode.COOLING });
           break;
         case this.platform.Characteristic.TargetHeatingCoolingState.HEAT:
-          await this.device.set_attribute({ POWER: true, MODE: ACMode.HEATING });
+          await this.device.queue_attribute({ POWER: true, MODE: ACMode.HEATING });
           break;
         case this.platform.Characteristic.TargetHeatingCoolingState.AUTO:
-          await this.device.set_attribute({ POWER: true, MODE: ACMode.AUTO });
+          await this.device.queue_attribute({ POWER: true, MODE: ACMode.AUTO });
           break;
       }
       return;
@@ -678,13 +678,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     switch (value) {
       case this.platform.Characteristic.TargetHeaterCoolerState.AUTO:
-        await this.device.set_attribute({ POWER: true, MODE: ACMode.AUTO });
+        await this.device.queue_attribute({ POWER: true, MODE: ACMode.AUTO });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.COOL:
-        await this.device.set_attribute({ POWER: true, MODE: ACMode.COOLING });
+        await this.device.queue_attribute({ POWER: true, MODE: ACMode.COOLING });
         break;
       case this.platform.Characteristic.TargetHeaterCoolerState.HEAT:
-        await this.device.set_attribute({ POWER: true, MODE: ACMode.HEATING });
+        await this.device.queue_attribute({ POWER: true, MODE: ACMode.HEATING });
         break;
     }
 
@@ -699,7 +699,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setActive(value: CharacteristicValue) {
-    await this.device.set_attribute({ POWER: !!value });
+    await this.device.queue_attribute({ POWER: !!value });
     this.device.attributes.SCREEN_DISPLAY = !!value;
     this.displayService?.updateCharacteristic(this.platform.Characteristic.On, !!value);
   }
@@ -711,7 +711,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setTemperatureDisplayUnits(value: CharacteristicValue) {
-    await this.device.set_attribute({
+    await this.device.queue_attribute({
       TEMP_FAHRENHEIT: value === this.platform.Characteristic.TemperatureDisplayUnits.FAHRENHEIT,
     });
   }
@@ -730,7 +730,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     const target = limitValue(Math.round(+value / tempStep) * tempStep, minTemp, maxTemp);
 
     if (this.getTargetTemperature() === target) return;
-    await this.device.set_target_temperature(target);
+    await this.device.queue_attribute({ TARGET_TEMPERATURE: target });
   }
 
   async setTargetTemperatureWithinThresholds() {
@@ -778,9 +778,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setFanOnlyMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, MODE: ACMode.FAN_ONLY });
+      await this.device.queue_attribute({ POWER: true, MODE: ACMode.FAN_ONLY });
     } else {
-      await this.device.set_attribute({ POWER: false, MODE: ACMode.OFF });
+      await this.device.queue_attribute({ POWER: false, MODE: ACMode.OFF });
     }
   }
 
@@ -789,11 +789,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setFanState(value: CharacteristicValue) {
-    await this.device.set_fan_auto(value === this.platform.Characteristic.TargetFanState.AUTO);
+    await this.device.queue_attribute({ FAN_AUTO: value === this.platform.Characteristic.TargetFanState.AUTO });
   }
 
   async setFanAuto(value: CharacteristicValue) {
-    await this.device.set_fan_auto(value === true);
+    await this.device.queue_attribute({ FAN_AUTO: value === true });
   }
 
   setHeatingCoolingTemperatureThresholds(thresholds: { heating?: number; cooling?: number }) {
@@ -834,17 +834,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingMode(value: CharacteristicValue) {
-    switch (value) {
-      case this.platform.Characteristic.SwingMode.SWING_ENABLED:
-        await this.device.set_swing(
-          [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
-          [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
-        );
-        break;
-      case this.platform.Characteristic.SwingMode.SWING_DISABLED:
-        await this.device.set_swing(false, false);
-        break;
-    }
+    const enabled = value === this.platform.Characteristic.SwingMode.SWING_ENABLED;
+    await this.device.queue_attribute({
+      SWING_HORIZONTAL: enabled && [SwingMode.HORIZONTAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
+      SWING_VERTICAL: enabled && [SwingMode.VERTICAL, SwingMode.BOTH].includes(this.configDev.AC_options.swing.mode),
+    });
   }
 
   getRotationSpeed(): CharacteristicValue {
@@ -852,7 +846,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setRotationSpeed(value: CharacteristicValue) {
-    await this.device.set_attribute({ FAN_SPEED: value as number });
+    await this.device.queue_attribute({ FAN_SPEED: value as number });
   }
 
   getIndoorHumidity(): CharacteristicValue {
@@ -869,7 +863,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setDisplayActive(value: CharacteristicValue) {
     if (this.device.attributes.POWER) {
-      await this.device.set_attribute({ SCREEN_DISPLAY: !!value });
+      await this.device.queue_attribute({ SCREEN_DISPLAY: !!value });
     }
   }
 
@@ -878,7 +872,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setEcoMode(value: CharacteristicValue) {
-    await this.device.set_attribute({ ECO_MODE: !!value });
+    await this.device.queue_attribute({ ECO_MODE: !!value });
   }
 
   getBreezeAway(): CharacteristicValue {
@@ -886,7 +880,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setBreezeAway(value: CharacteristicValue) {
-    await this.device.set_attribute({ INDIRECT_WIND: !!value });
+    await this.device.queue_attribute({ INDIRECT_WIND: !!value });
   }
 
   getDryMode(): CharacteristicValue {
@@ -895,9 +889,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setDryMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, MODE: ACMode.DRY });
+      await this.device.queue_attribute({ POWER: true, MODE: ACMode.DRY });
     } else {
-      await this.device.set_attribute({ POWER: false });
+      await this.device.queue_attribute({ POWER: false });
     }
   }
 
@@ -907,9 +901,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setBoostMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, BOOST_MODE: true });
+      await this.device.queue_attribute({ POWER: true, BOOST_MODE: true });
     } else {
-      await this.device.set_attribute({ BOOST_MODE: false });
+      await this.device.queue_attribute({ BOOST_MODE: false });
     }
   }
 
@@ -919,9 +913,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAux(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ SMART_EYE: true });
+      await this.device.queue_attribute({ SMART_EYE: true });
     } else {
-      await this.device.set_attribute({ SMART_EYE: false });
+      await this.device.queue_attribute({ SMART_EYE: false });
     }
   }
 
@@ -931,9 +925,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setAuxHeating(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ AUX_HEATING: true });
+      await this.device.queue_attribute({ AUX_HEATING: true });
     } else {
-      await this.device.set_attribute({ AUX_HEATING: false });
+      await this.device.queue_attribute({ AUX_HEATING: false });
     }
   }
 
@@ -942,7 +936,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSelfCleanState(value: CharacteristicValue) {
-    await this.device.set_self_clean(value === true);
+    await this.device.queue_attribute({ SELF_CLEAN: value === true });
   }
 
   getIonState(): CharacteristicValue {
@@ -950,7 +944,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setIonState(value: CharacteristicValue) {
-    await this.device.set_attribute({ ANION: !!value });
+    await this.device.queue_attribute({ ANION: !!value });
   }
 
   getOutSilent(): CharacteristicValue {
@@ -958,7 +952,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setOutSilent(value: CharacteristicValue) {
-    await this.device.set_out_silent(!!value);
+    await this.device.queue_attribute({ OUT_SILENT: !!value });
   }
 
   getRateSelect(): CharacteristicValue {
@@ -966,7 +960,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setRateSelect(value: CharacteristicValue) {
-    await this.device.set_rate_select(value as number);
+    await this.device.queue_attribute({ RATE_SELECT: value as number });
   }
 
   getSwingAngleCurrentPosition(): CharacteristicValue {
@@ -980,7 +974,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingAngleTargetPosition(value: CharacteristicValue) {
-    await this.device.set_swing_angle(this.swingAngleMainControl, Math.max(1, value as number));
+    const swing_angle = Math.max(1, value as number);
+    const swing_direction = this.swingAngleMainControl === SwingAngle.VERTICAL ? 'WIND_SWING_UD_ANGLE' : 'WIND_SWING_LR_ANGLE';
+    await this.device.queue_attribute({ [swing_direction]: swing_angle });
   }
 
   getSwingAnglePositionState(): CharacteristicValue {
@@ -996,7 +992,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingAngleTargetHorizontalTiltAngle(value: CharacteristicValue) {
-    await this.device.set_swing_angle(SwingAngle.HORIZONTAL, Math.max(1, value as number));
+    await this.device.queue_attribute({ WIND_SWING_LR_ANGLE: Math.max(1, value as number) });
   }
 
   getSwingAngleCurrentVerticalTiltAngle(): CharacteristicValue {
@@ -1008,7 +1004,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingAngleTargetVerticalTiltAngle(value: CharacteristicValue) {
-    await this.device.set_swing_angle(SwingAngle.VERTICAL, Math.max(1, value as number));
+    await this.device.queue_attribute({ WIND_SWING_UD_ANGLE: Math.max(1, value as number) });
   }
 
   getSleepMode(): CharacteristicValue {
@@ -1019,9 +1015,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setSleepMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, COMFORT_SLEEP_MODE: true });
+      await this.device.queue_attribute({ POWER: true, COMFORT_SLEEP_MODE: true });
     } else {
-      await this.device.set_attribute({ COMFORT_SLEEP_MODE: false });
+      await this.device.queue_attribute({ COMFORT_SLEEP_MODE: false });
     }
   }
 
@@ -1033,9 +1029,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setComfortMode(value: CharacteristicValue) {
     if (value) {
-      await this.device.set_attribute({ POWER: true, COMFORT_MODE: true });
+      await this.device.queue_attribute({ POWER: true, COMFORT_MODE: true });
     } else {
-      await this.device.set_attribute({ COMFORT_MODE: false });
+      await this.device.queue_attribute({ COMFORT_MODE: false });
     }
   }
 }

@@ -9,7 +9,7 @@
 import type { Logger } from 'homebridge';
 import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
-import { ACMode, type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
+import { ACMode, type Config, type DeviceConfig } from '../../platformUtils.js';
 import {
   MessageACResponse,
   MessageCapabilitiesAdditionalQuery,
@@ -391,6 +391,33 @@ export default class MideaACDevice extends MideaDevice {
             const fresh_air = value > 0 ? [true, value] : [false, this.attributes.FRESH_AIR_FAN_SPEED];
             messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
             messageToSend.NEW_PROTOCOL[this.fresh_air_version] = fresh_air;
+          } else if (k === 'WIND_SWING_UD_ANGLE' || k === 'WIND_SWING_LR_ANGLE') {
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+            this.set_swing_angle(k, v as number, messageToSend.NEW_PROTOCOL);
+            if (messageToSend.GENERAL instanceof MessageGeneralSet) {
+              messageToSend.GENERAL.swing_horizontal = false;
+              messageToSend.GENERAL.swing_vertical = false;
+            }
+          } else if (k === 'SWING_HORIZONTAL' || k === 'SWING_VERTICAL') {
+            messageToSend.GENERAL ??= this.make_message_set();
+            messageToSend.GENERAL[k.toLowerCase()] = v;
+            this.attributes.WIND_SWING_LR_ANGLE = 0;
+            this.attributes.WIND_SWING_UD_ANGLE = 0;
+          } else if (k === 'SELF_CLEAN' || k === 'OUT_SILENT' || k === 'RATE_SELECT') {
+            messageToSend.NEW_PROTOCOL ??= new MessageNewProtocolSet(this.device_protocol_version);
+            messageToSend.NEW_PROTOCOL[k.toLowerCase()] = v;
+            messageToSend.NEW_PROTOCOL.prompt_tone = this.attributes.PROMPT_TONE;
+          } else if (k === 'FAN_AUTO') {
+            messageToSend.GENERAL ??= this.make_message_unique_set();
+            this.disable_all_fan_related_modes(messageToSend.GENERAL);
+            if (v) {
+              this.last_fan_speed = this.attributes.FAN_SPEED;
+              messageToSend.GENERAL.fan_speed = AUTO_FAN_SPEED;
+              this.attributes.FAN_SPEED = AUTO_FAN_SPEED;
+            } else {
+              messageToSend.GENERAL.fan_speed = this.last_fan_speed;
+              this.attributes.FAN_SPEED = this.last_fan_speed;
+            }
           } else if (k === 'FAN_SPEED') {
             messageToSend.GENERAL ??= this.make_message_unique_set();
             this.set_fan_speed(v as number, messageToSend.GENERAL);
@@ -442,34 +469,6 @@ export default class MideaACDevice extends MideaDevice {
     this.alternate_switch_display = value;
   }
 
-  async set_target_temperature(target_temperature: number, mode?: number) {
-    this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
-    const message = this.make_message_unique_set();
-    message.target_temperature = target_temperature;
-    if (mode) {
-      message.mode = mode;
-      message.power = true;
-    }
-    await this.build_send(message);
-    this.attributes.TARGET_TEMPERATURE = target_temperature;
-    if (mode) {
-      this.attributes.MODE = mode;
-      this.attributes.POWER = true;
-    }
-  }
-
-  async set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
-    this.logger.info(`[${this.name}] Set swing horizontal to: ${swing_horizontal}, vertical to: ${swing_vertical}`);
-    const message = this.make_message_set();
-    message.swing_horizontal = swing_horizontal;
-    message.swing_vertical = swing_vertical;
-    await this.build_send(message);
-    this.attributes.SWING_HORIZONTAL = swing_horizontal;
-    this.attributes.SWING_VERTICAL = swing_vertical;
-    this.attributes.WIND_SWING_LR_ANGLE = 0;
-    this.attributes.WIND_SWING_UD_ANGLE = 0;
-  }
-
   private disable_all_fan_related_modes(message: MessageGeneralSet | MessageSubProtocolSet) {
     // Check if any fan-related mode is currently active
     const anyModeActive = this.FAN_RELATED_MODES.some((mode) => this.attributes[mode]);
@@ -492,31 +491,6 @@ export default class MideaACDevice extends MideaDevice {
     this.attributes.ECO_MODE = false;
     this.attributes.FROST_PROTECT = false;
     this.attributes.COMFORT_MODE = false;
-  }
-
-  async set_fan_auto(fan_auto: boolean) {
-    const previousAttributes = { ...this.attributes };
-    const previousLastFanSpeed = this.last_fan_speed;
-    this.logger.info(`[${this.name}] Set fan auto to: ${fan_auto}`);
-    const message = this.make_message_unique_set();
-
-    this.disable_all_fan_related_modes(message);
-
-    if (fan_auto) {
-      // Save last fan speed before setting to auto
-      this.last_fan_speed = this.attributes.FAN_SPEED;
-    }
-    const fan_speed = fan_auto ? AUTO_FAN_SPEED : this.last_fan_speed;
-    message.fan_speed = fan_speed;
-    this.attributes.FAN_SPEED = fan_speed;
-    this.attributes.FAN_AUTO = fan_auto;
-    try {
-      await this.build_send(message);
-    } catch (err) {
-      this.attributes = previousAttributes;
-      this.last_fan_speed = previousLastFanSpeed;
-      throw err;
-    }
   }
 
   set_fan_speed(fan_speed: number, message: MessageGeneralSet | MessageSubProtocolSet) {
@@ -568,53 +542,16 @@ export default class MideaACDevice extends MideaDevice {
     }
   }
 
-  async set_swing_angle(swing_direction: SwingAngle, swing_angle: number) {
-    this.logger.info(`[${this.name}] Set swing ${swing_direction} angle to: ${swing_angle}`);
-    const message = new MessageNewProtocolSet(this.device_protocol_version);
-    switch (swing_direction) {
-      case SwingAngle.HORIZONTAL:
-        message.wind_swing_lr_angle = swing_angle;
-        break;
-      case SwingAngle.VERTICAL:
-        message.wind_swing_ud_angle = swing_angle;
-        break;
+  set_swing_angle(swing_direction: 'WIND_SWING_UD_ANGLE' | 'WIND_SWING_LR_ANGLE', swing_angle: number, message: MessageNewProtocolSet) {
+    this.logger.info(`[${this.name}] Set ${swing_direction} to: ${swing_angle}`);
+    if (swing_direction === 'WIND_SWING_UD_ANGLE') {
+      message.wind_swing_ud_angle = swing_angle;
+    } else {
+      message.wind_swing_lr_angle = swing_angle;
     }
     message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
     this.attributes.SWING_HORIZONTAL = false;
     this.attributes.SWING_VERTICAL = false;
-    if (swing_direction === SwingAngle.HORIZONTAL) {
-      this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
-    } else {
-      this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
-    }
-  }
-
-  async set_self_clean(self_clean: boolean) {
-    this.logger.info(`[${this.name}] Set self clean to: ${self_clean}`);
-    const message = new MessageNewProtocolSet(this.device_protocol_version);
-    message.self_clean = self_clean;
-    message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.SELF_CLEAN = self_clean;
-  }
-
-  async set_rate_select(rate_select: number) {
-    this.logger.info(`[${this.name}] Set rate select to: ${rate_select}`);
-    const message = new MessageNewProtocolSet(this.device_protocol_version);
-    message.rate_select = rate_select;
-    message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.RATE_SELECT = rate_select;
-  }
-
-  async set_out_silent(out_silent: boolean) {
-    this.logger.info(`[${this.name}] Set out silent to: ${out_silent}`);
-    const message = new MessageNewProtocolSet(this.device_protocol_version);
-    message.out_silent = out_silent;
-    message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.OUT_SILENT = out_silent;
   }
 
   protected set_subtype(): void {
