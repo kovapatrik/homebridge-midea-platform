@@ -241,7 +241,10 @@ export class MessageSwitchDisplay extends MessageACBase {
 }
 
 export class MessageNewProtocolQuery extends MessageACBase {
-  constructor(device_protocol_version: number) {
+  constructor(
+    device_protocol_version: number,
+    private readonly query_screen_display = false,
+  ) {
     super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
 
@@ -252,14 +255,14 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      NewProtocolTags.SCREEN_DISPLAY,
+      ...(this.query_screen_display ? [NewProtocolTags.SCREEN_DISPLAY] : []),
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
       NewProtocolTags.SELF_CLEAN,
       NewProtocolTags.RATE_SELECT,
       NewProtocolTags.OUT_SILENT,
       NewProtocolTags.BUZZER_ALL,
-      NewProtocolTags.ERROR_CODE_QUERY,
+      // Do not add ERROR_CODE_QUERY: some Q-series units treat it as a display action and briefly show "EC".
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
