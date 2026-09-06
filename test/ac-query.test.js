@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DeviceType, ProtocolVersion } from '../src/core/MideaConstants.ts';
 import MideaACDevice from '../src/devices/ac/MideaACDevice.ts';
-import { MessageNewProtocolQuery } from '../src/devices/ac/MideaACMessage.ts';
+import { MessageNewProtocolQuery, MessagePowerQuery, MessageQuery } from '../src/devices/ac/MideaACMessage.ts';
 import { defaultConfig, defaultDeviceConfig } from '../src/platformUtils.ts';
 
 const SCREEN_DISPLAY_TAG = 0x0017;
@@ -42,6 +42,15 @@ function getNewProtocolQueryTags(device) {
 
   return Array.from({ length: count }, (_, index) => body.readUInt16LE(1 + index * 2));
 }
+
+test('uses the pre-v1.3 periodic query set', () => {
+  const queries = createDevice().build_query();
+
+  assert.equal(queries.length, 3);
+  assert.ok(queries[0] instanceof MessageQuery);
+  assert.ok(queries[1] instanceof MessageNewProtocolQuery);
+  assert.ok(queries[2] instanceof MessagePowerQuery);
+});
 
 test('only queries display status when the alternate display command is enabled', () => {
   const device = createDevice();

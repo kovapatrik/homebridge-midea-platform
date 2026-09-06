@@ -12,11 +12,7 @@ import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js
 import { ACMode, type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
 import {
   MessageACResponse,
-  MessageCapabilitiesAdditionalQuery,
-  MessageCapabilitiesQuery,
   MessageGeneralSet,
-  MessageGroupZeroQuery,
-  MessageHumidityQuery,
   MessageNewProtocolQuery,
   MessageNewProtocolSet,
   MessagePowerQuery,
@@ -104,7 +100,6 @@ export default class MideaACDevice extends MideaDevice {
 
   private fresh_air_version?: number;
   private used_subprotocol = false;
-  private capabilities_queried = false;
   private bb_sn8_flag = false;
   private bb_timer = false;
   private readonly DEFAULT_POWER_ANALYSIS_METHOD = 2;
@@ -180,20 +175,12 @@ export default class MideaACDevice extends MideaDevice {
         new MessageSubProtocolQuery(this.device_protocol_version, 0x30),
       ];
     }
-    const queries = [
+    return [
       new MessageQuery(this.device_protocol_version),
       // Querying display status wakes the screen on some Q-series units.
       new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display),
       new MessagePowerQuery(this.device_protocol_version),
-      new MessageHumidityQuery(this.device_protocol_version),
-      new MessageGroupZeroQuery(this.device_protocol_version),
     ];
-    if (!this.capabilities_queried) {
-      queries.push(new MessageCapabilitiesQuery(this.device_protocol_version));
-      queries.push(new MessageCapabilitiesAdditionalQuery(this.device_protocol_version));
-      this.capabilities_queried = true;
-    }
-    return queries;
   }
 
   process_message(msg: Buffer) {
