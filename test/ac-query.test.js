@@ -2,10 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DeviceType, ProtocolVersion } from '../src/core/MideaConstants.ts';
 import MideaACDevice from '../src/devices/ac/MideaACDevice.ts';
-import { MessageNewProtocolQuery, MessagePowerQuery, MessageQuery } from '../src/devices/ac/MideaACMessage.ts';
+import {
+  MessageCapabilitiesAdditionalQuery,
+  MessageCapabilitiesQuery,
+  MessageGroupZeroQuery,
+  MessageHumidityQuery,
+  MessageNewProtocolQuery,
+  MessagePowerQuery,
+  MessageQuery,
+} from '../src/devices/ac/MideaACMessage.ts';
 import { defaultConfig, defaultDeviceConfig } from '../src/platformUtils.ts';
 
 const SCREEN_DISPLAY_TAG = 0x0017;
+const ERROR_CODE_QUERY_TAG = 0x003f;
 
 const logger = {
   debug() {},
@@ -43,19 +52,30 @@ function getNewProtocolQueryTags(device) {
   return Array.from({ length: count }, (_, index) => body.readUInt16LE(1 + index * 2));
 }
 
-test('uses the pre-v1.3 periodic query set', () => {
-  const queries = createDevice().build_query();
+test('preserves periodic queries and only requests capabilities once', () => {
+  const device = createDevice();
+  const queries = device.build_query();
 
-  assert.equal(queries.length, 3);
+  assert.equal(queries.length, 7);
   assert.ok(queries[0] instanceof MessageQuery);
   assert.ok(queries[1] instanceof MessageNewProtocolQuery);
   assert.ok(queries[2] instanceof MessagePowerQuery);
+  assert.ok(queries[3] instanceof MessageHumidityQuery);
+  assert.ok(queries[4] instanceof MessageGroupZeroQuery);
+  assert.ok(queries[5] instanceof MessageCapabilitiesQuery);
+  assert.ok(queries[6] instanceof MessageCapabilitiesAdditionalQuery);
+
+  assert.equal(device.build_query().length, 5);
 });
 
-test('only queries display status when the alternate display command is enabled', () => {
+test('omits display-waking tags from the periodic extended query', () => {
   const device = createDevice();
-  assert.equal(getNewProtocolQueryTags(device).includes(SCREEN_DISPLAY_TAG), false);
+  const tags = getNewProtocolQueryTags(device);
+  assert.equal(tags.includes(SCREEN_DISPLAY_TAG), false);
+  assert.equal(tags.includes(ERROR_CODE_QUERY_TAG), false);
 
   device.set_alternate_switch_display(true);
-  assert.equal(getNewProtocolQueryTags(device).includes(SCREEN_DISPLAY_TAG), true);
+  const alternateDisplayTags = getNewProtocolQueryTags(device);
+  assert.equal(alternateDisplayTags.includes(SCREEN_DISPLAY_TAG), true);
+  assert.equal(alternateDisplayTags.includes(ERROR_CODE_QUERY_TAG), false);
 });

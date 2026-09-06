@@ -262,7 +262,7 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.RATE_SELECT,
       NewProtocolTags.OUT_SILENT,
       NewProtocolTags.BUZZER_ALL,
-      NewProtocolTags.ERROR_CODE_QUERY,
+      // Do not add ERROR_CODE_QUERY: some Q-series units treat it as a display action and briefly show "EC".
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
