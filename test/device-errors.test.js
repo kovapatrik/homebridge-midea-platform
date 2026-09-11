@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DeviceType, ProtocolVersion } from '../src/core/MideaConstants.ts';
 import MideaACDevice from '../src/devices/ac/MideaACDevice.ts';
+import { PromiseSocket } from '../src/core/MideaUtils.ts';
 import { MideaPlatform } from '../src/platform.ts';
 import { defaultConfig, defaultDeviceConfig } from '../src/platformUtils.ts';
 
@@ -12,7 +13,7 @@ const logger = {
   warn() {},
 };
 
-function createDevice() {
+function createDevice(version = ProtocolVersion.V3) {
   return new MideaACDevice(
     logger,
     {
@@ -23,7 +24,7 @@ function createDevice() {
       sn: 'test',
       name: 'Test AC',
       type: DeviceType.AIR_CONDITIONER,
-      version: ProtocolVersion.V3,
+      version,
     },
     structuredClone(defaultConfig),
     structuredClone(defaultDeviceConfig),
@@ -34,6 +35,58 @@ test('rejects V3 commands while unauthenticated', async () => {
   const device = createDevice();
 
   await assert.rejects(device.send_message(Buffer.alloc(0)), /not authenticated/);
+});
+
+test('does not reconnect synchronously when a socket is destroyed', async () => {
+  const device = createDevice(ProtocolVersion.V2);
+  let connectCalls = 0;
+  device.connect = async () => {
+    connectCalls++;
+    throw new Error('unexpected reconnect');
+  };
+  device.promiseSocket = { destroyed: true };
+
+  await assert.rejects(device.send_message(Buffer.alloc(0)), /Socket is not connected/);
+  assert.equal(connectCalls, 0);
+});
+
+test('closes the socket after a send failure and leaves reconnecting to the listener', async () => {
+  const device = createDevice(ProtocolVersion.V2);
+  let connectCalls = 0;
+  const socket = {
+    destroyed: false,
+    async write() {
+      throw new Error('write failed');
+    },
+    destroy() {
+      this.destroyed = true;
+    },
+  };
+  device.connect = async () => {
+    connectCalls++;
+    throw new Error('unexpected reconnect');
+  };
+  device.promiseSocket = socket;
+
+  await assert.rejects(device.send_message(Buffer.alloc(0)), /write failed/);
+  assert.equal(socket.destroyed, true);
+  assert.equal(connectCalls, 0);
+});
+
+test('returns immediately when reading an already destroyed socket', async () => {
+  const socket = new PromiseSocket(logger, false);
+  socket.destroyed = true;
+  let timeout;
+
+  const result = await Promise.race([
+    socket.read(),
+    new Promise((resolve) => {
+      timeout = setTimeout(() => resolve(undefined), 20);
+    }),
+  ]);
+  clearTimeout(timeout);
+
+  assert.deepEqual(result, Buffer.alloc(0));
 });
 
 test('restores AC attributes when a command fails', async () => {

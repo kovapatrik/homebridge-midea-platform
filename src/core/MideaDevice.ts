@@ -197,22 +197,18 @@ export default abstract class MideaDevice extends EventEmitter {
     }
   }
 
-  private async send_message_v2(data: Buffer, retries = 3, force_reinit = false) {
-    if (retries === 0) {
-      throw new Error(`[${this.name} | send_message] Error when sending data to device.`);
-    }
-    if (force_reinit || !this.promiseSocket || this.promiseSocket.destroyed) {
-      this.promiseSocket = new PromiseSocket(this.logger, this.logRecoverableErrors);
-      let connected = await this.connect(false);
-      while (!connected) {
-        connected = await this.connect(false);
-      }
+  private async send_message_v2(data: Buffer) {
+    if (this.promiseSocket.destroyed) {
+      throw new Error(`[${this.name} | send_message] Socket is not connected.`);
     }
     try {
       await this.promiseSocket.write(data);
-    } catch {
-      this.logger.debug(`[${this.name}] Error when sending data to device, retrying...`);
-      await this.send_message_v2(data, retries - 1, true);
+    } catch (err) {
+      // The network listener owns reconnects.  Retrying here can reconnect a
+      // socket that the listener is concurrently reading, then strand it when
+      // the replacement handshake fails.
+      this.close_socket();
+      throw err;
     }
   }
 
@@ -477,6 +473,9 @@ export default abstract class MideaDevice extends EventEmitter {
           } else if (now - previous_heartbeat >= this.heartbeat_interval) {
             await this.send_heartbeat();
             previous_heartbeat = now;
+          }
+          if (this.promiseSocket.destroyed) {
+            continue;
           }
           // We wait up to one second for a message, in effect we cause the while loop
           // we are in to itterate once a second... allowing us to check for heartbeat
