@@ -31,6 +31,7 @@ enum NewProtocolTags {
   B5_STRONG_WIND = 0x021a,
   B5_HUMIDITY = 0x021f,
   B5_TEMPERATURE = 0x0225,
+  B5_ELECTRICITY = 0x0216,
   B5_FILTER_REMIND = 0x0217,
   B5_SCREEN_DISPLAY = 0x0224,
   B5_ANION = 0x021e,
@@ -241,7 +242,11 @@ export class MessageSwitchDisplay extends MessageACBase {
 }
 
 export class MessageNewProtocolQuery extends MessageACBase {
-  constructor(device_protocol_version: number) {
+  constructor(
+    device_protocol_version: number,
+    private readonly query_screen_display = false,
+    private readonly query_rate_select = false,
+  ) {
     super(device_protocol_version, MessageType.QUERY, 0xb1);
   }
 
@@ -252,14 +257,14 @@ export class MessageNewProtocolQuery extends MessageACBase {
       NewProtocolTags.INDIRECT_WIND,
       NewProtocolTags.BREEZELESS,
       NewProtocolTags.INDOOR_HUMIDITY,
-      NewProtocolTags.SCREEN_DISPLAY,
+      ...(this.query_screen_display ? [NewProtocolTags.SCREEN_DISPLAY] : []),
       NewProtocolTags.FRESH_AIR_1,
       NewProtocolTags.FRESH_AIR_2,
       NewProtocolTags.SELF_CLEAN,
-      NewProtocolTags.RATE_SELECT,
+      ...(this.query_rate_select ? [NewProtocolTags.RATE_SELECT] : []),
       NewProtocolTags.OUT_SILENT,
       NewProtocolTags.BUZZER_ALL,
-      NewProtocolTags.ERROR_CODE_QUERY,
+      // Do not add ERROR_CODE_QUERY: some Q-series units treat it as a display action and briefly show "EC".
     ];
     let body = Buffer.from([query_params.length]);
     for (const param of query_params) {
@@ -820,6 +825,7 @@ class XB5MessageBody extends NewProtocolMessageBody {
   public b5_temperature4?: number;
   public b5_temperature5?: number;
   public b5_temperature6?: number;
+  public b5_electricity?: number;
   public b5_screen_display?: number;
   public b5_sound?: number;
   public b5_humidity?: number;
@@ -856,6 +862,10 @@ class XB5MessageBody extends NewProtocolMessageBody {
       this.b5_temperature4 = params[NewProtocolTags.B5_TEMPERATURE][4];
       this.b5_temperature5 = params[NewProtocolTags.B5_TEMPERATURE][5];
       this.b5_temperature6 = params[NewProtocolTags.B5_TEMPERATURE][6];
+    }
+
+    if (NewProtocolTags.B5_ELECTRICITY in params) {
+      this.b5_electricity = params[NewProtocolTags.B5_ELECTRICITY][0];
     }
 
     if (NewProtocolTags.B5_SCREEN_DISPLAY in params) {

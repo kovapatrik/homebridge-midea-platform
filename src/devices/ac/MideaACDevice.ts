@@ -111,6 +111,7 @@ export default class MideaACDevice extends MideaDevice {
   private power_analysis_method?: number;
 
   private alternate_switch_display = false;
+  private supports_rate_select = false;
   private last_fan_speed = AUTO_FAN_SPEED; // default to Auto
 
   private defaultFahrenheit: boolean;
@@ -182,7 +183,7 @@ export default class MideaACDevice extends MideaDevice {
     }
     const queries = [
       new MessageQuery(this.device_protocol_version),
-      new MessageNewProtocolQuery(this.device_protocol_version),
+      new MessageNewProtocolQuery(this.device_protocol_version, this.alternate_switch_display, this.supports_rate_select),
       new MessagePowerQuery(this.device_protocol_version),
       new MessageHumidityQuery(this.device_protocol_version),
       new MessageGroupZeroQuery(this.device_protocol_version),
@@ -201,6 +202,11 @@ export default class MideaACDevice extends MideaDevice {
       this.logger.debug(`[${this.name}] Body:\n${JSON.stringify(message.body)}`);
     }
     const changed: DeviceAttributeBase = {};
+    const b5Electricity = message.get_body_attribute('b5_electricity');
+    if (b5Electricity !== undefined) {
+      // A nonzero B5 electricity value is the number of supported rate-select levels.
+      this.supports_rate_select = b5Electricity > 0;
+    }
     let has_fresh_air = false;
     if (message.used_subprotocol) {
       this.used_subprotocol = true;
