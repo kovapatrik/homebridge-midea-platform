@@ -11,7 +11,6 @@
 import { randomBytes } from 'node:crypto';
 import axios from 'axios';
 import { DateTime } from 'luxon';
-import { Semaphore } from 'semaphore-promise';
 import type { Endianness } from './MideaConstants.js';
 import {
   ArtisonClimaSecurity,
@@ -37,17 +36,14 @@ export abstract class CloudBase<S extends CloudSecurity> {
   protected uid?: string;
   protected key?: string;
 
-  protected semaphore: Semaphore;
   public loggedIn = false;
+  private login_promise?: Promise<void>;
 
   constructor(
     protected readonly account: string,
     protected readonly password: string,
     protected readonly security: S,
-  ) {
-    // Required to serialize access to some cloud functions.
-    this.semaphore = new Semaphore();
-  }
+  ) {}
 
   protected timestamp() {
     return DateTime.now().toFormat('yyyyMMddHHmmss');
@@ -77,7 +73,19 @@ export abstract class CloudBase<S extends CloudSecurity> {
     }
   }
 
-  abstract login(): Promise<void>;
+  protected abstract perform_login(): Promise<void>;
+
+  // Concurrent callers share the in-flight login, so a failure is reported
+  // to all of them once instead of every waiter retrying in turn.
+  login(): Promise<void> {
+    if (this.loggedIn) {
+      return Promise.resolve();
+    }
+    this.login_promise ??= this.perform_login().finally(() => {
+      this.login_promise = undefined;
+    });
+    return this.login_promise;
+  }
 
   async getTokenKey(device_id: number, endianess: Endianness): Promise<[Buffer, Buffer]> {
     const udpid = CloudSecurity.getUDPID(numberToUint8Array(device_id, 6, endianess));
@@ -164,13 +172,8 @@ export abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudB
     };
   }
 
-  async login() {
-    const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
+  protected async perform_login() {
     try {
-      if (this.loggedIn) {
-        return;
-      }
-      // Not logged in so proceed...
       const login_id = await this.getLoginId();
       // const iotData = this.buildRequestData();
       // delete iotData.uid;
@@ -205,9 +208,7 @@ export abstract class ProxiedCloudBase<S extends ProxiedSecurity> extends CloudB
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      throw new Error(`Error in Adding new accessory:\n${msg}`, { cause: e });
-    } finally {
-      releaseSemaphore();
+      throw new Error(`Failed to login:\n${msg}`, { cause: e });
     }
   }
 
@@ -341,15 +342,8 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
     throw new Error(`Failed to send request to ${url}.`);
   }
 
-  async login() {
-    // We need to protect against multiple attempts to login, so we only login if not already
-    // logged in.  Protect this block with a semaphone.
-    const releaseSemaphore = await this.semaphore.acquire('Obtain login semaphore');
+  protected async perform_login() {
     try {
-      if (this.loggedIn) {
-        return;
-      }
-      // Not logged in so proceed...
       const login_id = await this.getLoginId();
       const data: DataObject = {
         ...this.buildRequestData(),
@@ -371,9 +365,7 @@ abstract class SimpleCloud<T extends SimpleSecurity> extends CloudBase<T> {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.stack : e;
-      throw new Error(`Error in Adding new accessory:\n${msg}`, { cause: e });
-    } finally {
-      releaseSemaphore();
+      throw new Error(`Failed to login:\n${msg}`, { cause: e });
     }
   }
 }
