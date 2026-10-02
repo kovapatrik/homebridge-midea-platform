@@ -198,16 +198,20 @@ export default abstract class MideaDevice extends EventEmitter {
   }
 
   private async send_message_v2(data: Buffer) {
-    if (this.promiseSocket.destroyed) {
+    const socket = this.promiseSocket;
+    if (socket.destroyed) {
       throw new Error(`[${this.name} | send_message] Socket is not connected.`);
     }
     try {
-      await this.promiseSocket.write(data);
+      await socket.write(data);
     } catch (err) {
       // The network listener owns reconnects.  Retrying here can reconnect a
       // socket that the listener is concurrently reading, then strand it when
-      // the replacement handshake fails.
-      this.close_socket();
+      // the replacement handshake fails. Only close the socket we wrote to;
+      // the listener may already have replaced it with a new connection.
+      if (socket === this.promiseSocket) {
+        this.close_socket();
+      }
       throw err;
     }
   }

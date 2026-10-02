@@ -73,6 +73,31 @@ test('closes the socket after a send failure and leaves reconnecting to the list
   assert.equal(connectCalls, 0);
 });
 
+test('does not close a replacement socket when a stale write fails', async () => {
+  const device = createDevice(ProtocolVersion.V2);
+  const replacement = {
+    destroyed: false,
+    destroy() {
+      this.destroyed = true;
+    },
+  };
+  const stale = {
+    destroyed: false,
+    async write() {
+      // The listener replaces the socket while this write is in flight.
+      device.promiseSocket = replacement;
+      throw new Error('write failed');
+    },
+    destroy() {
+      this.destroyed = true;
+    },
+  };
+  device.promiseSocket = stale;
+
+  await assert.rejects(device.send_message(Buffer.alloc(0)), /write failed/);
+  assert.equal(replacement.destroyed, false);
+});
+
 test('returns immediately when reading an already destroyed socket', async () => {
   const socket = new PromiseSocket(logger, false);
   socket.destroyed = true;

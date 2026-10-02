@@ -236,7 +236,10 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               throw new Error('Token/key not provided in config file, cannot add new device');
             }
           }
-          await device.connect(false);
+          if (!(await device.connect(false))) {
+            // Start the network listener anyway so it keeps retrying in the background.
+            device.open();
+          }
           await device.refresh_status();
           // Set serial number and model into the context if they are provided.
           accessory.context.sn = device_info.sn ?? 'unknown';
