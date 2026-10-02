@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.5](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.4...v1.3.5) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ac:** avoid waking display during status refresh ([#203](https://github.com/kovapatrik/homebridge-midea-platform/issues/203)) ([6ebc78d](https://github.com/kovapatrik/homebridge-midea-platform/commit/6ebc78d07696fa8d3ac0094c0866c5d8f2d957a7))
+* **core:** keep reconnects in listener ([#206](https://github.com/kovapatrik/homebridge-midea-platform/issues/206)) ([4662659](https://github.com/kovapatrik/homebridge-midea-platform/commit/46626599bb06c8f7a0775726afb3360ed6f0feb9))
+* serialize device writes, login semaphore refactor ([#209](https://github.com/kovapatrik/homebridge-midea-platform/issues/209)) ([84e663f](https://github.com/kovapatrik/homebridge-midea-platform/commit/84e663fdf9a34d2dc8b86bb19b24e7c0b703b986))
+
 ## [1.3.4](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.3...v1.3.4) (2026-08-14)
 
 
