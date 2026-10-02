@@ -43,6 +43,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "fahrenheit": false,
     "fanOnlyModeSwitch": false,
     "fanAccessory": false,
+    "swingSwitch": false,
     "sleepModeSwitch": false,
     "sleepModeAccessory": false
 }
@@ -75,4 +76,5 @@ Providing air conditioner settings is optional and the whole section or individu
 - **fahrenheit** _(optional)_: Toggles if the temperature on the unit is displayed in Fahrenheit or Celsius. Default is `false` (displays in Celsius).
 - **fanOnlyModeSwitch** _(optional)_: Toggles if the fan only mode switch is created with the accessory. Default is `false`.
 - **fanAccessory** _(optional)_: Toggles if the fan accessory is created with the accessory. Default is `false`.
+- **swingSwitch** _(optional)_: Toggles if a separate swing on/off switch is created with the accessory. Useful when the `Thermostat` service type is used, or when the fan accessory is disabled, as the swing control is otherwise unavailable. Has no effect if `swing.mode` is `None`. Default is `false`.
 - **sleepModeSwitch** _(optional)_: Toggles if the sleep mode switch is created with the accessory. Default is `false`.

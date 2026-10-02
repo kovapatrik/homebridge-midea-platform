@@ -319,6 +319,11 @@
                   "description": "Toggles if the fan auto switch is created with the accessory.",
                   "type": "boolean"
                 },
+                "swingSwitch": {
+                  "title": "Swing Switch",
+                  "description": "Toggles if a separate swing on/off switch is created with the accessory. Useful when the Thermostat service type is used, or when the fan accessory is disabled, as the swing control is otherwise unavailable.",
+                  "type": "boolean"
+                },
                 "sleepModeSwitch": {
                   "title": "Sleep Mode Switch",
                   "description": "Toggles if the sleep mode switch is created with the accessory.",
@@ -733,6 +738,7 @@
                 "devices[].AC_options.fanOnlyModeSwitch",
                 "devices[].AC_options.fanAccessory",
                 "devices[].AC_options.fanAutoSwitch",
+                "devices[].AC_options.swingSwitch",
                 "devices[].AC_options.sleepModeSwitch",
                 "devices[].AC_options.comfortModeSwitch",
                 "devices[].AC_options.temperatureSensor",
