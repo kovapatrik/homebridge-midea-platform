@@ -32,6 +32,13 @@ const outSilentSubtype = 'outSilent';
 const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
+
+// Devices accept only five discrete slat positions. Anything else is rejected by the
+// device and the control springs back to its previous position. minStep advertises the
+// granularity, but the Home app does not honour it for WindowCovering position, so
+// requested values are also snapped to the nearest supported position before sending.
+const SWING_ANGLE_POSITIONS = [1, 25, 50, 75, 100];
+const SWING_ANGLE_STEP = 25;
 const comfortModeSubtype = 'comfortMode';
 const temperatureSensorSubtype = 'temperatureSensor';
 const humiditySensorSubtype = 'humidity';
@@ -405,9 +412,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (swingProps.mode !== SwingMode.NONE && swingProps.angleAccessory) {
       this.swingAngleService ??= this.accessory.addService(this.platform.Service.WindowCovering, undefined, swingAngleSubtype);
       this.handleConfiguredName(this.swingAngleService, swingAngleSubtype, 'Swing');
-      this.swingAngleService.getCharacteristic(this.platform.Characteristic.CurrentPosition).onGet(this.getSwingAngleCurrentPosition.bind(this));
+      this.swingAngleService
+        .getCharacteristic(this.platform.Characteristic.CurrentPosition)
+        .setProps({ minStep: SWING_ANGLE_STEP })
+        .onGet(this.getSwingAngleCurrentPosition.bind(this));
       this.swingAngleService
         .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({ minStep: SWING_ANGLE_STEP })
         .onGet(this.getSwingAngleTargetPosition.bind(this))
         .onSet(this.setSwingAngleTargetPosition.bind(this));
       this.swingAngleService.getCharacteristic(this.platform.Characteristic.PositionState).onGet(this.getSwingAnglePositionState.bind(this));
@@ -980,7 +991,25 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingAngleTargetPosition(value: CharacteristicValue) {
-    await this.device.set_swing_angle(this.swingAngleMainControl, Math.max(1, value as number));
+    const requested = value as number;
+    const position = SWING_ANGLE_POSITIONS.reduce((nearest, candidate) =>
+      Math.abs(candidate - requested) < Math.abs(nearest - requested) ? candidate : nearest,
+    );
+
+    await this.device.set_swing_angle(this.swingAngleMainControl, position);
+
+    // Reflect the snapped position so the control settles there rather than on the
+    // value the user released the slider at.
+    const reported = position === 1 ? 0 : position;
+    this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, reported);
+    this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, reported);
+
+    // Setting a fixed slat position stops the swing, so refresh the swing controls.
+    // Without this they continue to read as enabled and need two taps to re-engage.
+    if (!this.useThermostat && this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
+      this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
+    }
+    this.fanService?.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
   }
 
   getSwingAnglePositionState(): CharacteristicValue {
