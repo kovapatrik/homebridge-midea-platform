@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.5...v1.4.0) (2026-10-03)
+
+
+### Features
+
+* **ac:** add optional swing on/off switch ([#210](https://github.com/kovapatrik/homebridge-midea-platform/issues/210)) ([f727de7](https://github.com/kovapatrik/homebridge-midea-platform/commit/f727de75d46ffe366fa45330312453947fbd0ed8))
+
 ## [1.3.5](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.4...v1.3.5) (2026-10-02)
 
 
