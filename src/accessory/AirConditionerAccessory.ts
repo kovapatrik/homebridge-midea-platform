@@ -33,9 +33,11 @@ const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
 
-// Devices accept only five discrete slat positions (1, 25, 50, 75, 100), so the
-// position characteristics are stepped to match. Without this HomeKit emits
-// arbitrary values that the device rejects, and the control snaps back.
+// Devices accept only five discrete slat positions. Anything else is rejected by the
+// device and the control springs back to its previous position. minStep advertises the
+// granularity, but the Home app does not honour it for WindowCovering position, so
+// requested values are also snapped to the nearest supported position before sending.
+const SWING_ANGLE_POSITIONS = [1, 25, 50, 75, 100];
 const SWING_ANGLE_STEP = 25;
 const comfortModeSubtype = 'comfortMode';
 const temperatureSensorSubtype = 'temperatureSensor';
@@ -989,7 +991,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setSwingAngleTargetPosition(value: CharacteristicValue) {
-    await this.device.set_swing_angle(this.swingAngleMainControl, Math.max(1, value as number));
+    const requested = value as number;
+    const position = SWING_ANGLE_POSITIONS.reduce((nearest, candidate) =>
+      Math.abs(candidate - requested) < Math.abs(nearest - requested) ? candidate : nearest,
+    );
+
+    await this.device.set_swing_angle(this.swingAngleMainControl, position);
+
+    // Reflect the snapped position so the control settles there rather than on the
+    // value the user released the slider at.
+    const reported = position === 1 ? 0 : position;
+    this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, reported);
+    this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, reported);
   }
 
   getSwingAnglePositionState(): CharacteristicValue {
