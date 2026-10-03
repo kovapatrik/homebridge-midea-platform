@@ -20,6 +20,7 @@ const displaySubtype = 'display';
 const fanOnlySubtype = 'fanOnly';
 const fanSubtype = 'fan';
 const fanAutoSubtype = 'fanAuto';
+const audioFeedbackSubtype = 'audioFeedback';
 const ecoModeSubtype = 'ecoMode';
 const breezeAwaySubtype = 'breezeAway';
 const dryModeSubtype = 'dryMode';
@@ -44,6 +45,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private fanOnlyService?: Service;
   private fanService?: Service;
   private fanAutoService?: Service;
+  private audioFeedbackService?: Service;
   private ecoModeService?: Service;
   private breezeAwayService?: Service;
   private dryModeService?: Service;
@@ -232,6 +234,19 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.fanAutoService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getFanState.bind(this)).onSet(this.setFanAuto.bind(this));
     } else if (this.fanAutoService) {
       this.accessory.removeService(this.fanAutoService);
+    }
+
+    // Audio feedback switch
+    this.audioFeedbackService = this.accessory.getServiceById(this.platform.Service.Switch, audioFeedbackSubtype);
+    if (this.configDev.AC_options.audioFeedbackSwitch) {
+      this.audioFeedbackService ??= this.accessory.addService(this.platform.Service.Switch, undefined, audioFeedbackSubtype);
+      this.handleConfiguredName(this.audioFeedbackService, audioFeedbackSubtype, 'Sound');
+      this.audioFeedbackService
+        .getCharacteristic(this.platform.Characteristic.On)
+        .onGet(this.getAudioFeedback.bind(this))
+        .onSet(this.setAudioFeedback.bind(this));
+    } else if (this.audioFeedbackService) {
+      this.accessory.removeService(this.audioFeedbackService);
     }
 
     // Display switch
@@ -794,6 +809,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   async setFanAuto(value: CharacteristicValue) {
     await this.device.set_fan_auto(value === true);
+  }
+
+  getAudioFeedback(): CharacteristicValue {
+    return this.device.attributes.PROMPT_TONE;
+  }
+
+  async setAudioFeedback(value: CharacteristicValue) {
+    await this.device.set_attribute({ PROMPT_TONE: value as boolean });
   }
 
   setHeatingCoolingTemperatureThresholds(thresholds: { heating?: number; cooling?: number }) {

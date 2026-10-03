@@ -102,6 +102,7 @@ type ACOptions = {
   rateSelector: boolean;
   outDoorTemp: boolean;
   audioFeedback: boolean;
+  audioFeedbackSwitch: boolean;
   screenOff: boolean;
   sleepModeSwitch: boolean;
   comfortModeSwitch: boolean;
@@ -212,6 +213,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     heatingCapable: true,
     outDoorTemp: false,
     audioFeedback: false,
+    audioFeedbackSwitch: false,
     screenOff: false,
     ecoSwitch: false,
     dryModeSwitch: false,

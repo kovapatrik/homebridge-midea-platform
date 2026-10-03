@@ -220,6 +220,11 @@
                   "description": "Toggles if the unit beeps when a command is sent.",
                   "type": "boolean"
                 },
+                "audioFeedbackSwitch": {
+                  "title": "Audio Feedback Switch",
+                  "description": "Toggles if a switch controlling the audio feedback setting is created with the accessory. Allows the beep to be turned on or off at runtime instead of only via this configuration.",
+                  "type": "boolean"
+                },
                 "screenOff": {
                   "title": "Diplay screen off by default",
                   "description": "Toggles if the screen is turned off by default when the unit is turned on.",
@@ -712,6 +717,7 @@
                 "devices[].AC_options.heatingCapable",
                 "devices[].AC_options.outDoorTemp",
                 "devices[].AC_options.audioFeedback",
+                "devices[].AC_options.audioFeedbackSwitch",
                 "devices[].AC_options.screenOff",
                 "devices[].AC_options.ecoSwitch",
                 "devices[].AC_options.breezeAwaySwitch",

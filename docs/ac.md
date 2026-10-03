@@ -24,6 +24,7 @@ Providing air conditioner settings is optional and the whole section or individu
     "heatingCapable": true,
     "outDoorTemp": false,
     "audioFeedback": false,
+    "audioFeedbackSwitch": false,
     "screenOff": false,
     "ecoSwitch": false,
     "dryModeSwitch": false,
@@ -62,6 +63,7 @@ Providing air conditioner settings is optional and the whole section or individu
 - **dryModeSwitch** _(optional)_: Toggles if the dry mode switch is created with the accessory. Default is `false`.
 - **boostModeSwitch** _(optional)_: Toggles if the boost/turbo mode switch is created with the accessory. Default is `false`.
 - **breezeAwaySwitch** _(optional)_: Toggles if the breeze away switch is created with the accessory. Default is `false`.
+- **audioFeedbackSwitch** _(optional)_: Toggles if a switch controlling the `audioFeedback` setting is created with the accessory, allowing the beep to be turned on or off at runtime rather than only through this configuration. Note that devices do not report this setting back, so the switch reflects the value held by the plugin. Default is `false`.
 - **displaySwitch**:
   - **flag** _(optional)_: Toggles if a switch, which can turn the display on or off will be created or not. Default is `true`.
   - **command** _(optional)_: Use this if the switch display command does not work. If it doesn't work either way then you unit does not support this feature. Default is `false`.
