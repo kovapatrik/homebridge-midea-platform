@@ -32,6 +32,11 @@ const outSilentSubtype = 'outSilent';
 const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
+
+// Devices accept only five discrete slat positions (1, 25, 50, 75, 100), so the
+// position characteristics are stepped to match. Without this HomeKit emits
+// arbitrary values that the device rejects, and the control snaps back.
+const SWING_ANGLE_STEP = 25;
 const comfortModeSubtype = 'comfortMode';
 const temperatureSensorSubtype = 'temperatureSensor';
 const humiditySensorSubtype = 'humidity';
@@ -405,9 +410,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     if (swingProps.mode !== SwingMode.NONE && swingProps.angleAccessory) {
       this.swingAngleService ??= this.accessory.addService(this.platform.Service.WindowCovering, undefined, swingAngleSubtype);
       this.handleConfiguredName(this.swingAngleService, swingAngleSubtype, 'Swing');
-      this.swingAngleService.getCharacteristic(this.platform.Characteristic.CurrentPosition).onGet(this.getSwingAngleCurrentPosition.bind(this));
+      this.swingAngleService
+        .getCharacteristic(this.platform.Characteristic.CurrentPosition)
+        .setProps({ minStep: SWING_ANGLE_STEP })
+        .onGet(this.getSwingAngleCurrentPosition.bind(this));
       this.swingAngleService
         .getCharacteristic(this.platform.Characteristic.TargetPosition)
+        .setProps({ minStep: SWING_ANGLE_STEP })
         .onGet(this.getSwingAngleTargetPosition.bind(this))
         .onSet(this.setSwingAngleTargetPosition.bind(this));
       this.swingAngleService.getCharacteristic(this.platform.Characteristic.PositionState).onGet(this.getSwingAnglePositionState.bind(this));
