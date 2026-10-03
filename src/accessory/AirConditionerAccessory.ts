@@ -1003,6 +1003,13 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     const reported = position === 1 ? 0 : position;
     this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, reported);
     this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, reported);
+
+    // Setting a fixed slat position stops the swing, so refresh the swing controls.
+    // Without this they continue to read as enabled and need two taps to re-engage.
+    if (!this.useThermostat && this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
+      this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
+    }
+    this.fanService?.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
   }
 
   getSwingAnglePositionState(): CharacteristicValue {
