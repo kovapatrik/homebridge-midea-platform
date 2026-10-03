@@ -447,7 +447,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.swingAngleService);
     }
     // Misc
-    this.device.attributes.PROMPT_TONE = configDev.AC_options.audioFeedback;
+    this.device.attributes.PROMPT_TONE = accessory.context?.audioFeedback ?? configDev.AC_options.audioFeedback;
     this.device.attributes.TEMP_FAHRENHEIT = configDev.AC_options.fahrenheit;
 
     this.heatingThresholdTemperature = accessory.context?.thresholds?.heatingTemperature ?? configDev.AC_options.minTemp;
@@ -816,7 +816,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   async setAudioFeedback(value: CharacteristicValue) {
-    await this.device.set_attribute({ PROMPT_TONE: value as boolean });
+    await this.device.set_prompt_tone(value as boolean);
+    this.accessory.context.audioFeedback = value as boolean;
   }
 
   setHeatingCoolingTemperatureThresholds(thresholds: { heating?: number; cooling?: number }) {

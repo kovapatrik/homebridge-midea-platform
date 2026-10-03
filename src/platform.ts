@@ -26,6 +26,7 @@ type MideaContext = {
   serviceVersion: number;
   configuredNames: { [key: string]: string };
   thresholds: { [key: string]: number };
+  audioFeedback?: boolean;
 };
 
 export type MideaAccessory = PlatformAccessory<MideaContext>;

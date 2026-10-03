@@ -568,6 +568,17 @@ export default class MideaACDevice extends MideaDevice {
     }
   }
 
+  async set_prompt_tone(prompt_tone: boolean) {
+    this.logger.info(`[${this.name}] Set prompt tone to: ${prompt_tone}`);
+    this.attributes.PROMPT_TONE = prompt_tone;
+
+    // PROMPT_TONE only rides along on other commands, so send the current state to apply
+    // it. The device sounds its confirmation tone when enabling, as the vendor app does.
+    const message = this.make_message_unique_set();
+    message.prompt_tone = prompt_tone;
+    await this.build_send(message);
+  }
+
   async set_swing_angle(swing_direction: SwingAngle, swing_angle: number) {
     this.logger.info(`[${this.name}] Set swing ${swing_direction} angle to: ${swing_angle}`);
     const message = new MessageNewProtocolSet(this.device_protocol_version);
