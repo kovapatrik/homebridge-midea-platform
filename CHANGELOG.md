@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.5...v1.4.0) (2026-10-04)
+
+
+### Features
+
+* **ac:** add optional swing on/off switch ([#210](https://github.com/kovapatrik/homebridge-midea-platform/issues/210)) ([f727de7](https://github.com/kovapatrik/homebridge-midea-platform/commit/f727de75d46ffe366fa45330312453947fbd0ed8))
+
+
+### Bug Fixes
+
+* **ac:** pre-save state ([#214](https://github.com/kovapatrik/homebridge-midea-platform/issues/214)) ([959ee88](https://github.com/kovapatrik/homebridge-midea-platform/commit/959ee88cdfcbbb563a5bd8c024e939c3ccf039d7))
+
 ## [1.3.5](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.4...v1.3.5) (2026-10-02)
 
 
