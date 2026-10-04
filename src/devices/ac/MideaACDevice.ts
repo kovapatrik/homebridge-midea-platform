@@ -7,7 +7,9 @@
  *
  */
 import type { Logger } from 'homebridge';
+import { pick } from 'lodash-es';
 import type { DeviceInfo } from '../../core/MideaConstants.js';
+import type { MessageRequest } from '../../core/MideaMessage.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import { ACMode, type Config, type DeviceConfig, SwingAngle } from '../../platformUtils.js';
 import {
@@ -448,32 +450,35 @@ export default class MideaACDevice extends MideaDevice {
     this.alternate_switch_display = value;
   }
 
+  private async apply_and_send(attributes: Partial<ACAttributes>, build_message: () => MessageRequest) {
+    const previous = pick(this.attributes, Object.keys(attributes));
+    Object.assign(this.attributes, attributes);
+    try {
+      await this.build_send(build_message());
+    } catch (err) {
+      Object.assign(this.attributes, previous);
+      throw err;
+    }
+  }
+
   async set_target_temperature(target_temperature: number, mode?: number) {
     this.logger.info(`[${this.name}] Set target temperature to: ${target_temperature}`);
-    const message = this.make_message_unique_set();
-    message.target_temperature = target_temperature;
-    if (mode) {
-      message.mode = mode;
-      message.power = true;
-    }
-    await this.build_send(message);
-    this.attributes.TARGET_TEMPERATURE = target_temperature;
-    if (mode) {
-      this.attributes.MODE = mode;
-      this.attributes.POWER = true;
-    }
+    await this.apply_and_send(mode ? { TARGET_TEMPERATURE: target_temperature, MODE: mode, POWER: true } : { TARGET_TEMPERATURE: target_temperature }, () =>
+      this.make_message_unique_set(),
+    );
   }
 
   async set_swing(swing_horizontal: boolean, swing_vertical: boolean) {
     this.logger.info(`[${this.name}] Set swing horizontal to: ${swing_horizontal}, vertical to: ${swing_vertical}`);
-    const message = this.make_message_set();
-    message.swing_horizontal = swing_horizontal;
-    message.swing_vertical = swing_vertical;
-    await this.build_send(message);
-    this.attributes.SWING_HORIZONTAL = swing_horizontal;
-    this.attributes.SWING_VERTICAL = swing_vertical;
-    this.attributes.WIND_SWING_LR_ANGLE = 0;
-    this.attributes.WIND_SWING_UD_ANGLE = 0;
+    await this.apply_and_send(
+      {
+        SWING_HORIZONTAL: swing_horizontal,
+        SWING_VERTICAL: swing_vertical,
+        WIND_SWING_LR_ANGLE: 0,
+        WIND_SWING_UD_ANGLE: 0,
+      },
+      () => this.make_message_set(),
+    );
   }
 
   private disable_all_fan_related_modes(message: MessageGeneralSet | MessageSubProtocolSet) {
@@ -586,14 +591,8 @@ export default class MideaACDevice extends MideaDevice {
         break;
     }
     message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.SWING_HORIZONTAL = false;
-    this.attributes.SWING_VERTICAL = false;
-    if (swing_direction === SwingAngle.HORIZONTAL) {
-      this.attributes.WIND_SWING_LR_ANGLE = swing_angle;
-    } else {
-      this.attributes.WIND_SWING_UD_ANGLE = swing_angle;
-    }
+    const angle_attribute = swing_direction === SwingAngle.HORIZONTAL ? 'WIND_SWING_LR_ANGLE' : 'WIND_SWING_UD_ANGLE';
+    await this.apply_and_send({ SWING_HORIZONTAL: false, SWING_VERTICAL: false, [angle_attribute]: swing_angle }, () => message);
   }
 
   async set_self_clean(self_clean: boolean) {
@@ -601,8 +600,7 @@ export default class MideaACDevice extends MideaDevice {
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     message.self_clean = self_clean;
     message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.SELF_CLEAN = self_clean;
+    await this.apply_and_send({ SELF_CLEAN: self_clean }, () => message);
   }
 
   async set_rate_select(rate_select: number) {
@@ -610,8 +608,7 @@ export default class MideaACDevice extends MideaDevice {
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     message.rate_select = rate_select;
     message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.RATE_SELECT = rate_select;
+    await this.apply_and_send({ RATE_SELECT: rate_select }, () => message);
   }
 
   async set_out_silent(out_silent: boolean) {
@@ -619,8 +616,7 @@ export default class MideaACDevice extends MideaDevice {
     const message = new MessageNewProtocolSet(this.device_protocol_version);
     message.out_silent = out_silent;
     message.prompt_tone = this.attributes.PROMPT_TONE;
-    await this.build_send(message);
-    this.attributes.OUT_SILENT = out_silent;
+    await this.apply_and_send({ OUT_SILENT: out_silent }, () => message);
   }
 
   protected set_subtype(): void {
