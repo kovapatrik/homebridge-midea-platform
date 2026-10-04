@@ -8,7 +8,6 @@
  *
  */
 import EventEmitter from 'node:events';
-import { setTimeout as delay } from 'node:timers/promises';
 import type { Logger } from 'homebridge';
 import type { Config, DeviceConfig } from '../platformUtils.js';
 import { type DeviceInfo, type DeviceType, ParseMessageResult, ProtocolVersion, TCPMessageType } from './MideaConstants.js';
@@ -23,7 +22,6 @@ export type DeviceAttributeBase = {
 
 export default abstract class MideaDevice extends EventEmitter {
   private readonly SOCKET_TIMEOUT = 1000; // milliseconds
-  private readonly MIN_SEND_INTERVAL = 100; // milliseconds
 
   public readonly ip: string;
   protected readonly port: number;
@@ -57,7 +55,6 @@ export default abstract class MideaDevice extends EventEmitter {
   private buffer: Buffer;
 
   private promiseSocket: PromiseSocket;
-  private send_queue: Promise<unknown> = Promise.resolve();
 
   public abstract attributes: DeviceAttributeBase;
 
@@ -189,16 +186,7 @@ export default abstract class MideaDevice extends EventEmitter {
     }
   }
 
-  public send_message(data: Buffer): Promise<void> {
-    // Devices can drop commands that arrive back-to-back (e.g. a HomeKit scene
-    // setting several characteristics at once), so writes are sent one at a time
-    // with a short gap between them. A failed write must not block the queue.
-    const send = this.send_queue.then(() => this.write_message(data));
-    this.send_queue = send.catch(() => {}).then(() => delay(this.MIN_SEND_INTERVAL));
-    return send;
-  }
-
-  private async write_message(data: Buffer) {
+  public async send_message(data: Buffer) {
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Send message:\n${data.toString('hex')}`);
     }
