@@ -34,12 +34,10 @@ const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
 const swingSwitchSubtype = 'swingSwitch';
 
-// Devices accept only five discrete slat positions. Anything else is rejected by the
-// device and the control springs back to its previous position. minStep advertises the
-// granularity, but the Home app does not honour it for WindowCovering position, so
-// requested values are also snapped to the nearest supported position before sending.
+// Swing snap constants
 const SWING_ANGLE_POSITIONS = [1, 25, 50, 75, 100];
 const SWING_ANGLE_STEP = 25;
+
 const comfortModeSubtype = 'comfortMode';
 const temperatureSensorSubtype = 'temperatureSensor';
 const humiditySensorSubtype = 'humidity';
@@ -1019,14 +1017,11 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
     await this.device.set_swing_angle(this.swingAngleMainControl, position);
 
-    // Reflect the snapped position so the control settles there rather than on the
-    // value the user released the slider at.
+    // Refresh window position and swing characteristics
     const reported = position === 1 ? 0 : position;
     this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.TargetPosition, reported);
     this.swingAngleService?.updateCharacteristic(this.platform.Characteristic.CurrentPosition, reported);
 
-    // Setting a fixed slat position stops the swing, so refresh the swing controls.
-    // Without this they continue to read as enabled and need two taps to re-engage.
     if (!this.useThermostat && this.configDev.AC_options.swing.mode !== SwingMode.NONE) {
       this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
     }
