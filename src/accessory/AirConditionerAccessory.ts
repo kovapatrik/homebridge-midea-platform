@@ -32,6 +32,7 @@ const outSilentSubtype = 'outSilent';
 const rateSelectSubtype = 'rateSelect';
 const sleepModeSubtype = 'sleepMode';
 const swingAngleSubtype = 'swingAngle';
+const swingSwitchSubtype = 'swingSwitch';
 
 // Devices accept only five discrete slat positions. Anything else is rejected by the
 // device and the control springs back to its previous position. minStep advertises the
@@ -63,6 +64,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private rateSelectService?: Service;
   private sleepModeService?: Service;
   private swingAngleService?: Service;
+  private swingSwitchService?: Service;
   private comfortModeService?: Service;
   private temperatureSensorService?: Service;
   private humiditySensorService?: Service;
@@ -407,6 +409,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       swingProps.mode === SwingMode.VERTICAL || (swingProps.mode === SwingMode.BOTH && swingProps.angleMainControl === SwingAngle.VERTICAL)
         ? SwingAngle.VERTICAL
         : SwingAngle.HORIZONTAL;
+    // Swing switch
+    this.swingSwitchService = this.accessory.getServiceById(this.platform.Service.Switch, swingSwitchSubtype);
+    if (swingProps.mode !== SwingMode.NONE && this.configDev.AC_options.swingSwitch) {
+      this.swingSwitchService ??= this.accessory.addService(this.platform.Service.Switch, undefined, swingSwitchSubtype);
+      this.handleConfiguredName(this.swingSwitchService, swingSwitchSubtype, 'Oscillate');
+      this.swingSwitchService.getCharacteristic(this.platform.Characteristic.On).onGet(this.getSwingSwitch.bind(this)).onSet(this.setSwingSwitch.bind(this));
+    } else if (this.swingSwitchService) {
+      this.accessory.removeService(this.swingSwitchService);
+    }
+
     // Swing angle accessory
     this.swingAngleService = this.accessory.getServiceById(this.platform.Service.WindowCovering, swingAngleSubtype);
     if (swingProps.mode !== SwingMode.NONE && swingProps.angleAccessory) {
@@ -520,6 +532,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           if (!this.useThermostat) {
             this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
           }
+          this.swingSwitchService?.updateCharacteristic(this.platform.Characteristic.On, this.getSwingSwitch());
           break;
         case 'mode':
           updateState = true;
@@ -858,6 +871,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
   }
 
+  getSwingSwitch(): CharacteristicValue {
+    return this.getSwingMode() === this.platform.Characteristic.SwingMode.SWING_ENABLED;
+  }
+
+  async setSwingSwitch(value: CharacteristicValue) {
+    await this.setSwingMode(value ? this.platform.Characteristic.SwingMode.SWING_ENABLED : this.platform.Characteristic.SwingMode.SWING_DISABLED);
+  }
+
   getRotationSpeed(): CharacteristicValue {
     return Math.min(100, this.device.attributes.FAN_SPEED ?? 0);
   }
@@ -1010,6 +1031,7 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.service.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
     }
     this.fanService?.updateCharacteristic(this.platform.Characteristic.SwingMode, this.getSwingMode());
+    this.swingSwitchService?.updateCharacteristic(this.platform.Characteristic.On, this.getSwingSwitch());
   }
 
   getSwingAnglePositionState(): CharacteristicValue {

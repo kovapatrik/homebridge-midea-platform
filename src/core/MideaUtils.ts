@@ -159,6 +159,9 @@ export class PromiseSocket {
   }
 
   public async read() {
+    if (this.destroyed) {
+      return Buffer.alloc(0);
+    }
     return new Promise<Buffer>((resolve, reject) => {
       let buf = Buffer.alloc(0);
 
