@@ -164,7 +164,11 @@ type CEOptions = {
 
 type DBOptions = unknown;
 
-type E1Options = unknown;
+type E1Options = {
+  programSwitches: { mode: string; name?: string }[];
+  saltSensor: boolean;
+  rinseAidSensor: boolean;
+};
 
 type E2Options = {
   protocol: string;
@@ -288,7 +292,11 @@ export const defaultDeviceConfig: DeviceConfig = {
     silentMode: false,
   },
   DB_options: {},
-  E1_options: {},
+  E1_options: {
+    programSwitches: [],
+    saltSensor: false,
+    rinseAidSensor: false,
+  },
   E2_options: {
     protocol: 'auto',
     minTemp: 30,
