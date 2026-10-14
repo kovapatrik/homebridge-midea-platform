@@ -539,7 +539,62 @@
               "condition": {
                 "functionBody": "return model.devices && model.devices[arrayIndices].type === 'Dishwasher';"
               },
-              "properties": {}
+              "properties": {
+                "programSwitches": {
+                  "title": "Program Switches",
+                  "description": "Creates a switch for each listed program. Turning a switch on powers the dishwasher on if needed and starts that program; turning it off cancels the program and powers the dishwasher off. Which programs are available depends on the model.",
+                  "type": "array",
+                  "items": {
+                    "title": "Program",
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "title": "Program",
+                        "type": "string",
+                        "required": true,
+                        "enum": [
+                          "auto_wash",
+                          "strong_wash",
+                          "standard_wash",
+                          "eco_wash",
+                          "glass_wash",
+                          "hour_wash",
+                          "fast_wash",
+                          "soak_wash",
+                          "90min",
+                          "self_clean",
+                          "fruit_wash",
+                          "self_define",
+                          "germ",
+                          "bowl_wash",
+                          "kill_germ",
+                          "sea_food_wash",
+                          "hot_pot_wash",
+                          "quiet_night_wash",
+                          "less_wash",
+                          "oil_net_wash",
+                          "cloud_wash"
+                        ]
+                      },
+                      "name": {
+                        "title": "Name",
+                        "description": "Name of the switch in the Home app. Defaults to the program name.",
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "saltSensor": {
+                  "title": "Salt Sensor",
+                  "description": "Toggles if a contact sensor is created that opens when the dishwasher reports low salt.",
+                  "type": "boolean"
+                },
+                "rinseAidSensor": {
+                  "title": "Rinse Aid Sensor",
+                  "description": "Toggles if a contact sensor is created that opens when the dishwasher reports low rinse aid.",
+                  "type": "boolean"
+                }
+              }
             },
             "E2_options": {
               "title": "Electric Water Heater Options",
@@ -812,7 +867,7 @@
               "key": "devices[].E1_options",
               "expandable": true,
               "expanded": false,
-              "items": []
+              "items": ["devices[].E1_options.programSwitches", "devices[].E1_options.saltSensor", "devices[].E1_options.rinseAidSensor"]
             },
             {
               "key": "devices[].E2_options",
