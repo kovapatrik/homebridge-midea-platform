@@ -33,6 +33,25 @@ export class MessagePower extends MessageE1Base {
   }
 }
 
+export class MessageWork extends MessageE1Base {
+  work_status: number;
+  mode: number;
+
+  constructor(device_protocol_version: number) {
+    super(device_protocol_version, MessageType.SET, 0x08);
+    this.work_status = 0x03;
+    this.mode = 0;
+  }
+
+  get _body() {
+    // oxfmt-ignore
+    return Buffer.from([
+      this.work_status, this.mode,
+      0x00, 0x00
+    ]);
+  }
+}
+
 export class MessageLock extends MessageE1Base {
   lock: boolean;
 
