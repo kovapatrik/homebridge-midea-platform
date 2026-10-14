@@ -316,10 +316,17 @@ export default abstract class MideaDevice extends EventEmitter {
     if (this.verbose) {
       this.logger.debug(`[${this.name}] Raw data to parse:\n${message.toString('hex')}`);
     }
-    if (this.version === ProtocolVersion.V3) {
-      [messages, this.buffer] = this.security.decode_8370(Buffer.concat([this.buffer, message]));
-    } else {
-      [messages, this.buffer] = this.fetch_v2_message(Buffer.concat([this.buffer, message]));
+    try {
+      if (this.version === ProtocolVersion.V3) {
+        [messages, this.buffer] = this.security.decode_8370(Buffer.concat([this.buffer, message]));
+      } else {
+        [messages, this.buffer] = this.fetch_v2_message(Buffer.concat([this.buffer, message]));
+      }
+    } catch (err) {
+      // Drop the reassembly buffer, otherwise a corrupt or partial frame left in it
+      // would make every subsequent message fail to decode as well.
+      this.buffer = Buffer.alloc(0);
+      throw err;
     }
     if (message.length === 0) {
       return ParseMessageResult.PADDING;

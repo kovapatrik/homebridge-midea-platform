@@ -64,12 +64,17 @@ export function calculate(data: Buffer) {
 
 /*********************************************************************
  * PromiseSocket
- * A very basic implementation of promise-wrapped Socket
+ * A very basic implementation of promise-wrapped Socket.
+ * It's using an async queue to manage packets
  *
  */
 export class PromiseSocket {
   private innerSok: Socket;
   public destroyed: boolean;
+
+  private queue: Buffer[] = [];
+  private pending?: { resolve: (b: Buffer) => void; reject: (e: Error) => void };
+  private pendingErr?: Error;
 
   constructor(
     private readonly logger: Logger,
@@ -77,6 +82,15 @@ export class PromiseSocket {
   ) {
     this.innerSok = new Socket();
     this.destroyed = false;
+    this.innerSok.on('data', (chunk: Buffer) => {
+      if (this.pending) {
+        this.settle(chunk);
+      } else {
+        this.queue.push(chunk);
+      }
+    });
+    // A timeout (like end / close via destroy()) resolves a waiting read() with an empty buffer.
+    this.innerSok.on('timeout', () => this.settle(Buffer.alloc(0)));
     this.innerSok.on('error', (e) => {
       // Log the error
       const msg = e instanceof Error ? e.stack : e;
@@ -84,6 +98,11 @@ export class PromiseSocket {
         this.logger.warn(`Socket error:\n${msg}`);
       } else {
         this.logger.debug(`Socket error:\n${msg}`);
+      }
+      if (this.pending) {
+        this.settle(e);
+      } else {
+        this.pendingErr = e;
       }
     });
     this.innerSok.on('end', () => {
@@ -97,6 +116,16 @@ export class PromiseSocket {
         this.logger.debug(`Socket closed ${hadError ? 'with' : 'without'} error`);
       }
     });
+  }
+
+  private settle(result: Buffer | Error) {
+    const pending = this.pending;
+    this.pending = undefined;
+    if (result instanceof Error) {
+      pending?.reject(result);
+    } else {
+      pending?.resolve(result);
+    }
   }
 
   public async connect(port: number, host: string): Promise<void> {
@@ -127,6 +156,7 @@ export class PromiseSocket {
   public destroy() {
     this.destroyed = true;
     this.innerSok.destroy();
+    this.settle(Buffer.alloc(0));
   }
 
   public async write(data: string | Buffer, encoding?: BufferEncoding) {
@@ -158,47 +188,26 @@ export class PromiseSocket {
     });
   }
 
-  public async read() {
+  // Resolves with the next received chunk, or an empty buffer on timeout / end / close.
+  // Rejects if the socket errored.
+  public async read(): Promise<Buffer> {
+    const queued = this.queue.shift();
+    if (queued) {
+      return queued;
+    }
+    if (this.pendingErr) {
+      const err = this.pendingErr;
+      this.pendingErr = undefined;
+      throw err;
+    }
     if (this.destroyed) {
       return Buffer.alloc(0);
     }
+    if (this.pending) {
+      throw new Error('PromiseSocket.read() called while another read is pending.');
+    }
     return new Promise<Buffer>((resolve, reject) => {
-      let buf = Buffer.alloc(0);
-
-      const dataHandler = (data: Buffer) => {
-        buf = Buffer.concat([buf, data]);
-        removeListeners();
-        resolve(buf);
-      };
-      const timeoutHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const endHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const errorHandler = (err: Error) => {
-        removeListeners();
-        reject(err);
-      };
-      const closeHandler = () => {
-        removeListeners();
-        resolve(buf);
-      };
-      const removeListeners = () => {
-        this.innerSok.removeListener('close', closeHandler);
-        this.innerSok.removeListener('data', dataHandler);
-        this.innerSok.removeListener('timeout', timeoutHandler);
-        this.innerSok.removeListener('end', endHandler);
-        this.innerSok.removeListener('error', errorHandler);
-      };
-
-      this.innerSok.on('close', closeHandler);
-      this.innerSok.on('data', dataHandler);
-      this.innerSok.on('timeout', timeoutHandler);
-      this.innerSok.on('end', endHandler);
-      this.innerSok.on('error', errorHandler);
+      this.pending = { resolve, reject };
     });
   }
 }
