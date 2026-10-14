@@ -11,7 +11,7 @@ import type { Logger } from 'homebridge';
 import type { DeviceInfo } from '../../core/MideaConstants.js';
 import MideaDevice, { type DeviceAttributeBase } from '../../core/MideaDevice.js';
 import type { Config, DeviceConfig } from '../../platformUtils.js';
-import { MessageE1Response, MessageLock, MessagePower, MessageQuery, MessageStorage } from './MideaE1Message.js';
+import { MessageE1Response, MessageLock, MessagePower, MessageQuery, MessageStorage, MessageWork } from './MideaE1Message.js';
 
 // Object that defines all attributes for air conditioner device.  Not all of
 // these are useful for Homebridge/HomeKit, but we handle them anyway.
@@ -42,6 +42,43 @@ export interface E1Attributes extends DeviceAttributeBase {
   SOFTWATER: number;
   WRONG_OPERATION?: number;
   BRIGHT?: number;
+}
+
+// Work modes (wash programs), same codes and names as midea-local MideaE1Device._modes.
+// Which of them a given dishwasher supports depends on the model.
+export const E1Modes: Readonly<Record<number, string>> = {
+  0x00: 'none',
+  0x01: 'auto_wash',
+  0x02: 'strong_wash',
+  0x03: 'standard_wash',
+  0x04: 'eco_wash',
+  0x05: 'glass_wash',
+  0x06: 'hour_wash',
+  0x07: 'fast_wash',
+  0x08: 'soak_wash',
+  0x09: '90min',
+  0x0a: 'self_clean',
+  0x0b: 'fruit_wash',
+  0x0c: 'self_define',
+  0x0d: 'germ',
+  0x0e: 'bowl_wash',
+  0x0f: 'kill_germ',
+  0x10: 'sea_food_wash',
+  0x12: 'hot_pot_wash',
+  0x13: 'quiet_night_wash',
+  0x14: 'less_wash',
+  0x16: 'oil_net_wash',
+  0x19: 'cloud_wash',
+};
+
+// Values of the STATUS attribute, same as midea-local MideaE1Device._status.
+export enum E1Status {
+  OFF = 0x00,
+  CANCEL = 0x01,
+  DELAY = 0x02,
+  RUNNING = 0x03,
+  ERROR = 0x04,
+  SOFT_GEAR = 0x05,
 }
 
 export default class MideaE1Device extends MideaDevice {
@@ -128,6 +165,7 @@ export default class MideaE1Device extends MideaDevice {
       CHILD_LOCK: undefined,
       STORAGE: undefined,
     };
+    const previousAttributes = { ...this.attributes };
 
     try {
       for (const [k, v] of Object.entries(attributes)) {
@@ -150,17 +188,56 @@ export default class MideaE1Device extends MideaDevice {
         }
       }
 
+      let messageSent = false;
       for (const [k, v] of Object.entries(messageToSend)) {
         if (v !== undefined) {
           this.logger.debug(`[${this.name}] Set message ${k}:\n${JSON.stringify(v)}`);
           await this.build_send(v);
-          this.update(attributes);
+          messageSent = true;
         }
       }
+      if (messageSent) {
+        this.update(attributes);
+      }
     } catch (err) {
+      this.attributes = previousAttributes;
       const msg = err instanceof Error ? err.stack : err;
       this.logger.debug(`[${this.name}] Error in set_attribute (${this.ip}:${this.port}):\n${msg}`);
+      throw err;
     }
+  }
+
+  /*********************************************************************
+   * Start a wash program. Port of midea-local MideaE1Device.set_work_mode().
+   */
+  async set_work_mode(mode: number) {
+    if (!(mode in E1Modes) || mode === 0) {
+      throw new Error(`Unsupported work mode: ${mode}`);
+    }
+    const message = new MessageWork(this.device_protocol_version);
+    message.mode = mode;
+    this.logger.info(`[${this.name}] Start work mode ${E1Modes[mode]} (${mode})`);
+    await this.build_send(message);
+  }
+
+  /*********************************************************************
+   * Start the currently selected program. Port of midea-local MideaE1Device.start_work().
+   */
+  async start_work() {
+    await this.set_work_mode(this.attributes.MODE);
+  }
+
+  /*********************************************************************
+   * Cancel the running program. The device ignores a power-off request while a
+   * program is delayed or running, so the work message is sent with the
+   * "cancel" work status first; the device then goes back to idle.
+   */
+  async cancel_work() {
+    const message = new MessageWork(this.device_protocol_version);
+    message.work_status = E1Status.CANCEL;
+    message.mode = this.attributes.MODE;
+    this.logger.info(`[${this.name}] Cancel work`);
+    await this.build_send(message);
   }
 
   protected set_subtype(): void {
