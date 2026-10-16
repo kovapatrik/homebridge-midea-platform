@@ -120,6 +120,8 @@ type A1Options = {
   maxHumidity: number;
   humidityStep: number;
   humidityOffset: number;
+  hideWaterTankLevel: boolean;
+  hideFanSpeed: boolean;
 };
 
 type C3Options = {
@@ -250,6 +252,8 @@ export const defaultDeviceConfig: DeviceConfig = {
     maxHumidity: 85,
     humidityStep: 5,
     humidityOffset: 0,
+    hideWaterTankLevel: false,
+    hideFanSpeed: false,
   },
   C3_options: {
     zone1: false,

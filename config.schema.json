@@ -137,6 +137,16 @@
                   "required": true,
                   "enum": ["None", "Leak Sensor", "Contact Sensor"]
                 },
+                "hideFanSpeed": {
+                  "title": "Hide Fan Speed",
+                  "description": "Hides the fan speed control from the main dehumidifier accessory. Does not affect the separate fan accessory.",
+                  "type": "boolean"
+                },
+                "hideWaterTankLevel": {
+                  "title": "Hide Water Tank Level",
+                  "description": "Hides the water tank level from the main dehumidifier accessory.",
+                  "type": "boolean"
+                },
                 "minHumidity": {
                   "title": "Minimum Relative Humidity",
                   "type": "number",
@@ -698,6 +708,8 @@
                 "devices[].A1_options.humiditySensor",
                 "devices[].A1_options.pumpSwitch",
                 "devices[].A1_options.waterTankSensor",
+                "devices[].A1_options.hideFanSpeed",
+                "devices[].A1_options.hideWaterTankLevel",
                 "devices[].A1_options.minHumidity",
                 "devices[].A1_options.maxHumidity",
                 "devices[].A1_options.humidityStep",

@@ -107,9 +107,20 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
         minStep: 5,
       });
 
-    this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed).onGet(this.getRotationSpeed.bind(this)).onSet(this.setRotationSpeed.bind(this));
+    if (this.configDev.A1_options.hideFanSpeed) {
+      this.removeOptionalCharacteristic(this.platform.Characteristic.RotationSpeed.UUID);
+    } else {
+      this.service
+        .getCharacteristic(this.platform.Characteristic.RotationSpeed)
+        .onGet(this.getRotationSpeed.bind(this))
+        .onSet(this.setRotationSpeed.bind(this));
+    }
 
-    this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
+    if (this.configDev.A1_options.hideWaterTankLevel) {
+      this.removeOptionalCharacteristic(this.platform.Characteristic.WaterLevel.UUID);
+    } else {
+      this.service.getCharacteristic(this.platform.Characteristic.WaterLevel).onGet(this.getWaterLevel.bind(this));
+    }
 
     // Temperature sensor
     this.temperatureService = this.accessory.getServiceById(this.platform.Service.TemperatureSensor, temperatureSubtype);
@@ -185,6 +196,15 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
     }
   }
 
+  // Remove an optional characteristic from the main service (if present) without
+  // using getCharacteristic(), which would add it back.
+  private removeOptionalCharacteristic(uuid: string) {
+    const characteristic = this.service.characteristics.find((c) => c.UUID === uuid);
+    if (characteristic) {
+      this.service.removeCharacteristic(characteristic);
+    }
+  }
+
   /*********************************************************************
    * Callback function called by MideaDevice whenever there is a change to
    * any attribute value.
@@ -202,7 +222,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           updateState = true;
           break;
         case 'fan_speed':
-          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          if (!this.configDev.A1_options.hideFanSpeed) {
+            this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
+          }
           this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, v as CharacteristicValue);
           updateState = true;
           break;
@@ -218,7 +240,9 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
           this.temperatureService?.updateCharacteristic(this.platform.Characteristic.CurrentTemperature, v as CharacteristicValue);
           break;
         case 'tank_level':
-          this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
+          if (!this.configDev.A1_options.hideWaterTankLevel) {
+            this.service.updateCharacteristic(this.platform.Characteristic.WaterLevel, v as CharacteristicValue);
+          }
           break;
         case 'pump':
           this.pumpService?.updateCharacteristic(this.platform.Characteristic.On, v as CharacteristicValue);
@@ -369,7 +393,10 @@ export default class DehumidifierAccessory extends BaseAccessory<MideaA1Device> 
       // Calling updateCharacteristic within set handler seems to fail, new value is not accepted.  Workaround is
       // to request the update after short delay (say 50ms) to allow homebridge/homekit to complete the set handler.
       setTimeout(() => {
-        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
+        if (!this.configDev.A1_options.hideFanSpeed) {
+          this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
+        }
+        this.fanService?.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
       }, 50);
     }
   }
