@@ -101,19 +101,19 @@ type DiscoveredDevice = {
 class UiServer extends HomebridgePluginUiServer {
   cloud!: CloudBase<CloudSecurity>;
   smartHomeCloud?: ProxiedCloudBase<ProxiedSecurity>;
-  promiseSocket: PromiseSocket;
   security: LocalSecurity;
   logger: Logger;
+  uiDebug: boolean;
 
   constructor() {
     super();
     const config = (
       JSON.parse(fs.readFileSync(this.homebridgeConfigPath!, 'utf8')) as { platforms: Array<{ platform: string; uiDebug?: boolean }> }
     ).platforms.find((obj) => obj.platform === 'midea-platform');
-    this.logger = new Logger(config?.uiDebug ?? false);
+    this.uiDebug = config?.uiDebug ?? false;
+    this.logger = new Logger(this.uiDebug);
     this.logger.info('Custom UI created.');
     this.security = new LocalSecurity();
-    this.promiseSocket = new PromiseSocket(this.logger, config?.uiDebug ?? false);
 
     this.onRequest(
       '/login',
@@ -217,11 +217,13 @@ class UiServer extends HomebridgePluginUiServer {
     if (!(device.token && device.key)) {
       throw new Error(`[${device.name}] Token or key is missing!`);
     }
-    await this.promiseSocket.connect(device.port, device.ip);
+    // A destroyed PromiseSocket stays destroyed, so each attempt needs its own.
+    const promiseSocket = new PromiseSocket(this.logger, this.uiDebug);
+    await promiseSocket.connect(device.port, device.ip);
     try {
       const request = this.security.encode_8370(Buffer.from(device.token, 'hex'), TCPMessageType.HANDSHAKE_REQUEST);
-      await this.promiseSocket.write(request);
-      const response = await this.promiseSocket.read();
+      await promiseSocket.write(request);
+      const response = await promiseSocket.read();
       if (response) {
         if (response.length < 20) {
           this.logger.debug(
@@ -235,7 +237,7 @@ class UiServer extends HomebridgePluginUiServer {
         throw Error(`[${device.name}] Authenticate error when receiving data from ${device.ip}:${device.port}.`);
       }
     } finally {
-      this.promiseSocket.destroy();
+      promiseSocket.destroy();
     }
   }
 
