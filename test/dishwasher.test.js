@@ -115,16 +115,59 @@ test('program switch starts the program and follows the device state', async () 
   assert.equal(program.getCharacteristic(Characteristic.On).value, false);
 });
 
-test('turning the valve off while running cancels the program before powering off', async () => {
+// Lets a scheduled follow-up command run to completion.
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+test('turning the valve off while running cancels the program, then powers off without blocking', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const { accessory, device, sent } = createAccessory();
   const valve = accessory.getService(Service.Valve);
   report(device, { POWER: true, STATUS: E1Status.RUNNING, MODE: 0x01 });
 
+  // The handler returns right after the cancel command.
   await valve.getCharacteristic(Characteristic.Active).handleSetRequest(Characteristic.Active.INACTIVE);
-  assert.equal(sent.length, 2);
+  assert.equal(sent.length, 1);
   assert.deepEqual([...sent[0]._body], [E1Status.CANCEL, 0x01, 0x00, 0x00]);
+
+  t.mock.timers.tick(3000);
+  await flush();
+  assert.equal(sent.length, 2);
   assert.equal(sent[1].constructor.name, 'MessagePower');
   assert.equal(sent[1].power, false);
+});
+
+test('program switch powers on, then starts the program without blocking', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'fast_wash' }] });
+  const program = accessory.getServiceById(Service.Switch, 'program_fast_wash');
+
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].constructor.name, 'MessagePower');
+  assert.equal(sent[0].power, true);
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
+
+  t.mock.timers.tick(3000);
+  await flush();
+  assert.deepEqual(workBodies(sent), [[0x03, 0x07, 0x00, 0x00]]);
+});
+
+test('a newer command replaces the pending follow-up', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { accessory, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
+  const valve = accessory.getService(Service.Valve);
+  const program = accessory.getServiceById(Service.Switch, 'program_eco_wash');
+
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  await valve.getCharacteristic(Characteristic.Active).handleSetRequest(Characteristic.Active.INACTIVE);
+
+  t.mock.timers.tick(3000);
+  await flush();
+  assert.equal(workBodies(sent).length, 0);
+  assert.deepEqual(
+    sent.map((m) => m.power),
+    [true, false],
+  );
 });
 
 test('salt and rinse aid sensors open on shortage', () => {
