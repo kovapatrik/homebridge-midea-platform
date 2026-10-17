@@ -21,9 +21,9 @@ const rinseAidSensorSubtype = 'rinseAidSensor';
 
 // Time the dishwasher needs after power on before it accepts a program, and
 // after a cancel before it accepts power off.
+// The follow-up command is sent from a timer so that HomeKit handlers return
+// right away.
 const SETTLE_DELAY_MS = 3000;
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type ProgramSwitch = {
   mode: number;
@@ -39,6 +39,8 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   // Remaining time at the start of the current run, used as SetDuration so
   // that the Home app can show the countdown.
   private runDuration = 0;
+  // Follow-up command waiting for the dishwasher to settle.
+  private pendingCommand?: NodeJS.Timeout;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -148,13 +150,37 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
       }
     }
     if (updateState) {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
-      this.service.updateCharacteristic(this.platform.Characteristic.InUse, this.getInUse());
-      this.service.updateCharacteristic(this.platform.Characteristic.RemainingDuration, this.getRemainingDuration());
-      this.service.updateCharacteristic(this.platform.Characteristic.SetDuration, this.getSetDuration());
-      for (const { mode, service } of this.programSwitches) {
-        service.updateCharacteristic(this.platform.Characteristic.On, this.isProgramRunning(mode));
-      }
+      this.updateState();
+    }
+  }
+
+  private updateState() {
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, this.getActive());
+    this.service.updateCharacteristic(this.platform.Characteristic.InUse, this.getInUse());
+    this.service.updateCharacteristic(this.platform.Characteristic.RemainingDuration, this.getRemainingDuration());
+    this.service.updateCharacteristic(this.platform.Characteristic.SetDuration, this.getSetDuration());
+    for (const { mode, service } of this.programSwitches) {
+      service.updateCharacteristic(this.platform.Characteristic.On, this.isProgramRunning(mode));
+    }
+  }
+
+  // Sends a command after SETTLE_DELAY_MS without blocking the HomeKit
+  // handler. A newer command replaces the pending one.
+  private schedule(name: string, command: () => Promise<void>) {
+    this.cancelPending();
+    this.pendingCommand = setTimeout(() => {
+      this.pendingCommand = undefined;
+      command().catch((e) => {
+        this.platform.log.error(`[${this.device.name}] ${name} failed: ${e}`);
+        this.updateState();
+      });
+    }, SETTLE_DELAY_MS);
+  }
+
+  private cancelPending() {
+    if (this.pendingCommand) {
+      clearTimeout(this.pendingCommand);
+      this.pendingCommand = undefined;
     }
   }
 
@@ -177,6 +203,7 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
 
   async setActive(value: CharacteristicValue) {
     if (value === this.platform.Characteristic.Active.ACTIVE) {
+      this.cancelPending();
       await this.device.set_attribute({ POWER: true });
     } else {
       await this.powerOff();
@@ -185,21 +212,27 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
 
   private async powerOff() {
     // A power off request is ignored while a program is delayed or running,
-    // so cancel the program first.
+    // so cancel the program first and power off once it has settled.
     if (this.isRunning()) {
+      this.cancelPending();
       await this.device.cancel_work();
-      await sleep(SETTLE_DELAY_MS);
+      this.schedule('Power off', () => this.device.set_attribute({ POWER: false }));
+    } else {
+      this.cancelPending();
+      await this.device.set_attribute({ POWER: false });
     }
-    await this.device.set_attribute({ POWER: false });
   }
 
   private async setProgram(mode: number, value: CharacteristicValue) {
     if (value) {
-      if (!this.device.attributes.POWER) {
+      this.cancelPending();
+      if (this.device.attributes.POWER) {
+        await this.device.set_work_mode(mode);
+      } else {
+        // The program is accepted only once the dishwasher has powered on.
         await this.device.set_attribute({ POWER: true });
-        await sleep(SETTLE_DELAY_MS);
+        this.schedule(`Start ${E1Modes[mode]}`, () => this.device.set_work_mode(mode));
       }
-      await this.device.set_work_mode(mode);
     } else if (this.isProgramRunning(mode)) {
       await this.powerOff();
     }
