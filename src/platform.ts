@@ -135,14 +135,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
       if (!this.discoveredDevices.get(device.id)) {
         // This device was not found by network discovery.
         missingDevices++;
-        const accessory = this.accessories.get(this.api.hap.uuid.generate(device.id.toString()));
-        const service = accessory?.services.find((cachedService) => cachedService.UUID !== this.Service.AccessoryInformation.UUID);
-        const characteristic = [this.Characteristic.Active, this.Characteristic.On, this.Characteristic.CurrentHeatingCoolingState].find((candidate) =>
-          service?.testCharacteristic(candidate),
-        );
-        if (service && characteristic) {
-          service.updateCharacteristic(characteristic, new Error('Device not found'));
-        }
+        this.markUnreachable(this.accessories.get(this.api.hap.uuid.generate(device.id.toString())), 'Device not found');
         if (this.discoveredDevices.get(device.id) === undefined) {
           this.discoveredDevices.set(device.id, false);
           this.log.warn(`[${device.name}] Device not found (id: ${device.id}), will retry every ${this.discoveryInterval} seconds`);
@@ -169,6 +162,27 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     //     this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     //   }
     // }
+  }
+
+  /*********************************************************************
+   * markUnreachable
+   * Puts an error on the cached accessory's characteristics so HomeKit shows
+   * "No Response" instead of the last stored values.
+   */
+  private markUnreachable(accessory: MideaAccessory | undefined, reason: string) {
+    const services = accessory?.services.filter((cachedService) => cachedService.UUID !== this.Service.AccessoryInformation.UUID) ?? [];
+    const [service] = services;
+    const characteristic = [this.Characteristic.Active, this.Characteristic.On, this.Characteristic.CurrentHeatingCoolingState].find((candidate) =>
+      service?.testCharacteristic(candidate),
+    );
+    if (service && characteristic) {
+      service.updateCharacteristic(characteristic, new Error(reason));
+    }
+    for (const temperatureService of services) {
+      if (temperatureService.testCharacteristic(this.Characteristic.CurrentTemperature)) {
+        temperatureService.updateCharacteristic(this.Characteristic.CurrentTemperature, new Error(reason));
+      }
+    }
   }
 
   /*********************************************************************
@@ -211,13 +225,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);
-          const service = existingAccessory.services.find((cachedService) => cachedService.UUID !== this.Service.AccessoryInformation.UUID);
-          const characteristic = [this.Characteristic.Active, this.Characteristic.On, this.Characteristic.CurrentHeatingCoolingState].find((candidate) =>
-            service?.testCharacteristic(candidate),
-          );
-          if (service && characteristic) {
-            service.updateCharacteristic(characteristic, new Error('Cannot connect to device'));
-          }
+          this.markUnreachable(existingAccessory, 'Cannot connect to device');
         }
       } else {
         try {
