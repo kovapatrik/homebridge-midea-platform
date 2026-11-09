@@ -108,6 +108,7 @@ type ACOptions = {
   comfortModeSwitch: boolean;
   temperatureSensor: boolean;
   humiditySensor: boolean;
+  energyMonitoring: boolean;
 };
 
 type A1Options = {
@@ -241,6 +242,7 @@ export const defaultDeviceConfig: DeviceConfig = {
     comfortModeSwitch: false,
     temperatureSensor: false,
     humiditySensor: false,
+    energyMonitoring: false,
   },
   A1_options: {
     temperatureSensor: false,

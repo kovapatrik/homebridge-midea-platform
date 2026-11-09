@@ -14,6 +14,7 @@ import { type ACAttributes, AUTO_FAN_SPEED } from '../devices/ac/MideaACDevice.j
 import type { MideaAccessory, MideaPlatform } from '../platform.js';
 import { ACMode, ACServiceType, type DeviceConfig, SwingAngle, SwingMode } from '../platformUtils.js';
 import BaseAccessory, { limitValue } from './BaseAccessory.js';
+import { type EveCharacteristics, eveCharacteristics } from './EveCharacteristics.js';
 
 const outDoorTemperatureSubtype = 'outdoor';
 const displaySubtype = 'display';
@@ -66,6 +67,9 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   private comfortModeService?: Service;
   private temperatureSensorService?: Service;
   private humiditySensorService?: Service;
+
+  private readonly eve: EveCharacteristics;
+  private readonly energyMonitoring: boolean;
 
   private swingAngleMainControl: SwingAngle;
   private heatingThresholdTemperature: number;
@@ -402,6 +406,24 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
       this.accessory.removeService(this.humiditySensorService);
     }
 
+    // Energy monitoring (Eve characteristics on the main service)
+    this.eve = eveCharacteristics(this.platform.api);
+    this.energyMonitoring = this.configDev.AC_options.energyMonitoring;
+    for (const characteristic of [this.eve.Consumption, this.eve.TotalConsumption]) {
+      if (this.energyMonitoring) {
+        this.service.addOptionalCharacteristic(characteristic);
+      } else {
+        const cached = this.service.characteristics.find((c) => c.UUID === characteristic.UUID);
+        if (cached) {
+          this.service.removeCharacteristic(cached);
+        }
+      }
+    }
+    if (this.energyMonitoring) {
+      this.service.getCharacteristic(this.eve.Consumption).onGet(this.getRealtimePower.bind(this));
+      this.service.getCharacteristic(this.eve.TotalConsumption).onGet(this.getTotalEnergyConsumption.bind(this));
+    }
+
     const swingProps = this.configDev.AC_options.swing;
     this.swingAngleMainControl =
       swingProps.mode === SwingMode.VERTICAL || (swingProps.mode === SwingMode.BOTH && swingProps.angleMainControl === SwingAngle.VERTICAL)
@@ -571,6 +593,16 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
           break;
         case 'rate_select':
           this.rateSelectService?.updateCharacteristic(this.platform.Characteristic.Brightness, this.getRateSelect());
+          break;
+        case 'realtime_power':
+          if (this.energyMonitoring) {
+            this.service.updateCharacteristic(this.eve.Consumption, this.getRealtimePower());
+          }
+          break;
+        case 'total_energy_consumption':
+          if (this.energyMonitoring) {
+            this.service.updateCharacteristic(this.eve.TotalConsumption, this.getTotalEnergyConsumption());
+          }
           break;
         default:
           this.platform.log.debug(`[${this.device.name}] Attempt to set unsupported attribute ${k} to ${v}`);
@@ -891,6 +923,14 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
 
   getOutdoorTemperature(): CharacteristicValue {
     return this.device.attributes.OUTDOOR_TEMPERATURE ?? -270;
+  }
+
+  getRealtimePower(): CharacteristicValue {
+    return this.device.attributes.REALTIME_POWER ?? 0;
+  }
+
+  getTotalEnergyConsumption(): CharacteristicValue {
+    return this.device.attributes.TOTAL_ENERGY_CONSUMPTION ?? 0;
   }
 
   getDisplayActive(): CharacteristicValue {

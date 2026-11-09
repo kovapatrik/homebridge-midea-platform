@@ -353,6 +353,11 @@
                   "title": "Humidity Sensor",
                   "description": "Toggles if a separate humidity sensor is created with the accessory. This sensor can be used for automations.",
                   "type": "boolean"
+                },
+                "energyMonitoring": {
+                  "title": "Energy Monitoring",
+                  "description": "Toggles if the realtime power (W) and total energy consumption (kWh) reported by the unit are exposed as Eve characteristics. They are visible in the Eve app, not in the Home app. Not every unit reports them.",
+                  "type": "boolean"
                 }
               }
             },
@@ -754,7 +759,8 @@
                 "devices[].AC_options.sleepModeSwitch",
                 "devices[].AC_options.comfortModeSwitch",
                 "devices[].AC_options.temperatureSensor",
-                "devices[].AC_options.humiditySensor"
+                "devices[].AC_options.humiditySensor",
+                "devices[].AC_options.energyMonitoring"
               ]
             },
             {
