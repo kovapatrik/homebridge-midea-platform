@@ -45,7 +45,8 @@ Providing air conditioner settings is optional and the whole section or individu
     "fanAccessory": false,
     "swingSwitch": false,
     "sleepModeSwitch": false,
-    "sleepModeAccessory": false
+    "sleepModeAccessory": false,
+    "energyMonitoring": false
 }
 ```
 
@@ -78,3 +79,4 @@ Providing air conditioner settings is optional and the whole section or individu
 - **fanAccessory** _(optional)_: Toggles if the fan accessory is created with the accessory. Default is `false`.
 - **swingSwitch** _(optional)_: Toggles if a separate swing on/off switch is created with the accessory. Useful when the `Thermostat` service type is used, or when the fan accessory is disabled, as the swing control is otherwise unavailable. Has no effect if `swing.mode` is `None`. Default is `false`.
 - **sleepModeSwitch** _(optional)_: Toggles if the sleep mode switch is created with the accessory. Default is `false`.
+- **energyMonitoring** _(optional)_: Toggles if the realtime power (W) and the total energy consumption (kWh) reported by the unit are exposed on the accessory, as the Eve `Consumption` and `Total Consumption` characteristics. The Home app does not show them; the Eve app and other HomeKit clients do. Not every unit reports these values: with the `verbose` option on, look for `REALTIME_POWER` in the logs. Default is `false`.
