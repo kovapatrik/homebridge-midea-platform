@@ -1,6 +1,6 @@
 {
   "name": "homebridge-midea-platform",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Homebridge plugin for Midea devices",
   "keywords": [
     "homebridge-plugin"

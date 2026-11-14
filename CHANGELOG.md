@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.4.0...v1.5.0) (2026-11-14)
+
+
+### Features
+
+* **a1:** config to hide water level and fan speed ([dda214a](https://github.com/kovapatrik/homebridge-midea-platform/commit/dda214a15e6834c43bcbe9840843c88bd489e26b))
+* **ac:** expose realtime power and energy consumption ([#225](https://github.com/kovapatrik/homebridge-midea-platform/issues/225)) ([990b3d0](https://github.com/kovapatrik/homebridge-midea-platform/commit/990b3d04f35e93fff0a53e60f9e2778f4069dcdd))
+
+
+### Bug Fixes
+
+* **core:** async queue ([#219](https://github.com/kovapatrik/homebridge-midea-platform/issues/219)) ([178233f](https://github.com/kovapatrik/homebridge-midea-platform/commit/178233f9f1d44e313f64994c8748e32a5fd05ecb))
+* **core:** ui discovery socket handling ([9774899](https://github.com/kovapatrik/homebridge-midea-platform/commit/9774899a5a86260b4cdbbb469739ee8ceaf1af01))
+* mark unreachable cached accessories ([#224](https://github.com/kovapatrik/homebridge-midea-platform/issues/224)) ([d4fdd81](https://github.com/kovapatrik/homebridge-midea-platform/commit/d4fdd8161e087ae085433b8a4b7f79e4b578808d))
+
 ## [1.4.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.3.5...v1.4.0) (2026-10-13)
 
 
