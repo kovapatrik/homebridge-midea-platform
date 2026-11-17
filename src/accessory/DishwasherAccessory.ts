@@ -19,11 +19,27 @@ const programSubtypePrefix = 'program_';
 const saltSensorSubtype = 'saltSensor';
 const rinseAidSensorSubtype = 'rinseAidSensor';
 
-// Time the dishwasher needs after power on before it accepts a program, and
-// after a cancel before it accepts power off.
-// The follow-up command is sent from a timer so that HomeKit handlers return
-// right away.
-const SETTLE_DELAY_MS = 3000;
+// A follow-up command (start a program after power on or after a cancel,
+// power off after a cancel) is sent once the dishwasher reports the state it
+// needs. While waiting, the status is queried every POLL_INTERVAL_MS. Right
+// after power on the dishwasher reports idle before it accepts a start (it only
+// selects the program), so the command is repeated, at most once per
+// POLL_INTERVAL_MS, until the dishwasher reports the expected result. It is
+// dropped after READY_TIMEOUT_MS.
+const POLL_INTERVAL_MS = 2000;
+const READY_TIMEOUT_MS = 30000;
+
+type PendingCommand = {
+  name: string;
+  // The command can be sent.
+  ready: () => boolean;
+  // The command took effect.
+  done: () => boolean;
+  run: () => Promise<void>;
+  deadline: number;
+  poll: NodeJS.Timeout;
+  lastRun?: number;
+};
 
 type ProgramSwitch = {
   mode: number;
@@ -39,8 +55,8 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   // Remaining time at the start of the current run, used as SetDuration so
   // that the Home app can show the countdown.
   private runDuration = 0;
-  // Follow-up command waiting for the dishwasher to settle.
-  private pendingCommand?: NodeJS.Timeout;
+  // Follow-up command waiting for the dishwasher to reach the right state.
+  private pendingCommand?: PendingCommand;
 
   /*********************************************************************
    * Constructor registers all the service types with Homebridge, registers
@@ -152,6 +168,7 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     if (updateState) {
       this.updateState();
     }
+    this.runPendingIfReady();
   }
 
   private updateState() {
@@ -164,24 +181,71 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     }
   }
 
-  // Sends a command after SETTLE_DELAY_MS without blocking the HomeKit
-  // handler. A newer command replaces the pending one.
-  private schedule(name: string, command: () => Promise<void>) {
+  // Sends a command once ready() holds and repeats it until done() holds,
+  // without blocking the HomeKit handler. A newer command replaces the pending one.
+  private whenReady(name: string, ready: () => boolean, done: () => boolean, run: () => Promise<void>) {
     this.cancelPending();
-    this.pendingCommand = setTimeout(() => {
-      this.pendingCommand = undefined;
-      command().catch((e) => {
-        this.platform.log.error(`[${this.device.name}] ${name} failed: ${e}`);
-        this.updateState();
-      });
-    }, SETTLE_DELAY_MS);
+    const poll = setInterval(() => this.pollPending(), POLL_INTERVAL_MS);
+    poll.unref?.();
+    this.pendingCommand = { name, ready, done, run, deadline: Date.now() + READY_TIMEOUT_MS, poll };
+    this.requestStatus();
+  }
+
+  private pollPending() {
+    const pending = this.pendingCommand;
+    if (!pending) {
+      return;
+    }
+    if (Date.now() >= pending.deadline) {
+      this.cancelPending();
+      this.platform.log.error(`[${this.device.name}] ${pending.name} failed: no response from the dishwasher in time.`);
+      this.updateState();
+      return;
+    }
+    // The dishwasher only reports changed values, so retry from here as well.
+    this.runPendingIfReady();
+    this.requestStatus();
+  }
+
+  private requestStatus() {
+    // The response is handled by the device listener and ends up in updateCharacteristics().
+    this.device.refresh_status().catch((e) => this.platform.log.debug(`[${this.device.name}] Status query failed: ${e}`));
+  }
+
+  private runPendingIfReady() {
+    const pending = this.pendingCommand;
+    if (!pending) {
+      return;
+    }
+    if (pending.lastRun !== undefined && pending.done()) {
+      this.cancelPending();
+      return;
+    }
+    const now = Date.now();
+    if (!pending.ready() || (pending.lastRun !== undefined && now - pending.lastRun < POLL_INTERVAL_MS)) {
+      return;
+    }
+    pending.lastRun = now;
+    pending.run().catch((e) => {
+      if (this.pendingCommand === pending) {
+        this.cancelPending();
+      }
+      this.platform.log.error(`[${this.device.name}] ${pending.name} failed: ${e}`);
+      this.updateState();
+    });
   }
 
   private cancelPending() {
     if (this.pendingCommand) {
-      clearTimeout(this.pendingCommand);
+      clearInterval(this.pendingCommand.poll);
       this.pendingCommand = undefined;
     }
+  }
+
+  // Powered on, not off and no program delayed or running.
+  private isIdle(): boolean {
+    const status = this.device.attributes.STATUS;
+    return this.device.attributes.POWER && status !== undefined && status !== E1Status.OFF && !this.isRunning();
   }
 
   private isRunning(): boolean {
@@ -216,7 +280,12 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
     if (this.isRunning()) {
       this.cancelPending();
       await this.device.cancel_work();
-      this.schedule('Power off', () => this.device.set_attribute({ POWER: false }));
+      this.whenReady(
+        'Power off',
+        () => !this.isRunning(),
+        () => !this.device.attributes.POWER,
+        () => this.device.set_attribute({ POWER: false }),
+      );
     } else {
       this.cancelPending();
       await this.device.set_attribute({ POWER: false });
@@ -226,13 +295,26 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   private async setProgram(mode: number, value: CharacteristicValue) {
     if (value) {
       this.cancelPending();
-      if (this.device.attributes.POWER) {
-        await this.device.set_work_mode(mode);
-      } else {
-        // The program is accepted only once the dishwasher has powered on.
-        await this.device.set_attribute({ POWER: true });
-        this.schedule(`Start ${E1Modes[mode]}`, () => this.device.set_work_mode(mode));
+      if (this.isProgramRunning(mode)) {
+        return;
       }
+      if (this.isIdle()) {
+        await this.device.set_work_mode(mode);
+        return;
+      }
+      if (this.isRunning()) {
+        // Another program is delayed or running: cancel it first.
+        await this.device.cancel_work();
+      } else if (!this.device.attributes.POWER) {
+        await this.device.set_attribute({ POWER: true });
+      }
+      // The program is accepted only once the dishwasher is powered on and idle.
+      this.whenReady(
+        `Start ${E1Modes[mode]}`,
+        () => this.isIdle(),
+        () => this.isProgramRunning(mode),
+        () => this.device.set_work_mode(mode),
+      );
     } else if (this.isProgramRunning(mode)) {
       await this.powerOff();
     }
