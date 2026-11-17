@@ -34,6 +34,12 @@ function createDevice(deviceConfig = structuredClone(defaultDeviceConfig)) {
   device.build_send = async (message) => {
     sent.push(message);
   };
+  // Status queries are only counted; tests report the device state with report().
+  device.statusQueries = 0;
+  device.refresh_status = async () => {
+    device.statusQueries++;
+    return true;
+  };
   return { device, sent };
 }
 
@@ -115,59 +121,140 @@ test('program switch starts the program and follows the device state', async () 
   assert.equal(program.getCharacteristic(Characteristic.On).value, false);
 });
 
-// Lets a scheduled follow-up command run to completion.
+// Lets a follow-up command run to completion.
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
-test('turning the valve off while running cancels the program, then powers off without blocking', async (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
+const powerMessages = (sent) => sent.filter((m) => m.constructor.name === 'MessagePower').map((m) => m.power);
+
+test('turning the valve off while running cancels the program, then powers off once the device is idle', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
   const { accessory, device, sent } = createAccessory();
   const valve = accessory.getService(Service.Valve);
   report(device, { POWER: true, STATUS: E1Status.RUNNING, MODE: 0x01 });
 
-  // The handler returns right after the cancel command.
+  // The handler returns right after the cancel command and queries the status.
   await valve.getCharacteristic(Characteristic.Active).handleSetRequest(Characteristic.Active.INACTIVE);
   assert.equal(sent.length, 1);
   assert.deepEqual([...sent[0]._body], [E1Status.CANCEL, 0x01, 0x00, 0x00]);
+  assert.equal(device.statusQueries, 1);
 
-  t.mock.timers.tick(3000);
+  // Still running: keep polling, no power off yet.
+  t.mock.timers.tick(2000);
+  report(device, { STATUS: E1Status.RUNNING });
   await flush();
-  assert.equal(sent.length, 2);
-  assert.equal(sent[1].constructor.name, 'MessagePower');
-  assert.equal(sent[1].power, false);
+  assert.equal(device.statusQueries, 2);
+  assert.deepEqual(powerMessages(sent), []);
+
+  report(device, { STATUS: E1Status.CANCEL, MODE: 0 });
+  await flush();
+  assert.deepEqual(powerMessages(sent), [false]);
+
+  // Done: no more polling.
+  t.mock.timers.tick(10000);
+  assert.equal(device.statusQueries, 2);
 });
 
-test('program switch powers on, then starts the program without blocking', async (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
+test('program switch powers on, then starts the program once the device is idle', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
   const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'fast_wash' }] });
   const program = accessory.getServiceById(Service.Switch, 'program_fast_wash');
+  report(device, { POWER: false, STATUS: E1Status.OFF });
 
   await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
-  assert.equal(sent.length, 1);
-  assert.equal(sent[0].constructor.name, 'MessagePower');
-  assert.equal(sent[0].power, true);
-  report(device, { POWER: true, STATUS: E1Status.CANCEL });
+  assert.deepEqual(powerMessages(sent), [true]);
+  await flush();
+  // Power is set optimistically, but the device has not reported it yet.
+  assert.deepEqual(workBodies(sent), []);
 
-  t.mock.timers.tick(3000);
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
   await flush();
   assert.deepEqual(workBodies(sent), [[0x03, 0x07, 0x00, 0x00]]);
 });
 
+test('the start is repeated until the device reports the program running', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'fast_wash' }] });
+  const program = accessory.getServiceById(Service.Switch, 'program_fast_wash');
+  report(device, { POWER: false, STATUS: E1Status.OFF });
+
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
+  await flush();
+  assert.equal(workBodies(sent).length, 1);
+
+  // Right after power on the program is only selected, not started.
+  report(device, { MODE: 0x07 });
+  await flush();
+  assert.equal(workBodies(sent).length, 1);
+
+  t.mock.timers.tick(2000);
+  await flush();
+  assert.equal(workBodies(sent).length, 2);
+
+  report(device, { STATUS: E1Status.RUNNING });
+  await flush();
+  const queries = device.statusQueries;
+  t.mock.timers.tick(10000);
+  await flush();
+  assert.equal(workBodies(sent).length, 2);
+  assert.equal(device.statusQueries, queries);
+  assert.equal(program.getCharacteristic(Characteristic.On).value, true);
+});
+
+test('switching to another program cancels the running one first', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }, { mode: 'fast_wash' }] });
+  const fast = accessory.getServiceById(Service.Switch, 'program_fast_wash');
+  report(device, { POWER: true, STATUS: E1Status.RUNNING, MODE: 0x04 });
+
+  await fast.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  assert.deepEqual(workBodies(sent), [[E1Status.CANCEL, 0x04, 0x00, 0x00]]);
+
+  report(device, { STATUS: E1Status.CANCEL, MODE: 0 });
+  await flush();
+  assert.deepEqual(workBodies(sent), [
+    [E1Status.CANCEL, 0x04, 0x00, 0x00],
+    [0x03, 0x07, 0x00, 0x00],
+  ]);
+  assert.deepEqual(powerMessages(sent), []);
+});
+
 test('a newer command replaces the pending follow-up', async (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const { accessory, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
   const valve = accessory.getService(Service.Valve);
   const program = accessory.getServiceById(Service.Switch, 'program_eco_wash');
+  report(device, { POWER: false, STATUS: E1Status.OFF });
 
   await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
   await valve.getCharacteristic(Characteristic.Active).handleSetRequest(Characteristic.Active.INACTIVE);
 
-  t.mock.timers.tick(3000);
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
   await flush();
-  assert.equal(workBodies(sent).length, 0);
-  assert.deepEqual(
-    sent.map((m) => m.power),
-    [true, false],
-  );
+  assert.deepEqual(workBodies(sent), []);
+  assert.deepEqual(powerMessages(sent), [true, false]);
+});
+
+test('the follow-up command is dropped if the device does not get ready in time', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
+  const program = accessory.getServiceById(Service.Switch, 'program_eco_wash');
+  report(device, { POWER: false, STATUS: E1Status.OFF });
+
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  for (let i = 0; i < 15; i++) {
+    t.mock.timers.tick(2000);
+  }
+  const queries = device.statusQueries;
+  assert.ok(queries > 1);
+
+  // Ready too late: nothing is sent and polling has stopped.
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
+  await flush();
+  t.mock.timers.tick(10000);
+  assert.deepEqual(workBodies(sent), []);
+  assert.equal(device.statusQueries, queries);
+  assert.equal(program.getCharacteristic(Characteristic.On).value, false);
 });
 
 test('salt and rinse aid sensors open on shortage', () => {
