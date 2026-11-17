@@ -293,6 +293,7 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
   }
 
   private async setProgram(mode: number, value: CharacteristicValue) {
+    const startName = `Start ${E1Modes[mode]}`;
     if (value) {
       this.cancelPending();
       if (this.isProgramRunning(mode)) {
@@ -310,12 +311,14 @@ export default class DishwasherAccessory extends BaseAccessory<MideaE1Device> {
       }
       // The program is accepted only once the dishwasher is powered on and idle.
       this.whenReady(
-        `Start ${E1Modes[mode]}`,
+        startName,
         () => this.isIdle(),
         () => this.isProgramRunning(mode),
         () => this.device.set_work_mode(mode),
       );
-    } else if (this.isProgramRunning(mode)) {
+    } else if (this.isProgramRunning(mode) || this.pendingCommand?.name === startName) {
+      // Also drop a start that is still waiting for the dishwasher, so that the
+      // program does not start after its switch was turned off.
       await this.powerOff();
     }
   }

@@ -235,6 +235,23 @@ test('a newer command replaces the pending follow-up', async (t) => {
   assert.deepEqual(powerMessages(sent), [true, false]);
 });
 
+test('turning a program switch off before the program started drops the pending start', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
+  const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
+  const program = accessory.getServiceById(Service.Switch, 'program_eco_wash');
+  report(device, { POWER: false, STATUS: E1Status.OFF });
+
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(true);
+  await program.getCharacteristic(Characteristic.On).handleSetRequest(false);
+
+  report(device, { POWER: true, STATUS: E1Status.CANCEL });
+  await flush();
+  t.mock.timers.tick(10000);
+  await flush();
+  assert.deepEqual(workBodies(sent), []);
+  assert.deepEqual(powerMessages(sent), [true, false]);
+});
+
 test('the follow-up command is dropped if the device does not get ready in time', async (t) => {
   t.mock.timers.enable({ apis: ['setInterval', 'Date'] });
   const { accessory, device, sent } = createAccessory({ programSwitches: [{ mode: 'eco_wash' }] });
