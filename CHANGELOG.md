@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.5.0...v1.6.0) (2026-11-17)
+
+
+### Features
+
+* **dishwasher:** program switches, cancel before power off, fix state updates ([#221](https://github.com/kovapatrik/homebridge-midea-platform/issues/221)) ([7c111e7](https://github.com/kovapatrik/homebridge-midea-platform/commit/7c111e76f3e01463e362101a2d1fcfe6f7da4ab5))
+
 ## [1.5.0](https://github.com/kovapatrik/homebridge-midea-platform/compare/v1.4.0...v1.5.0) (2026-11-14)
 
 
