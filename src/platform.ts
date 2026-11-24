@@ -218,10 +218,13 @@ export class MideaPlatform implements DynamicPlatformPlugin {
               device.setCredentials(Buffer.from(existingAccessory.context.token, 'hex'), Buffer.from(existingAccessory.context.key, 'hex'));
             }
           }
-          if (!(await device.connect(true))) {
-            throw new Error(`Cannot connect to device ${device_info.ip}:${device_info.port}`);
-          }
+          const connected = await device.connect(true);
           createAccessory(this, existingAccessory, device, deviceConfig);
+          if (!connected) {
+            this.markUnreachable(existingAccessory, 'Cannot connect to device');
+            // Keep retrying after a temporary startup failure, as for new accessories.
+            device.open();
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.stack : err;
           this.log.error(`Cannot connect to device from cache ${device_info.ip}:${device_info.port}, error:\n${msg}`);

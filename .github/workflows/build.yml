@@ -31,6 +31,9 @@ jobs:
       - name: Format
         run: npm run fmt:check
 
+      - name: Test the project
+        run: npm test
+
       - name: Build the project
         run: npm run build
 
